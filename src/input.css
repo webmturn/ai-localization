@@ -1,0 +1,299 @@
+/* Tailwind CSS 指令 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .content-auto {
+        content-visibility: auto;
+    }
+    .scrollbar-thin {
+        scrollbar-width: thin;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .text-shadow {
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    .transition-height {
+        transition: height 0.3s ease;
+    }
+}
+
+/* 术语库标签页样式 */
+.terminology-tab {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+/* 导入区域样式 */
+
+/* 表格样式 */
+
+/* 固定表头 */
+#terminologyList thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* 移动端侧边栏样式 */
+.show-sidebar {
+    transform: translateX(0) !important;
+}
+
+/* 移动端模态框优化 */
+@media (max-width: 767px) {
+    .modal-content {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+}
+
+#sourceScrollArea::-webkit-scrollbar,
+#targetScrollArea::-webkit-scrollbar {
+    display: none;
+}
+
+#sourceScrollArea,
+#targetScrollArea {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 修复翻译容器宽度问题 */
+.responsive-translation-container {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    position: relative !important;
+}
+
+.responsive-translation-container .translation-columns {
+    width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    position: relative !important;
+}
+
+/* 移动设备（默认）：垂直堆叠 */
+.responsive-translation-container .translation-columns {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.responsive-translation-container .translation-column {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+    flex: none !important; /* 防止flex增长 */
+    position: relative !important;
+}
+
+/* 平板及以上设备：并排显示 */
+@media (min-width: 768px) {
+    .responsive-translation-container .translation-columns {
+        flex-direction: row !important;
+    }
+    
+    .responsive-translation-container .translation-column {
+        width: 50% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        flex: 0 0 50% !important; /* 固定50%宽度，不增长不收缩 */
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .translation-column #sourceList,
+    .translation-column #targetList {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+}
+
+/* 确保翻译列表容器填满可用空间 */
+.translation-column > .flex-1 {
+    flex: 1 !important;
+    min-height: 0 !important;
+    position: relative !important;
+}
+
+.translation-column #sourceList,
+.translation-column #targetList,
+.translation-column #mobileCombinedList {
+    width: 100% !important;
+    min-height: 100% !important;
+}
+
+@media (max-width: 767px) {
+    .translation-column #mobileCombinedList {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+}
+
+/* 统一管理翻译项的宽度、高度和过渡效果 */
+
+
+/* 移动设备优化 */
+@media (max-width: 767px) {
+    .responsive-translation-container .translation-column {
+        min-height: 250px !important; /* 增加最小高度确保可读性 */
+    }
+}
+
+/* 横屏优化 */
+@media (min-width: 768px) and (orientation: landscape) {
+    .responsive-translation-container .translation-column {
+        min-height: 300px !important;
+    }
+    
+    .responsive-translation-container .translation-item p.text-sm,
+    .responsive-translation-container .translation-item textarea {
+        min-height: 80px !important;
+    }
+}
+
+/* 超大屏幕优化 */
+@media (min-width: 1536px) {
+    .responsive-translation-container .translation-columns {
+        max-width: 2400px !important;
+        margin: 0 auto !important;
+    }
+}
+
+
+/* ==================== 自定义样式 ==================== */
+.file-drop-area {
+    transition: all 0.3s ease;
+}
+
+ /* 翻译项交互样式 */
+ .progress-bar {
+     transition: width 0.3s ease;
+ }
+ .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+ /* 自定义样式 - 新增 */
+ .slide-in {
+     animation: slideIn 0.3s ease-in-out;
+ }
+ @keyframes slideIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 分页栏样式已迁移到Tailwind类 */
+
+/* 通知和分页栏布局调整 */
+#paginationContainer {
+    position: relative;
+    z-index: 10;
+    transition: margin-bottom 0.3s ease;
+}
+
+#notification {
+    z-index: 100;
+}
+
+/* 当通知显示时，调整布局 */
+body.has-notification #paginationContainer {
+    margin-bottom: 0 !important;
+}
+
+/* 深色模式例外：滚动条 / checkbox / radio / range */
+ .dark-mode ::-webkit-scrollbar {
+    background-color: #111827; /* 滚动条背景 */
+}
+
+ .dark-mode .scrollbar-thin {
+    scrollbar-color: #374151 #111827;
+ }
+
+ .dark-mode .scrollbar-thin::-webkit-scrollbar {
+    background-color: #111827;
+ }
+
+ .dark-mode .scrollbar-thin::-webkit-scrollbar-track {
+    background-color: #111827;
+ }
+
+ .dark-mode .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #374151;
+ }
+
+ .dark-mode .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563;
+ }
+
+ .dark-mode ::-webkit-scrollbar-thumb {
+    background-color: #374151; /* 滚动条滑块 */
+}
+
+ .dark-mode ::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563; /* 悬停状态 */
+}
+
+/* 深色模式下的checkbox和radio */
+ .dark-mode input[type="checkbox"],
+ .dark-mode input[type="radio"] {
+    background-color: #4b5563 !important;
+    border-color: #6b7280 !important;
+}
+
+ .dark-mode input[type="checkbox"]:checked,
+ .dark-mode input[type="radio"]:checked {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+}
+
+/* 深色模式下的range滑块 */
+ .dark-mode input[type="range"] {
+    background-color: #4b5563 !important;
+}
+
+ .dark-mode input[type="range"]::-webkit-slider-thumb {
+    background-color: #2563eb !important;
+}
+
+ .dark-mode input[type="range"]::-moz-range-thumb {
+    background-color: #2563eb !important;
+}
+
+/* 字体大小 */
+html.text-sm {
+    font-size: 14px;
+}
+
+html.text-base {
+    font-size: 16px;
+}
+
+html.text-lg {
+    font-size: 18px;
+}

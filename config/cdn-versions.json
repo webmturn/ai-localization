@@ -1,0 +1,21 @@
+﻿{
+    "font-awesome":  {
+                         "version":  "4.7.0",
+                         "css":  "https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css",
+                         "font":  "https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/fonts/fontawesome-webfont.woff2",
+                         "localPath":  {
+                                           "css":  "public/lib/font-awesome/font-awesome.min.css",
+                                           "font":  "public/lib/font-awesome/fonts/fontawesome-webfont.woff2"
+                                       }
+                     },
+    "chart.js":  {
+                     "version":  "4.5.1",
+                     "url":  "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js",
+                     "localPath":  "public/lib/chart.js/chart.umd.min.js"
+                 },
+    "sheetjs":  {
+                    "version":  "0.20.1",
+                    "url":  "https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js",
+                    "localPath":  "public/lib/sheetjs/xlsx.full.min.js"
+                }
+}

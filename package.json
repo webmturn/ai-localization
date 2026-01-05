@@ -1,0 +1,18 @@
+{
+  "name": "translation-tool",
+  "version": "1.0.0",
+  "description": "智能翻译工具 - 多格式本地化翻译助手",
+  "scripts": {
+    "build-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify --config ./config/tailwind.config.js",
+    "watch-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch --config ./config/tailwind.config.js",
+    "update-cdn": "powershell -ExecutionPolicy Bypass -File ./scripts/update-cdn.ps1",
+    "check-versions": "powershell -ExecutionPolicy Bypass -File ./scripts/check-latest-versions.ps1",
+    "auto-update": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-update-versions.ps1 && npm run update-cdn"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

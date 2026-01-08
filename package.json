@@ -4,13 +4,28 @@
   "description": "智能翻译工具 - 多格式本地化翻译助手",
   "scripts": {
     "build-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify --config ./config/tailwind.config.js",
+    "postbuild-css": "node -e \"const fs=require('fs');const p='public/styles.css';let s=fs.readFileSync(p,'utf8');s=s.replace(/-webkit-text-size-adjust\\s*:\\s*100%;(?!text-size-adjust)/g,'-webkit-text-size-adjust:100%;text-size-adjust:100%;');fs.writeFileSync(p,s);\"",
     "watch-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch --config ./config/tailwind.config.js",
     "update-cdn": "powershell -ExecutionPolicy Bypass -File ./scripts/update-cdn.ps1",
     "check-versions": "powershell -ExecutionPolicy Bypass -File ./scripts/check-latest-versions.ps1",
-    "auto-update": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-update-versions.ps1 && npm run update-cdn"
+    "auto-update": "powershell -ExecutionPolicy Bypass -File ./scripts/auto-update-versions.ps1 && npm run update-cdn",
+    "build-production": "powershell -ExecutionPolicy Bypass -File ./scripts/build-production.ps1",
+    "build-prod": "npm run build-production"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "translation",
+    "i18n",
+    "localization",
+    "xliff",
+    "po",
+    "json",
+    "excel"
+  ],
+  "author": "webmturn <webmturn@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webmturn/ai-localization.git"
+  },
   "license": "MIT",
   "devDependencies": {
     "tailwindcss": "^3.4.1"

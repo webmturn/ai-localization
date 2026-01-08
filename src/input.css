@@ -3,6 +3,50 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html {
+        text-size-adjust: 100%;
+    }
+
+    button,
+    a,
+    [role="button"],
+    .cursor-pointer {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    a,
+    [role="button"],
+    .cursor-pointer {
+        transition: transform 80ms ease, filter 120ms ease;
+    }
+
+    button:active,
+    a:active,
+    [role="button"]:active,
+    .cursor-pointer:active {
+        transform: translateY(1px) scale(0.98);
+        filter: brightness(0.98);
+    }
+
+    button:disabled,
+    button[aria-disabled="true"],
+    [role="button"][aria-disabled="true"] {
+        transform: none;
+        filter: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        button,
+        a,
+        [role="button"],
+        .cursor-pointer {
+            transition: none;
+        }
+    }
+}
+
 @layer utilities {
     .content-auto {
         content-visibility: auto;
@@ -42,9 +86,25 @@
     z-index: 10;
 }
 
-/* 移动端侧边栏样式 */
-.show-sidebar {
-    transform: translateX(0) !important;
+/* 视口容器：固定占满屏幕，防止内部内容撑开整页和左右侧栏 */
+#appViewport {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 0;
+}
+
+/* 桌面端：左右侧栏高度严格限制为 main 的 100%，不随内容撑开 */
+@media (min-width: 768px) {
+    #appViewport aside#leftSidebar,
+    #appViewport aside#rightSidebar {
+        height: 100%;
+        max-height: 100%;
+    }
 }
 
 /* 移动端模态框优化 */
@@ -67,109 +127,531 @@
     scrollbar-width: none;
 }
 
-/* 修复翻译容器宽度问题 */
-.responsive-translation-container {
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 0 !important;
-    position: relative !important;
+/* 
+ * 翻译容器响应式布局
+ * 使用 @layer components 和高特异性选择器替代 !important
+ */
+@layer components {
+    /* 基础容器样式 */
+    html body .responsive-translation-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        position: relative;
+    }
+
+    html body .responsive-translation-container .translation-columns {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    html body .responsive-translation-container .translation-column {
+        width: 100%;
+        height: auto;
+        min-height: 200px;
+        flex: none;
+        position: relative;
+    }
+
+    /* 确保翻译列表容器填满可用空间 */
+    html body .translation-column > .flex-1 {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+    }
+
+    html body .translation-column #sourceList,
+    html body .translation-column #targetList,
+    html body .translation-column #mobileCombinedList {
+        width: 100%;
+        min-height: 100%;
+    }
 }
 
-.responsive-translation-container .translation-columns {
-    width: 100% !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    position: relative !important;
+/* 表头行：与下方两列等宽，桌面端各 50%；仅桌面端显示列间竖线 */
+.translation-headers {
+    display: flex;
+    flex-direction: row;
 }
 
-/* 移动设备（默认）：垂直堆叠 */
-.responsive-translation-container .translation-columns {
-    display: flex !important;
-    flex-direction: column !important;
+#translationScrollWrapper,
+.translation-scroll-wrapper {
+    overflow-anchor: none;
 }
-
-.responsive-translation-container .translation-column {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 200px !important;
-    flex: none !important; /* 防止flex增长 */
-    position: relative !important;
-}
-
-/* 平板及以上设备：并排显示 */
 @media (min-width: 768px) {
-    .responsive-translation-container .translation-columns {
-        flex-direction: row !important;
+    html body .translation-headers .translation-column-header {
+        flex: 0 0 50%;
+        width: 50%;
+    }
+    html body .translation-headers .translation-column-header-source {
+        border-right: 1px solid #e5e7eb;
+    }
+    .dark-mode .translation-headers .translation-column-header-source {
+        border-right-color: #374151;
+    }
+}
+
+/* 平板及以上设备：并排显示，仅下方滚动区域滚动以保持原文/译文同行对齐 */
+@media (min-width: 768px) {
+    html body .responsive-translation-container .translation-scroll-wrapper .translation-columns {
+        flex-direction: row;
+        flex: none;
+        align-items: stretch;
     }
     
-    .responsive-translation-container .translation-column {
-        width: 50% !important;
-        height: 100% !important;
-        min-height: 0 !important;
-        flex: 0 0 50% !important; /* 固定50%宽度，不增长不收缩 */
-        display: flex !important;
-        flex-direction: column !important;
+    html body .responsive-translation-container .translation-column {
+        width: 50%;
+        height: auto;
+        min-height: 0;
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
     }
 
-    .translation-column #sourceList,
-    .translation-column #targetList {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.5rem !important;
+    /* 桌面端：原文/译文列不单独滚动，由外层滚动区域整体滚动，保持同行对齐 */
+    html body .responsive-translation-container #sourceScrollArea,
+    html body .responsive-translation-container #targetScrollArea {
+        flex: none;
+        overflow: visible;
+        min-height: 0;
     }
-}
 
-/* 确保翻译列表容器填满可用空间 */
-.translation-column > .flex-1 {
-    flex: 1 !important;
-    min-height: 0 !important;
-    position: relative !important;
-}
-
-.translation-column #sourceList,
-.translation-column #targetList,
-.translation-column #mobileCombinedList {
-    width: 100% !important;
-    min-height: 100% !important;
+    html body .translation-column #sourceList,
+    html body .translation-column #targetList {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 }
 
 @media (max-width: 767px) {
-    .translation-column #mobileCombinedList {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.5rem !important;
+    html body .translation-column #mobileCombinedList {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    /* 移动端列不设最小高度，避免空列表时出现大块空白 */
+    html body .responsive-translation-container .translation-column {
+        min-height: 0;
     }
 }
 
 /* 统一管理翻译项的宽度、高度和过渡效果 */
 
+/* ==================== 翻译状态可视化指示条 ==================== */
+.translation-item {
+    position: relative;
+    padding-left: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+/* 状态指示条基础样式 */
+.translation-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 3px;
+    border-radius: 2px;
+    background-color: #e5e7eb;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 深色模式下的默认状态 */
+.dark-mode .translation-item::before {
+    background-color: #374151;
+}
+
+/* 未翻译状态 - 浅灰色 */
+.translation-item[data-status="pending"]::before {
+    background-color: #d1d5db;
+}
+.dark-mode .translation-item[data-status="pending"]::before {
+    background-color: #4b5563;
+}
+
+/* 翻译中状态 - 蓝色脉冲动画 */
+.translation-item[data-status="translating"]::before {
+    background-color: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(59, 130, 246, 0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 12px rgba(59, 130, 246, 0.6); }
+}
+
+/* 已翻译状态 - 绿色 */
+.translation-item[data-status="translated"]::before {
+    background-color: #10b981;
+}
+.dark-mode .translation-item[data-status="translated"]::before {
+    background-color: #34d399;
+}
+
+/* 有问题状态 - 红色 */
+.translation-item[data-status="error"]::before {
+    background-color: #ef4444;
+}
+.dark-mode .translation-item[data-status="error"]::before {
+    background-color: #f87171;
+}
+
+/* 需要审核状态 - 橙色 */
+.translation-item[data-status="review"]::before {
+    background-color: #f59e0b;
+}
+.dark-mode .translation-item[data-status="review"]::before {
+    background-color: #fbbf24;
+}
+
+/* 选中状态增强 */
+.translation-item.selected::before {
+    width: 4px;
+    box-shadow: 0 0 6px currentColor;
+}
+
+/* ==================== 按钮点击旋转效果（可复用） ==================== */
+.btn-click-spin {
+    animation: btn-spin-once 0.45s ease;
+}
+
+@keyframes btn-spin-once {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 用于交换按钮等仅旋转 180deg 的变体 */
+.btn-click-spin-180 {
+    animation: btn-spin-once-180 0.35s ease;
+}
+
+@keyframes btn-spin-once-180 {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(180deg);
+    }
+}
+
+/* ==================== 工具栏统一尺寸 ==================== */
+/* 工具栏按钮与选择框统一高度，便于对齐 */
+.toolbar-btn {
+    min-height: 2.25rem;
+    line-height: 1.25rem;
+}
+
+.toolbar-control {
+    min-height: 2.25rem;
+    display: flex;
+    align-items: center;
+}
+
+/* ==================== 紧凑语言选择器样式 ==================== */
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.language-switcher.toolbar-control {
+    padding: 0.25rem 0.75rem;
+    min-height: 2.25rem;
+}
+
+.dark-mode .language-switcher {
+    background-color: #374151;
+}
+
+.language-switcher:hover {
+    background-color: #e5e7eb;
+}
+
+.dark-mode .language-switcher:hover {
+    background-color: #4b5563;
+}
+
+.language-switcher select {
+    background: transparent;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    min-width: 4rem;
+    height: 1.75rem;
+    line-height: 1.25rem;
+}
+
+.dark-mode .language-switcher select {
+    color: #f3f4f6;
+    background-color: transparent;
+    /* 让原生下拉框在夜间模式使用深色主题 */
+    color-scheme: dark;
+}
+
+.dark-mode .language-switcher select option {
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+.language-switcher select:focus {
+    outline: none;
+}
+
+.language-switcher .swap-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.375rem;
+    color: #6b7280;
+    transition: all 0.2s ease;
+}
+
+.language-switcher .swap-btn:hover {
+    background-color: #dbeafe;
+    color: #3b82f6;
+}
+
+.dark-mode .language-switcher .swap-btn {
+    color: #9ca3af;
+}
+
+.dark-mode .language-switcher .swap-btn:hover {
+    background-color: #1e3a5f;
+    color: #60a5fa;
+}
+
+/* ==================== 翻译引擎选择框 - 与工具栏统一尺寸 ==================== */
+.toolbar-engine-select {
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem;
+}
+
+#translationEngine {
+    background: transparent;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    padding: 0.25rem 0.25rem 0.25rem 0;
+    min-width: 5.5rem;
+    height: 1.75rem;
+    line-height: 1.25rem;
+    outline: none;
+}
+
+#translationEngine:focus {
+    outline: none;
+}
+
+.dark-mode #translationEngine {
+    color: #f3f4f6;
+    background-color: transparent;
+    color-scheme: dark;
+}
+
+.dark-mode #translationEngine option {
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+/* 工具栏内翻译引擎选择框 - 夜间模式（保留兼容） */
+.dark-mode .language-switcher + div select,
+.dark-mode .toolbar-engine-select select {
+    color: #f3f4f6;
+    background-color: transparent;
+    color-scheme: dark;
+}
+
+.dark-mode .language-switcher + div select option,
+.dark-mode .toolbar-engine-select select option {
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+/* 全局：夜间模式下工具栏区域所有 select 下拉框深色主题 */
+.dark-mode main select {
+    color-scheme: dark;
+}
+
+/* ==================== 侧边栏可调整宽度 ==================== */
+.sidebar-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background-color 0.2s ease;
+    z-index: 20;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer.resizing {
+    background-color: #3b82f6;
+}
+
+.sidebar-resizer-left {
+    right: -2px;
+}
+
+.sidebar-resizer-right {
+    left: -2px;
+}
+
+/* 拖拽时的视觉反馈 */
+body.sidebar-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+body.sidebar-resizing * {
+    cursor: col-resize;
+}
+
+/* 侧边栏最小/最大宽度 */
+@media (min-width: 768px) {
+    #leftSidebar {
+        min-width: 200px;
+        max-width: 500px;
+    }
+
+    #rightSidebar {
+        min-width: 280px;
+        max-width: 600px;
+    }
+}
+
+/* ==================== 标签页视觉增强 ==================== */
+.sidebar-tabs {
+    display: flex;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.5rem 0.5rem 0;
+    gap: 0.25rem;
+}
+
+.dark-mode .sidebar-tabs {
+    background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+
+.sidebar-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #6b7280;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 0.5rem 0.5rem 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.sidebar-tab:hover:not(.active) {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.dark-mode .sidebar-tab {
+    color: #9ca3af;
+}
+
+.dark-mode .sidebar-tab:hover:not(.active) {
+    color: #e5e7eb;
+    background-color: #374151;
+}
+
+.sidebar-tab.active {
+    color: #3b82f6;
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+    margin-bottom: -1px;
+    padding-bottom: calc(0.625rem + 1px);
+}
+
+.dark-mode .sidebar-tab.active {
+    color: #60a5fa;
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+.sidebar-tab .tab-icon {
+    font-size: 0.875rem;
+}
+
+.sidebar-tab .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 9999px;
+}
+
+.sidebar-tab.active .tab-badge {
+    background-color: #3b82f6;
+}
 
 /* 移动设备优化 */
 @media (max-width: 767px) {
-    .responsive-translation-container .translation-column {
-        min-height: 250px !important; /* 增加最小高度确保可读性 */
+    html body .responsive-translation-container .translation-column {
+        min-height: 250px;
     }
 }
 
 /* 横屏优化 */
 @media (min-width: 768px) and (orientation: landscape) {
-    .responsive-translation-container .translation-column {
-        min-height: 300px !important;
+    html body .responsive-translation-container .translation-column {
+        min-height: 300px;
     }
     
-    .responsive-translation-container .translation-item p.text-sm,
-    .responsive-translation-container .translation-item textarea {
-        min-height: 80px !important;
+    html body .responsive-translation-container .translation-item p.text-sm,
+    html body .responsive-translation-container .translation-item textarea {
+        min-height: 80px;
     }
 }
 
 /* 超大屏幕优化 */
 @media (min-width: 1536px) {
-    .responsive-translation-container .translation-columns {
-        max-width: 2400px !important;
-        margin: 0 auto !important;
+    html body .responsive-translation-container .translation-columns {
+        max-width: 2400px;
+        margin: 0 auto;
     }
 }
 
@@ -221,10 +703,18 @@
     z-index: 100;
 }
 
-/* 当通知显示时，调整布局 */
-body.has-notification #paginationContainer {
-    margin-bottom: 0 !important;
+/* 当通知显示时，调整布局 - 使用高特异性选择器 */
+html body.has-notification #paginationContainer {
+    margin-bottom: 0;
 }
+
+ body {
+    color-scheme: light;
+ }
+
+ body.dark-mode {
+    color-scheme: dark;
+ }
 
 /* 深色模式例外：滚动条 / checkbox / radio / range */
  .dark-mode ::-webkit-scrollbar {
@@ -259,33 +749,37 @@ body.has-notification #paginationContainer {
     background-color: #4b5563; /* 悬停状态 */
 }
 
-/* 深色模式下的checkbox和radio */
- .dark-mode input[type="checkbox"],
- .dark-mode input[type="radio"] {
-    background-color: #4b5563 !important;
-    border-color: #6b7280 !important;
+/* 
+ * 深色模式下的checkbox和radio
+ * 注意：表单控件需要覆盖浏览器默认样式，使用高特异性选择器
+ * 如果样式不生效，可能需要恢复 !important
+ */
+html body.dark-mode input[type="checkbox"],
+html body.dark-mode input[type="radio"] {
+    background-color: #4b5563;
+    border-color: #6b7280;
 }
 
- .dark-mode input[type="checkbox"]:checked,
- .dark-mode input[type="radio"]:checked {
-    background-color: #2563eb !important;
-    border-color: #2563eb !important;
+html body.dark-mode input[type="checkbox"]:checked,
+html body.dark-mode input[type="radio"]:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
 }
 
 /* 深色模式下的range滑块 */
- .dark-mode input[type="range"] {
-    background-color: #4b5563 !important;
+html body.dark-mode input[type="range"] {
+    background-color: #4b5563;
 }
 
- .dark-mode input[type="range"]::-webkit-slider-thumb {
-    background-color: #2563eb !important;
+html body.dark-mode input[type="range"]::-webkit-slider-thumb {
+    background-color: #2563eb;
 }
 
- .dark-mode input[type="range"]::-moz-range-thumb {
-    background-color: #2563eb !important;
+html body.dark-mode input[type="range"]::-moz-range-thumb {
+    background-color: #2563eb;
 }
 
-/* 字体大小 */
+/* 字体大小：作用于根元素，页面内容通过 rem 继承 */
 html.text-sm {
     font-size: 14px;
 }

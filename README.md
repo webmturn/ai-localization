@@ -2,6 +2,8 @@
 
 一个功能强大的本地化翻译工具，支持多种文件格式的翻译和管理。
 
+**仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
+
 ## ✨ 特性
 
 - 📝 支持多种文件格式（JSON, XLIFF, PO, Excel 等）
@@ -14,15 +16,17 @@
 
 ## 🚀 快速开始
 
+> **⚠️ 首次使用必读**：必须先执行 `npm install` 和 `npm run build-css`，否则打开页面将无样式。`public/styles.css` 由构建生成，未提交到仓库。
+
 ### 前置要求
 
-- Node.js (v14 或更高版本)
+- Node.js (v18 或更高版本)
 - npm 或 yarn
 
 ### 安装步骤
 
 1. **安装 Node.js**（如果还没有）
-   - 查看 [安装指南](docs/安装Node.js指南.md)
+   - 查看 [安装指南](docs/NodeJS-Install-Guide.md)
 
 2. **安装依赖**
    ```bash
@@ -50,7 +54,8 @@ html/
 ├── public/          # 发布目录（浏览器打开/部署）
 │   ├── lib/         # 第三方库（本地化）
 │   ├── index.html   # 主 HTML 文件
-│   ├── app.js       # 应用逻辑
+│   ├── app.js       # 应用入口（按顺序加载 public/app/**）
+│   ├── app/         # 应用核心逻辑（模块化代码）
 │   └── styles.css   # 构建后的 CSS
 ```
 
@@ -92,10 +97,13 @@ npm run update-cdn
 
 ## 📚 文档
 
+- [快速开始](docs/QUICK-START.md) - 5 分钟上手指南
 - [项目结构](docs/PROJECT-STRUCTURE.md) - 详细的目录结构说明
+- [GitHub 发布清单](docs/GITHUB-RELEASE-CHECKLIST.md) - 发布前检查项
 - [CDN 更新指南](docs/README-CDN-UPDATE.md) - 如何更新第三方库
 - [Tailwind CSS 指南](docs/README-TAILWIND.md) - Tailwind CSS 使用说明
-- [Node.js 安装指南](docs/安装Node.js指南.md) - Node.js 安装步骤
+- [Node.js 安装指南](docs/NodeJS-Install-Guide.md) - Node.js 安装步骤
+- [app 模块与函数说明](docs/APP-JS-Function-Guide.md) - 维护与二次开发参考
 
 ## 🎯 主要功能
 
@@ -106,12 +114,18 @@ npm run update-cdn
 - **搜索功能**: 快速搜索翻译项
 - **分页显示**: 大量数据的分页管理
 
+## 🔑 API Key 配置说明
+
+- 当你在设置中选择 **OpenAI / DeepSeek / Google** 等在线翻译引擎时，需要先配置对应的 API Key。
+- **严格模式行为**：如果所选引擎缺少 API Key（或 Key 格式不正确），批量翻译会立即中止并给出一次提示。
+- **安全提示**：请勿在 Issue、Pull Request 或公开场合粘贴真实的 API Key。
+
 ## 🔧 技术栈
 
 - **前端框架**: 原生 JavaScript
 - **样式框架**: Tailwind CSS (本地构建)
 - **图标库**: Font Awesome 4.7.0 (本地化)
-- **图表库**: Chart.js 4.4.8 (本地化)
+- **图表库**: Chart.js 4.5.1 (本地化)
 - **Excel 处理**: SheetJS 0.20.1 (本地化)
 
 ## 📝 许可证

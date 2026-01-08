@@ -2,11 +2,15 @@
 
 本项目使用本地化的第三方库资源，但保留了从 CDN 更新的功能。
 
+> 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
+
 ## 📦 当前使用的库版本
 
 - **Font Awesome**: v4.7.0
 - **Chart.js**: v4.5.1
 - **SheetJS**: v0.20.1
+
+说明：以上版本信息以 `config/cdn-versions.json` 为准（运行 `npm run auto-update` 更新后请以该配置文件为准）。
 
 ## 🚀 更新方法
 
@@ -142,6 +146,7 @@ npm run update-cdn
 - [Font Awesome 文档](https://fontawesome.com/v4.7.0/)
 - [Chart.js 文档](https://www.chartjs.org/docs/latest/)
 - [SheetJS 文档](https://docs.sheetjs.com/)
+- 项目文档：[快速开始](QUICK-START.md) · [项目结构](PROJECT-STRUCTURE.md) · [Node.js 安装指南](NodeJS-Install-Guide.md)
 
 ## 🆘 故障排除
 

@@ -1,6 +1,8 @@
-# public/app.js 函数中文说明指南
+# public/app/** 函数中文说明指南
 
-本文档用于解释 `public/app.js` 中的主要模块、类与函数的职责、输入输出、关键副作用与调用关系，便于维护与二次开发。
+本文档用于解释 `public/app/**` 下主要模块、类与函数的职责、输入输出、关键副作用与调用关系，便于维护与二次开发。
+
+`public/app.js` 为应用入口加载器（按顺序加载 `public/app/**` 下脚本），通常不承载业务逻辑。
 
 ## 1. 总体结构（按模块）
 
@@ -26,13 +28,31 @@
 - **用途**：集中管理项目、翻译列表、术语库与文件元数据，避免散落的全局变量。
 - **关键字段**：
   - `project`: 当前项目对象（包含 `translationItems` 等）
-  - `translations`: 列表状态（`items/filtered/selected/currentPage/itemsPerPage/searchQuery/isInProgress`）
+  - `translations`: 列表状态（`items/filtered/selected/currentPage/itemsPerPage/searchQuery/isInProgress` 及 `multiSelected`、`isPaused`、`progress`、`lastFailedItems`、`lastBatchContext` 等）
   - `terminology`: 术语库数据与分页
   - `fileMetadata`: 以 `fileName` 为 key 的元信息（size、原始内容、扩展名等）
+  - `qualityCheckResults`: 最近一次质量检查的汇总结果（见 2.2）
 - **副作用**：多数 UI 刷新函数都依赖 `AppState`，修改后通常需要调用 `updateTranslationLists()` / `updateCounters()` 等同步界面。
 
-### 2.2 `DOMCache`
+### 2.2 质量检查结果：`AppState.qualityCheckResults`
 
+- **定义位置**：`app/core/state.js`（与 `AppState` 一同初始化，唯一数据源）。
+- **用途**：保存最近一次质量检查的汇总结果，供质量报告面板、图表、导出 JSON/PDF 使用。
+- **写入**：仅由 `app/features/quality/run.js`（运行检查时对属性赋值/追加）和 `app/features/quality/scoring.js`（计算总分时写入 `overallScore`）。
+- **读取**：`app/features/quality/charts.js`、`export.js`、`ui.js`（统一使用 `AppState.qualityCheckResults`）。
+- **结构**：`{ overallScore, translatedCount, totalCount, issues[], termMatches, lastCheckTime, scope?, fileName? }`。
+- **兼容**：`window.qualityCheckResults` 在 state.js 中指向 `AppState.qualityCheckResults`，便于旧代码或控制台调试。
+
+### 2.3 质量检查选项：`__getQualityCheckOptions()`
+
+- **定义位置**：`app/features/quality/checks.js`（质量模块懒加载后可用）。
+- **用途**：从 `localStorage.translatorSettings` 读取质量检查开关（术语、占位符、标点、长度、数字），供检查逻辑、图表、导出、报告 UI 共用。
+- **返回**：`{ checkTerminology, checkPlaceholders, checkPunctuation, checkLength, checkNumbers }`（均为 boolean）。
+- **调用方**：`checks.js` 内部、`charts.js`、`export.js`、`ui.js`。
+
+### 2.4 `DOMCache`
+
+- **定义位置**：`app/core/dom-cache.js`。
 - **`DOMCache.get(id)`**
   - **用途**：缓存 `document.getElementById(id)` 的结果，减少重复查询。
   - **返回**：`HTMLElement | undefined`
@@ -45,6 +65,8 @@
   - **用途**：移除单个缓存项。
 
 ## 3. 调试与高频工具函数
+
+- **定义位置**：`isDevelopment`、`debugMemory` 在 `app/core/dev-tools.js`；`debounce`、`throttle`、`filterItems`、`safeJsonParse` 在 `app/core/utils.js`。
 
 ### 3.1 `isDevelopment`（IIFE）
 
@@ -87,10 +109,12 @@
 
 ## 4. 安全工具：`SecurityUtils`
 
+- **定义位置**：`app/services/security-utils.js`；全局实例 `securityUtils` 同文件内创建。
+
 ### 4.1 关键点
 
 - 使用 Web Crypto API：PBKDF2 派生 AES-GCM key。
-- 加密/解密失败时会降级（返回原文或兼容旧数据），属于“可用性优先”的策略。
+- 加密/解密失败时会降级（返回原文或兼容旧数据），属于"可用性优先"的策略。
 
 ### 4.2 方法说明
 
@@ -112,7 +136,7 @@
   - **返回**：安全字符串。
 
 - **`validateApiKey(key, type)`**
-  - **用途**：校验 API Key 形态（DeepL/OpenAI/Google/通用）。
+  - **用途**：校验 API Key 形态；`type` 为 `openai`（sk- 开头）、`google`（长度 20–100）或默认 `generic`（DeepSeek 等走 default，长度≥10）。
 
 - **`validateFileSize(size, maxSizeMB=10)`**
   - **用途**：文件体积限制。
@@ -126,7 +150,8 @@
 
 ## 5. 自动保存：`AutoSaveManager`
 
-- **用途**：周期性把 `AppState.project` 持久化到 `localStorage.currentProject`。
+- **用途**：周期性把 `AppState.project` 通过 `storageManager.saveCurrentProject()` 持久化（优先 IndexedDB，失败时降级 localStorage）。
+- **定义位置**：`app/services/auto-save-manager.js`。
 
 ### 方法
 
@@ -137,17 +162,18 @@
   - **用途**：停止定时器。
 
 - **`markDirty()`**
-  - **用途**：标记有未保存更改。
+  - **用途**：标记有未保存更改，并触发一次“快速保存”节流。
 
 - **`saveProject()`**
-  - **用途**：序列化并保存项目；保存成功后清理 dirty 标记并展示保存指示器。
+  - **用途**：序列化并调用 `storageManager.saveCurrentProject(payload)`；保存成功后清理 dirty 标记并展示保存指示器；配额不足时会尝试去掉 `originalContent` 的降级保存。
 
 - **`restoreProject()`**
-  - **用途**：从 localStorage 恢复项目。
-  - **返回**：`project | null`。
+  - **用途**：从 `storageManager.loadCurrentProject()` 恢复项目。
+  - **返回**：`Promise<project | null>`。
 
 ## 6. 网络请求：`NetworkUtils`
 
+- **定义位置**：`app/network/network-utils.js`；全局实例 `networkUtils` 同文件内创建。
 - **`fetchWithTimeout(url, options, timeout)`**
   - **用途**：`fetch` + 超时 + AbortController；并追踪活动请求。
   - **返回**：`Response`（Promise）。
@@ -192,13 +218,14 @@
   - **用途**：逐项翻译并通过回调上报进度。
   - **取消机制**：依赖 `AppState.translations.isInProgress`。
   - **副作用**：直接修改传入 `items` 的 `targetText/status/qualityScore`。
+  - **API Key 严格模式**：当所选引擎为 OpenAI/Google 时，批量翻译会在开始前预检 API Key，缺失/无效会立即中止，并只提示一次（避免逐条失败刷屏）。
 
 ### 7.2 `translateText(text, sourceLang='en', targetLang='zh', context=null)`
 
 - **用途**：UI 层的翻译包装函数，读取当前引擎配置并调用 `translationService.translate()`。
 - **错误处理**：
   - 发生异常时会 `showNotification()` 提示。
-  - 不再返回 `mockTranslate()`；失败会 `throw`（并在 error 上打 `__notified` 标记），避免“伪译文”污染真实数据。
+  - 不再返回 `mockTranslate()`；失败会 `throw`（并在 error 上打 `__notified` 标记），避免"伪译文"污染真实数据。
 
 ### 7.3 `mockTranslate(text)`
 
@@ -206,6 +233,7 @@
 
 ## 8. 事件监听器管理：`EventManager`
 
+- **定义位置**：`app/core/event-manager.js`。
 - **用途**：集中管理 add/remove，降低内存泄漏风险。
 
 ### 方法
@@ -218,7 +246,7 @@
 - **`removeByEvent(event)`**
 - **`remove(target, event)`**
 - **`removeAll()` / `clear()`**
-- **`getStats()`**：按事件类型/目标类型聚合统计。
+- **`getStats()`**：返回 `{ total, byEvent, byTarget, byTag, byScope }`，按事件类型、目标类型、tag、scope 聚合统计。
 
 ### 生命周期
 
@@ -228,16 +256,24 @@
 
 ### 9.1 `DOMContentLoaded` 初始化顺序（核心入口）
 
-加载后主要做：
+加载后主要做（见 `app/core/bootstrap.js`）：
 - 清缓存 `DOMCache.clear()`
 - 绑定窗口 resize、visibilitychange、beforeunload
 - `initEventListeners()`
 - `loadSettings()`
-- `initTerminology()`
+- `storageManager.loadPreferredBackendFromSettings()`、`storageManager.ensureBackendAvailable()`
 - `initEngineModelSync()`
-- `initCharts()`
-- `loadSampleProject()`
-- `updateTerminologyList()`
+- `autoSaveManager.restoreProject()`：若有恢复项目则更新 AppState 并刷新 UI，否则 `loadSampleProject()`
+- `initTerminology()`、`updateTerminologyList()`
+- `autoSaveManager.start()`
+
+> 注意：为优化首屏性能与 `file://` 兼容性，部分"重量级模块/第三方库"已改为按需加载（首次使用时再加载），例如：
+> - 质量检查模块（图表/导出/运行逻辑）
+> - Chart.js / SheetJS
+> - 翻译导出子模块（translation-*）
+> - 术语导入/导出（terminology-import/export）
+> 
+> 对应入口通常通过 `App.services.ensureQualityModule()` / `App.services.ensureChartJs()` / `App.services.ensureSheetJs()` / `App.services.ensureTranslationsExportModule()` / `App.services.ensureTerminologyImportExportModule()` 来触发加载。
 
 ### 9.2 `initEngineModelSync()`
 
@@ -265,7 +301,7 @@
 - **`handleFileSelect(e)`**
   - **用途**：选择文件后校验体积（默认 10MB），再 `processFiles()`。
 
-> 注意：主页文件导入区的“浏览文件”按钮嵌在 `fileDropArea` 内，若同时绑定了 `fileDropArea.click` 与 `browseFilesBtn.click`，会因事件冒泡导致 `fileInput.click()` 被触发两次，从而出现文件选择框“重复打开/需要点两次”的异常。现已在按钮点击处理中 `stopPropagation()` 以避免双触发。
+> 注意：主页文件导入区的"浏览文件"按钮嵌在 `fileDropArea` 内，若同时绑定了 `fileDropArea.click` 与 `browseFilesBtn.click`，会因事件冒泡导致 `fileInput.click()` 被触发两次，从而出现文件选择框"重复打开/需要点两次"的异常。现已在按钮点击处理中 `stopPropagation()` 以避免双触发。
 
 ### 10.2 文件读取与解析
 
@@ -273,19 +309,22 @@
   - **用途**：FileReader Promise 化。
 
 - **`parseFileAsync(file)`**
-  - **用途**：读取文件、必要时校验 XML、写入 `AppState.fileMetadata[file.name]`（含 `originalContent`），再按扩展名分发到对应解析器。
-  - **返回**：`{ success, items, fileName }`。
-  - **失败策略**：返回一个带 `FILE_PARSE_ERROR` 的“错误项”。
+  - **用途**：读取文件、必要时校验 XML、写入 `AppState.fileMetadata[file.name]`（含 `originalContent`、`contentKey`），再按扩展名分发到对应解析器；成功时可能含 `warnings`（编码/控制字符等）。
+  - **返回**：`{ success, items, fileName }`（成功时另有 `warnings` 数组）。
+  - **失败策略**：返回一个带 `issues: ['FILE_PARSE_ERROR']` 的错误项。
+  - **定义位置**：实现为 `__parseFileAsyncImpl` 在 `app/features/files/parse.js`，对外入口在 `app/compat/files.js`。
 
 - **`processFiles(files)`**
-  - **用途**：并行 `Promise.allSettled(files.map(parseFileAsync))`，汇总 items，然后进入“完成文件处理”。
+  - **用途**：并行 `Promise.allSettled(files.map(parseFileAsync))`，汇总 items 与 warnings，然后调用 `completeFileProcessing(files, newItems, warnings)`。
+  - **定义位置**：实现为 `__processFilesImpl` 在 `app/features/files/process.js`，对外入口在 `app/compat/files.js`。
 
-> 备注：代码里还有 `completeFileProcessing(...)`，用于最终合并新 items、刷新 UI、提示等。
+> 备注：`completeFileProcessing(files, newItems, warnings)` 用于最终合并新 items、刷新 UI、提示等；实现在 `app/features/files/process.js`。
 
 ### 10.3 多格式解析器（核心）
 
+- **定义位置**：各解析器在 `app/parsers/*.js`（xml-generic、xml-android、xliff、ios-strings、resx、po、json、text），由 `app/features/files/parse.js` 按扩展名调用。
 - **`parseGenericXML(content, fileName)`**
-  - TreeWalker 遍历文本节点；失败或无结果会回退 `parseXMLWithRegex()`。
+  - 定义于 `app/parsers/xml-generic.js`。TreeWalker 遍历文本节点；失败或无结果会回退 `parseXMLWithRegex()`。
 
 - **`parseXMLWithRegex(content, fileName)`**
   - 备用方案：提取 `>(text)</` 与 CDATA；再不行则把文件前 1000 字符作为一个项。
@@ -339,7 +378,7 @@
     - 渲染后调用 `syncTranslationHeights()`（保持左右列表高度一致）
 
 - **`createEmptyStateElement(message)`**
-  - **用途**：生成“空状态”提示 DOM。
+  - **用途**：生成"空状态"提示 DOM。
 
 > 备注：渲染单项 DOM 的函数在文件中以 `createTranslationItemElement(...)`、`createMobileCombinedTranslationItemElement(...)` 等形式存在，用于生成列表项与 textarea。
 
@@ -350,17 +389,18 @@
   - **options**：
     - `shouldScroll`（默认 true）
     - `shouldFocusTextarea`（默认 true）
-  - **注意**：函数内部通过判断“重复选择同一 index”提前 return，避免事件循环。
+  - **注意**：函数内部通过判断"重复选择同一 index"提前 return，避免事件循环。
 
 - **`updateTranslationItem(index, targetText)`**
   - **用途**：编辑译文时更新对应项；根据是否为空切换 `edited/pending`；必要时仅更新状态 badge。
-  - **副作用**：更新 `AppState.project.updatedAt`、调用 `updateCounters()`。
+  - **副作用**：更新 `AppState.project.updatedAt`；当 `targetText` 实际变更时调用 `autoSaveManager.markDirty()`；调用 `updateCounters()`。
+  - **定义位置**：`app/features/translations/selection.js`。
 
 - **`updateStatusBadge(index, newStatus)`**
   - **用途**：不重渲染列表，只更新状态标签文本与样式。
 
 - **`updateCounters()`**
-  - **用途**：刷新“总数/已翻译数”。
+  - **用途**：刷新"总数/已翻译数"。
 
 ## 13. 翻译流程（UI 层）
 
@@ -398,10 +438,14 @@
 
 - **`exportTranslation()`**
   - **用途**：按导出格式生成内容并下载。
-  - **过滤策略**：可选“仅已翻译项”（要求 `targetText` 非空且 status 为 `translated/edited/approved`）。
+  - **过滤策略**：可选"仅已翻译项"（要求 `targetText` 非空且 status 为 `translated/edited/approved`）。
+
+> 性能提示：翻译导出的实现脚本（`translation-formats.js / translation-original.js / translation-entry.js`）已从启动链路移除，首次点击"确认导出"时会通过 `App.services.ensureTranslationsExportModule()` 按需加载后再执行。
+> 
+> Excel 导出依赖 SheetJS（`public/lib/sheetjs/xlsx.full.min.js`），已改为运行时按需加载（`App.services.ensureSheetJs()`）。
 
 - **`generateXML(items, includeOriginal)`**
-  - **用途**：优先在“原始文件内容”基础上做替换导出（依赖 `AppState.fileMetadata[fileName].originalContent`），否则生成通用 XML。
+  - **用途**：优先在"原始文件内容"基础上做替换导出（依赖 `AppState.fileMetadata[fileName].originalContent`），否则生成通用 XML。
 
 - **`generateGenericXML(items, includeOriginal)`**：无原始文件时的通用结构。
 
@@ -419,7 +463,9 @@
 
 - **`runQualityCheck()`**
   - **用途**：对项目翻译项进行批量质量检查，更新进度条与报告 UI。
-  - **性能策略**：每批 50；批内并行；缓存最多 1000 个检查结果。
+  - **性能策略**：使用并发池限制并发（默认 8，可配置）并在批处理中定期让出事件循环以减少 UI 卡顿；缓存最多 1000 个检查结果。
+
+> 性能提示：质量检查相关脚本与 Chart.js 已改为按需加载（通过 `App.services.ensureQualityModule()` / `App.services.ensureChartJs()`），不再阻塞首屏。
 
 - **`processBatch(items)`**
   - **用途**：并行执行 `checkTranslationItemCached` 并汇总。
@@ -450,9 +496,7 @@
 
  ## 17. 重要风险提示（建议优先处理）
  
- - **手动编辑译文不会触发自动保存**：`updateTranslationItem()` 更新了 `AppState.project.translationItems[index]`，但未调用 `autoSaveManager.markDirty()`。
-   - **风险**：用户手动编辑后的内容可能不会被周期性持久化（取决于其它路径是否触发 dirty）。
-   - **建议**：在 `updateTranslationItem()` 中（可配合 debounce）调用 `autoSaveManager.markDirty()`；或仅在状态从非编辑态切到编辑态时标记 dirty。
+ - **~~手动编辑译文不会触发自动保存~~（已修复）**：`updateTranslationItem()` 在译文实际变更时会调用 `autoSaveManager.markDirty()`（见 `selection.js`），手动编辑会参与周期性持久化。
  
  - **`updateCounters()` 的 DOM 写入需要判空**：如果页面结构调整导致 `sourceCount/targetCount` 缺失，直接写入会抛错。
    - **现状**：代码中已对 `sourceCount/targetCount` 元素判空，并对 `translationItems` 缺失做了容错（按空数组处理）。
@@ -461,7 +505,7 @@
  - **`innerHTML` 模板拼接仍较多**：包含动态插值（如文件名、搜索关键词、翻译文本等）。
    - **风险**：如果有任意插值未经过 `escapeHtml()` / `securityUtils.sanitizeInput()`，可能引入 XSS 或 HTML 注入；同时也更难做静态审计。
    - **建议**：
-     - 统一要求所有“用户可控/文件可控”的字符串插值先转义。
+     - 统一要求所有"用户可控/文件可控"的字符串插值先转义。
      - 能用 DOM API（`createElement`/`textContent`）的地方尽量避免 `innerHTML`。
  
  - **调试日志未统一按环境开关**：存在较多 `console.log()`（尤其导出/批量翻译流程）。
@@ -469,25 +513,23 @@
    - **建议**：把日志收敛到 `isDevelopment` 或显式 debug 开关下。
 
 - **事件监听管理不完全统一**：已引入 `EventManager`，但仍存在直接 `addEventListener` 的绑定点。
-  - **风险**：监听器清理路径不一致，长期使用可能积累“未释放监听器”的隐患。
+  - **风险**：监听器清理路径不一致，长期使用可能积累"未释放监听器"的隐患。
   - **现状**：全局/长期监听已基本统一迁移到 `EventManager.add()` 管理，并增加 `initEventListeners()` 的初始化守卫防止重复绑定；`addEventListener` 主要存在于 `EventManager` 内部实现（用于实际注册/注销）。
   - **建议**：
-    - 对动态 DOM（如通过 `innerHTML` 重建的输入框）优先使用事件委托或在重建后重新绑定，但要避免“同一次用户操作触发两条 click 路径”（典型是按钮嵌套在可点击区域内的冒泡双触发）。
-    - 保持“打开时增加、关闭时清理”的监听器生命周期闭环（例如模态框/菜单的点击外部关闭）。
+    - 对动态 DOM（如通过 `innerHTML` 重建的输入框）优先使用事件委托或在重建后重新绑定，但要避免"同一次用户操作触发两条 click 路径"（典型是按钮嵌套在可点击区域内的冒泡双触发）。
+    - 保持"打开时增加、关闭时清理"的监听器生命周期闭环（例如模态框/菜单的点击外部关闭）。
 
-- **`localStorage` JSON 解析缺少容错**：多处使用 `JSON.parse(localStorage.getItem(...) || '{}')`。
-   - **风险**：当存储被写入非 JSON 字符串时会直接抛错，导致初始化链路中断。
-   - **建议**：封装 `safeJsonParse()` 或在解析处加 try/catch，并在失败时回退默认值。
+- **`localStorage` JSON 解析**：已封装 `safeJsonParse()`（`core/utils.js`），多处已使用；新增解析处请继续使用 `safeJsonParse(raw, fallback)`，避免非 JSON 存储导致抛错。
 
  - **函数名重复（历史风险）**：历史版本曾出现重复定义（例如 `escapeHtml`、`highlightText`、`downloadFile`）。
    - **风险**：后定义会覆盖前定义；不同版本实现差异可能导致行为不一致。
-   - **建议**：在重构/合并分支时保持“同名函数只存在一个权威实现”，并用搜索确认无重复定义。
+   - **建议**：在重构/合并分支时保持"同名函数只存在一个权威实现"，并用搜索确认无重复定义。
  
 - **状态与 UI 同步约定**：
    - 修改 `AppState.translations.filtered/currentPage/selected/itemsPerPage` 后，通常需要 `updateTranslationLists()`。
    - 修改翻译文本后，通常需要 `updateCounters()`，并在需要持久化时 `autoSaveManager.markDirty()`。
 
-## 18. 推荐的“函数中文说明”模板（供你后续扩展）
+## 18. 推荐的"函数中文说明"模板（供你后续扩展）
 
 你在新增/改造函数时，建议按以下结构写在函数上方或写到本文档：
 
@@ -508,14 +550,14 @@
 
 - **降级保存的体积风险**：当 `IndexedDB` 写入失败后，`StorageManager.saveCurrentProject()` 会尝试降级保存到 `localStorage`。
   - **风险**：`localStorage` 容量通常较小（常见约 5MB），大项目（大量翻译项）可能仍保存失败。
-  - **建议**：降级保存时写入“slim 版本”（例如去掉非必要字段，或只保存最近编辑部分），并在 UI 上明确提示“降级保存不保证完整”。
+  - **建议**：降级保存时写入"slim 版本"（例如去掉非必要字段，或只保存最近编辑部分），并在 UI 上明确提示"降级保存不保证完整"。
 
 - **两阶段写入的一致性**：项目本体（`currentProject`）与原始文件内容（`fileContents`）是两套存储。
   - **现状**：项目可恢复不代表 `originalContent` 一定可用。
-  - **建议**：在导出原格式前做一致性检查；必要时提示用户“原文缺失，将使用通用导出”。
+  - **建议**：在导出原格式前做一致性检查；必要时提示用户"原文缺失，将使用通用导出"。
 
 - **后端切换的可见性**：当前会在 `IndexedDB` 不可用时自动降级到 `localStorage`。
-  - **建议**：在设置页提供“当前存储后端状态”显示与手动切换入口；切换时可考虑提供迁移与重试机制。
+  - **建议**：在设置页提供"当前存储后端状态"显示与手动切换入口；切换时可考虑提供迁移与重试机制。
 
 ### 19.2 导入/解析与编码兼容性
 
@@ -525,15 +567,15 @@
 ### 19.3 导出策略与用户提示
 
 - **原格式导出缺失原文的提示策略**：避免逐文件弹窗刷屏，优先采用汇总提示。
-  - **建议**：对多文件导出可在结果通知中附带“缺失原文文件数/列表预览”。
+  - **建议**：对多文件导出可在结果通知中附带"缺失原文文件数/列表预览"。
 
 ### 19.4 UI / Tailwind 构建注意事项
 
-- **Tailwind purge 导致样式缺失**：新增 Tailwind class 后，如果 class 未被构建扫描到，可能被裁剪，出现“字体不可见/背景不生效”等问题。
+- **Tailwind purge 导致样式缺失**：新增 Tailwind class 后，如果 class 未被构建扫描到，可能被裁剪，出现"字体不可见/背景不生效"等问题。
   - **建议**：
     - 对动态拼接 class 或少量偶发类，维护 `tailwind.config.js` 的 `safelist`。
     - UI 按钮样式尽量复用项目中已稳定存在的类组合（例如 `bg-primary`/`bg-red-50` 等）。
 
 ### 19.5 数据清理（清缓存）
 
-- **避免误清设置**：建议“清缓存”提供范围选择（仅清项目 / 清全部），并确保设置页文案与行为一致。
+- **避免误清设置**：建议"清缓存"提供范围选择（仅清项目 / 清全部），并确保设置页文案与行为一致。

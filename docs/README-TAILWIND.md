@@ -1,5 +1,7 @@
 # Tailwind CSS 本地安装说明
 
+> 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
+
 ## 📋 前置要求
 
 在开始之前，您需要安装 Node.js（包含 npm）。
@@ -13,6 +15,8 @@
    node --version
    npm --version
    ```
+
+详细步骤见 [Node.js 安装指南](NodeJS-Install-Guide.md)。
 
 ## 🚀 安装步骤
 
@@ -54,7 +58,9 @@ npm run watch-css
 
 构建完成后，`public/styles.css` 已经包含了 Tailwind CSS 和所有自定义样式。
 
-**重要**：需要从 `public/index.html` 中移除 Tailwind CDN 脚本：
+**重要**：本项目默认使用本地构建样式（`public/styles.css`），`public/index.html` 中不需要引入 Tailwind CDN。
+
+如果你曾手动添加过 Tailwind CDN 脚本，请移除/注释掉：
 
 ```html
 <!-- 删除或注释掉这行 -->
@@ -67,7 +73,8 @@ npm run watch-css
 html/
 ├── public/
 │   ├── index.html          # HTML 文件
-│   ├── app.js              # JavaScript 文件
+│   ├── app.js              # 应用入口（按顺序加载 public/app/**）
+│   ├── app/                # 应用核心逻辑（模块化代码）
 │   └── styles.css          # 构建后的 CSS 文件（由 Tailwind 生成）
 ├── src/
 │   └── input.css          # Tailwind 输入文件（包含所有自定义样式）
@@ -120,12 +127,13 @@ html/
    npm run build-css
    ```
 
-2. **确保 HTML 中移除了 CDN 脚本**
+2. **确保 HTML 中没有引入 Tailwind CDN 脚本**（本项目默认不需要）
 
 3. **部署文件**：
    - `public/index.html`
    - `public/styles.css`（构建后的）
    - `public/app.js`
+   - `public/app/`
    - 其他资源文件
 
 ## ⚠️ 注意事项
@@ -169,5 +177,6 @@ A: 不建议，会导致样式冲突。构建后应该移除 CDN 脚本。
 
 - [Tailwind CSS 官方文档](https://tailwindcss.com/docs)
 - [Tailwind CLI 文档](https://tailwindcss.com/docs/cli)
+- [快速开始](QUICK-START.md) · [项目结构](PROJECT-STRUCTURE.md)
 
 

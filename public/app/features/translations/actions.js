@@ -412,7 +412,7 @@ async function translateSelectedFallback() {
       updateTranslationControlState();
     }
   } catch (error) {
-    console.error('翻译选中项失败:', error);
+    (loggers.translation || console).error('翻译选中项失败:', error);
     
     // 使用错误管理器处理错误
     const errorManager = getServiceSafely('errorManager');
@@ -591,7 +591,7 @@ async function translateAllFallback() {
       updateTranslationControlState();
     }
   } catch (error) {
-    console.error('翻译全部失败:', error);
+    (loggers.translation || console).error('翻译全部失败:', error);
     showNotification("error", "翻译失败", error.message || "未知错误");
     window.AppState.translations.isInProgress = false;
     window.AppState.translations.isPaused = false;
@@ -692,10 +692,10 @@ function initializeTranslationControllers() {
       window.translationUIController.initialize();
     }
     
-    console.log('🎯 翻译分层架构控制器已初始化');
+    (loggers.translation || console).info('🎯 翻译分层架构控制器已初始化');
     
   } catch (error) {
-    console.warn('⚠️ 翻译分层架构初始化失败，使用备用方案:', error);
+    (loggers.translation || console).warn('⚠️ 翻译分层架构初始化失败，使用备用方案:', error);
   }
 }
 
@@ -906,7 +906,7 @@ async function retryFailedTranslations() {
     hideTranslationProgress();
     const f = formatTranslationError(error, engine);
     showSplitNotification(f.type, f.title, f.message, f.detail);
-    console.error("重试翻译错误:", error);
+    (loggers.translation || console).error("重试翻译错误:", error);
   } finally {
     AppState.translations.isInProgress = false;
     AppState.translations.isPaused = false;
@@ -951,7 +951,7 @@ async function translateText(
     );
     return translated;
   } catch (error) {
-    console.error("翻译失败:", error);
+    (loggers.translation || console).error("翻译失败:", error);
 
     const f = formatTranslationError(error, engine);
     showSplitNotification(f.type, f.title, f.message, f.detail);

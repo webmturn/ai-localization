@@ -58,7 +58,7 @@ function openFileContentDB() {
   __fileContentDB.opening = new Promise((resolve, reject) => {
     const request = indexedDB.open("xml-translator-db", 3);
     request.onblocked = () => {
-      console.warn(
+      (window.loggers?.storage || console).warn(
         "IndexedDB升级/打开被阻塞：可能有其他标签页正在使用旧版本数据库"
       );
       if (typeof showNotification === "function") {
@@ -279,7 +279,7 @@ function idbDeleteFileContentsForProject(projectId) {
         };
         tx.oncomplete = () => {
           if (deletedCount > 0) {
-            console.log(
+            (window.loggers?.storage || console).debug?.(
               `已清理项目 ${projectId} 的 ${deletedCount} 条文件内容缓存`
             );
           }
@@ -324,7 +324,7 @@ function idbGarbageCollectFileContents() {
         };
         tx.oncomplete = () => {
           if (deletedCount > 0) {
-            console.log(`GC：已清理 ${deletedCount} 条无引用的文件内容缓存`);
+            (window.loggers?.storage || console).debug?.(`GC：已清理 ${deletedCount} 条无引用的文件内容缓存`);
           }
           resolve(deletedCount);
         };
@@ -343,10 +343,10 @@ function scheduleIdbGarbageCollection(delayMs = 5000) {
     __idbGcTimer = null;
     try {
       idbGarbageCollectFileContents().catch((err) => {
-        console.warn("文件内容GC失败:", err);
+        (window.loggers?.storage || console).warn("文件内容GC失败:", err);
       });
     } catch (err) {
-      console.warn("文件内容GC异常:", err);
+      (window.loggers?.storage || console).warn("文件内容GC异常:", err);
     }
   }, delayMs);
 }

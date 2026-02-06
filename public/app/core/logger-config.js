@@ -158,7 +158,10 @@ const loggers = {
   services: loggerConfig.createLogger('services'),
   scripts: loggerConfig.createLogger('scripts'),
   errors: loggerConfig.createLogger('errors'),
-  app: loggerConfig.createLogger('app')
+  app: loggerConfig.createLogger('app'),
+  storage: loggerConfig.createLogger('storage'),
+  startup: loggerConfig.createLogger('startup'),
+  translation: loggerConfig.createLogger('translation')
 };
 
 // ==================== 导出接口 ====================

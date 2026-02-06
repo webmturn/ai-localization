@@ -40,7 +40,7 @@ function hydrateFileMetadataContentKeys(projectId) {
       Promise.resolve(
         idbPutFileContent(meta.contentKey, meta.originalContent)
       ).catch((e) => {
-        console.error("IndexedDB写入originalContent失败:", e);
+        (window.loggers?.storage || console).error("IndexedDB写入originalContent失败:", e);
         notifyIndexedDbFileContentErrorOnce(e, "保存原始内容");
       });
     }
@@ -71,7 +71,7 @@ async function ensureOriginalContentLoadedForFile(fileName) {
       return true;
     }
   } catch (e) {
-    console.error("IndexedDB读取originalContent失败:", e);
+    (window.loggers?.storage || console).error("IndexedDB读取originalContent失败:", e);
     notifyIndexedDbFileContentErrorOnce(e, "读取原始内容");
   }
 

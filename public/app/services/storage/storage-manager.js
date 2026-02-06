@@ -103,7 +103,7 @@ class FileSystemProjectStorage {
         return this.directoryHandle;
       })
       .catch((error) => {
-        console.warn("读取文件系统句柄失败:", error);
+        (loggers.storage || console).warn("读取文件系统句柄失败:", error);
         return null;
       })
       .finally(() => {
@@ -120,7 +120,7 @@ class FileSystemProjectStorage {
     try {
       await idbPutFsHandle(handle);
     } catch (error) {
-      console.warn("保存文件系统句柄失败:", error);
+      (loggers.storage || console).warn("保存文件系统句柄失败:", error);
     }
   }
 
@@ -130,7 +130,7 @@ class FileSystemProjectStorage {
     try {
       await idbDeleteFsHandle();
     } catch (error) {
-      console.warn("清理文件系统句柄失败:", error);
+      (loggers.storage || console).warn("清理文件系统句柄失败:", error);
     }
   }
 
@@ -145,7 +145,7 @@ class FileSystemProjectStorage {
       const requested = await handle.requestPermission({ mode: "readwrite" });
       return requested === "granted";
     } catch (error) {
-      console.warn("文件系统权限检查失败:", error);
+      (loggers.storage || console).warn("文件系统权限检查失败:", error);
       return false;
     }
   }
@@ -367,7 +367,7 @@ class StorageManager {
       );
       return true;
     } catch (e) {
-      console.error("保存 activeProjectId 失败:", e);
+      (loggers.storage || console).error("保存 activeProjectId 失败:", e);
       return false;
     }
   }
@@ -475,7 +475,7 @@ class StorageManager {
         }
         await this.__removeFromBackend(backend, key);
       } catch (e) {
-        console.warn("删除项目记录失败:", backend?.backendId, projectId, e);
+        (loggers.storage || console).warn("删除项目记录失败:", backend?.backendId, projectId, e);
       }
     }
 
@@ -485,7 +485,7 @@ class StorageManager {
         await idbDeleteFileContentsForProject(projectId);
       }
     } catch (e) {
-      console.warn("清理项目文件内容失败:", e);
+      (loggers.storage || console).warn("清理项目文件内容失败:", e);
     }
 
     const idx = await this.loadProjectsIndex();
@@ -508,11 +508,11 @@ class StorageManager {
                 nextProject
               );
             } catch (e) {
-              console.warn("同步 legacy currentProject 失败:", e);
+              (loggers.storage || console).warn("同步 legacy currentProject 失败:", e);
             }
           }
         } catch (e) {
-          console.warn("读取新激活项目失败:", e);
+          (loggers.storage || console).warn("读取新激活项目失败:", e);
         }
       } else {
         for (const backend of allBackends) {
@@ -526,7 +526,7 @@ class StorageManager {
               this.__metaActiveProjectIdKey
             );
           } catch (e) {
-            console.warn("清理 activeProjectId 失败:", backend?.backendId, e);
+            (loggers.storage || console).warn("清理 activeProjectId 失败:", backend?.backendId, e);
           }
         }
       }
@@ -542,7 +542,7 @@ class StorageManager {
             this.__legacyCurrentProjectKey
           );
         } catch (e) {
-          console.warn(
+          (loggers.storage || console).warn(
             "清理 legacy currentProject 失败:",
             backend?.backendId,
             e
@@ -585,7 +585,7 @@ class StorageManager {
       this.indexedDbAvailable = true;
       return true;
     } catch (e) {
-      console.warn("IndexedDB不可用，将降级到 localStorage:", e);
+      (loggers.storage || console).warn("IndexedDB不可用，将降级到 localStorage:", e);
       this.indexedDbAvailable = false;
       return false;
     }
@@ -682,7 +682,7 @@ class StorageManager {
         }
       }
     } catch (e) {
-      console.error("读取存储后端设置失败:", e);
+      (loggers.storage || console).error("读取存储后端设置失败:", e);
     }
   }
 
@@ -719,7 +719,7 @@ class StorageManager {
       this.preferredBackendId = "filesystem";
       return true;
     } catch (error) {
-      console.warn("文件存储授权失败:", error);
+      (loggers.storage || console).warn("文件存储授权失败:", error);
       return false;
     }
   }
@@ -742,7 +742,7 @@ class StorageManager {
         return normalized;
       }
     } catch (e) {
-      console.warn(
+      (loggers.storage || console).warn(
         "从首选存储后端恢复失败，将尝试回退:",
         preferred.backendId,
         e
@@ -769,7 +769,7 @@ class StorageManager {
           return normalized;
         }
       } catch (e) {
-        console.warn("从存储后端恢复失败:", id, e);
+        (loggers.storage || console).warn("从存储后端恢复失败:", id, e);
       }
     }
 
@@ -783,7 +783,7 @@ class StorageManager {
     try {
       return await this.saveProject(project);
     } catch (e) {
-      console.warn("保存 currentProject 失败:", preferred.backendId, e);
+      (loggers.storage || console).warn("保存 currentProject 失败:", preferred.backendId, e);
 
       const errName = e && e.name ? String(e.name) : "";
       const errMsg = e && e.message ? String(e.message) : String(e);
@@ -844,7 +844,7 @@ class StorageManager {
 
           return ok;
         } catch (fallbackError) {
-          console.error("降级保存到 localStorage 也失败:", fallbackError);
+          (loggers.storage || console).error("降级保存到 localStorage 也失败:", fallbackError);
           throw e;
         }
       }
@@ -862,7 +862,7 @@ class StorageManager {
       try {
         await this.deleteProject(active);
       } catch (e) {
-        console.warn("删除当前项目失败:", e);
+        (loggers.storage || console).warn("删除当前项目失败:", e);
       }
     }
 
@@ -872,7 +872,7 @@ class StorageManager {
     try {
       await preferred.clearCurrentProject();
     } catch (e) {
-      console.warn(
+      (loggers.storage || console).warn(
         "清理首选存储后端 currentProject 失败:",
         preferred.backendId,
         e
@@ -894,7 +894,7 @@ class StorageManager {
       try {
         await backend.clearCurrentProject();
       } catch (e) {
-        console.warn("清理存储后端 currentProject 失败:", id, e);
+        (loggers.storage || console).warn("清理存储后端 currentProject 失败:", id, e);
       }
     }
 
@@ -925,7 +925,7 @@ class StorageManager {
       try {
         await this.deleteProject(id);
       } catch (e) {
-        console.warn("删除项目失败:", id, e);
+        (loggers.storage || console).warn("删除项目失败:", id, e);
       }
 
       // 兜底：如果历史上切换过存储后端，确保两个后端都不残留 project:<id>
@@ -952,7 +952,7 @@ class StorageManager {
     try {
       await preferred.clearCurrentProject();
     } catch (e) {
-      console.warn(
+      (loggers.storage || console).warn(
         "清理首选存储后端 currentProject 失败:",
         preferred.backendId,
         e
@@ -974,7 +974,7 @@ class StorageManager {
       try {
         await backend.clearCurrentProject();
       } catch (e) {
-        console.warn("清理存储后端 currentProject 失败:", id, e);
+        (loggers.storage || console).warn("清理存储后端 currentProject 失败:", id, e);
       }
     }
 
@@ -995,7 +995,7 @@ class StorageManager {
         try {
           await this.__removeFromBackend(backend, this.__metaProjectsIndexKey);
         } catch (e) {
-          console.warn("清理 projectsIndex 失败:", id, e);
+          (loggers.storage || console).warn("清理 projectsIndex 失败:", id, e);
         }
         try {
           await this.__removeFromBackend(
@@ -1003,11 +1003,11 @@ class StorageManager {
             this.__metaActiveProjectIdKey
           );
         } catch (e) {
-          console.warn("清理 activeProjectId 失败:", id, e);
+          (loggers.storage || console).warn("清理 activeProjectId 失败:", id, e);
         }
       }
     } catch (e) {
-      console.warn("清理多项目元数据失败:", e);
+      (loggers.storage || console).warn("清理多项目元数据失败:", e);
     }
 
     return true;

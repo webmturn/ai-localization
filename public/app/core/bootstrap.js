@@ -36,7 +36,7 @@ async function __onAppDomContentLoaded(bootstrapContext) {
     }
   } catch (_) {}
 
-  console.log('🚀 开始应用DOM初始化...');
+  (loggers.startup || console).info('🚀 开始应用DOM初始化...');
 
   try {
     let architectureReady = false;
@@ -46,9 +46,9 @@ async function __onAppDomContentLoaded(bootstrapContext) {
       try {
         await waitForArchitecture(5000);
         architectureReady = true;
-        console.log('✅ 架构系统就绪');
+        (loggers.startup || console).info('✅ 架构系统就绪');
       } catch (error) {
-        console.warn('⚠️ 架构系统等待超时，继续使用降级服务:', error);
+        (loggers.startup || console).warn('⚠️ 架构系统等待超时，继续使用降级服务:', error);
       }
     }
 
@@ -60,13 +60,13 @@ async function __onAppDomContentLoaded(bootstrapContext) {
           registerFallbackCoreServices();
         }
       } catch (fallbackError) {
-        console.warn('⚠️ 降级服务注册失败:', fallbackError);
+        (loggers.startup || console).warn('⚠️ 降级服务注册失败:', fallbackError);
       }
 
       try {
         initializeFallbackServices();
       } catch (fallbackError) {
-        console.warn('⚠️ 降级服务初始化失败:', fallbackError);
+        (loggers.startup || console).warn('⚠️ 降级服务初始化失败:', fallbackError);
       }
     }
     
@@ -84,16 +84,16 @@ async function __onAppDomContentLoaded(bootstrapContext) {
     // 启动应用服务
     await startApplicationServices();
     
-    console.log('✅ 应用DOM初始化完成');
+    (loggers.startup || console).info('✅ 应用DOM初始化完成');
     
   } catch (error) {
-    console.error('❌ 应用DOM初始化失败:', error);
+    (loggers.startup || console).error('❌ 应用DOM初始化失败:', error);
     
     // 即使初始化失败，也尝试基本的事件绑定
     try {
       initializeCoreEventListeners();
     } catch (fallbackError) {
-      console.error('❌ 基本事件绑定也失败:', fallbackError);
+      (loggers.startup || console).error('❌ 基本事件绑定也失败:', fallbackError);
     }
   }
 }
@@ -106,7 +106,7 @@ function initializeCoreEventListeners() {
   const eventManager = window.getService ? window.getService('eventManager') : window.EventManager;
   
   if (!eventManager) {
-    console.warn('⚠️ 事件管理器未找到，使用原生事件绑定');
+    (loggers.startup || console).warn('⚠️ 事件管理器未找到，使用原生事件绑定');
     initializeFallbackEventListeners();
     return;
   }
@@ -149,7 +149,7 @@ function initializeCoreEventListeners() {
     window,
     "beforeunload",
     () => {
-      console.log("🧹 页面卸载，清理资源...");
+      (loggers.startup || console).debug("🧹 页面卸载，清理资源...");
       cleanupApplicationResources();
     },
     { tag: "app", scope: "lifecycle", label: "window:beforeunload" }
@@ -184,7 +184,7 @@ function initializeCoreEventListeners() {
  * 初始化备用事件监听器（当事件管理器不可用时）
  */
 function initializeFallbackEventListeners() {
-  console.log('🔄 使用备用事件监听器');
+  (loggers.startup || console).info('🔄 使用备用事件监听器');
   
   // 基本的窗口大小变化监听
   window.addEventListener('resize', function() {
@@ -202,7 +202,7 @@ function initializeFallbackEventListeners() {
   
   // 基本的页面卸载监听
   window.addEventListener('beforeunload', function() {
-    console.log("🧹 页面卸载，清理资源...");
+    (loggers.startup || console).debug("🧹 页面卸载，清理资源...");
     cleanupApplicationResources();
   });
 }
@@ -211,7 +211,7 @@ function initializeFallbackEventListeners() {
  * 初始化应用状态
  */
 function initializeApplicationState() {
-  console.log('📊 初始化应用状态...');
+  (loggers.startup || console).info('📊 初始化应用状态...');
   
   try {
     // 使用依赖注入获取应用状态
@@ -242,13 +242,13 @@ function initializeApplicationState() {
       appState.fileMetadata = {};
     }
     
-    console.log('✅ 应用状态初始化完成');
+    (loggers.startup || console).info('✅ 应用状态初始化完成');
   } catch (error) {
-    console.error('❌ 应用状态初始化失败:', error);
+    (loggers.startup || console).error('❌ 应用状态初始化失败:', error);
     
     // 备用方案：创建基本的全局状态
     if (typeof window.AppState === 'undefined') {
-      console.warn('⚠️ AppState未定义，创建基本状态');
+      (loggers.startup || console).warn('⚠️ AppState未定义，创建基本状态');
       window['AppState'] = {
         project: null,
         translations: {
@@ -275,7 +275,7 @@ function initializeApplicationState() {
  * 启动应用服务（使用新的服务启动管理器）
  */
 async function startApplicationServices() {
-  console.log('🔧 启动应用服务...');
+  (loggers.startup || console).info('🔧 启动应用服务...');
 
   try {
     // 确保所有服务已注册到DI容器
@@ -293,7 +293,7 @@ async function startApplicationServices() {
       try {
         await initializeCoreServices();
       } catch (error) {
-        console.warn('⚠️ 服务启动管理器初始化失败:', error);
+        (loggers.startup || console).warn('⚠️ 服务启动管理器初始化失败:', error);
       }
     }
 
@@ -325,9 +325,9 @@ async function startApplicationServices() {
     // 初始化项目数据（恢复保存的项目或加载示例项目）
     await initializeProjectData();
 
-    console.log('✅ 应用服务启动完成');
+    (loggers.startup || console).info('✅ 应用服务启动完成');
   } catch (error) {
-    console.error('❌ 应用服务启动失败:', error);
+    (loggers.startup || console).error('❌ 应用服务启动失败:', error);
 
     // 记录错误到架构助手（如果存在）
     if (typeof getArchitectureHelpers === 'function') {
@@ -348,7 +348,7 @@ async function startApplicationServices() {
  */
 function registerAllServices() {
   if (!window.diContainer) {
-    console.warn('⚠️ DI容器不可用，跳过服务注册');
+    (loggers.startup || console).warn('⚠️ DI容器不可用，跳过服务注册');
     return;
   }
   
@@ -578,7 +578,7 @@ function registerAllServices() {
     logger.info?.(`📦 共注册 ${serviceCount} 个服务`);
 
   } catch (error) {
-    console.error('❌ 服务注册失败:', error);
+    (loggers.startup || console).error('❌ 服务注册失败:', error);
     throw error;
   }
 }
@@ -594,7 +594,7 @@ function registerFallbackCoreServices() {
  * 启动核心服务
  */
 async function startCoreServices() {
-  console.log(' 启动核心服务...');
+  (loggers.startup || console).info('⚙️ 启动核心服务...');
   
   // 核心服务列表（按依赖顺序）
   const services = [
@@ -619,9 +619,9 @@ async function startCoreServices() {
         await service.initialize();
       }
       
-      console.log(` 服务 ${serviceName} 启动成功`);
+      (loggers.startup || console).debug(`✅ 服务 ${serviceName} 启动成功`);
     } catch (error) {
-      console.warn(` 服务 ${serviceName} 启动失败:`, error);
+      (loggers.startup || console).warn(`⚠️ 服务 ${serviceName} 启动失败:`, error);
     }
   }
 }
@@ -630,7 +630,7 @@ async function startCoreServices() {
  * 初始化备用服务（当架构系统不可用时）
  */
 function initializeFallbackServices() {
-  console.log(' 初始化备用服务...');
+  (loggers.startup || console).info('🔄 初始化备用服务...');
   
   // 确保基本的错误处理可用
   if (!window.errorManager && typeof ErrorManager !== 'undefined') {
@@ -707,14 +707,14 @@ async function initializeProjectData() {
       }
     }
   } catch (error) {
-    console.error('❌ 初始化项目数据失败:', error);
+    (loggers.startup || console).error('❌ 初始化项目数据失败:', error);
     
     // 加载示例项目作为备用
     if (typeof loadSampleProject === 'function') {
       try {
         loadSampleProject();
       } catch (fallbackError) {
-        console.error('❌ 加载示例项目也失败:', fallbackError);
+        (loggers.startup || console).error('❌ 加载示例项目也失败:', fallbackError);
       }
     }
   }
@@ -757,10 +757,10 @@ function cleanupApplicationResources() {
       window.diContainer.dispose();
     }
 
-    console.log('✅ 应用资源清理完成');
+    (loggers.startup || console).debug('✅ 应用资源清理完成');
     
   } catch (error) {
-    console.error('❌ 清理应用资源失败:', error);
+    (loggers.startup || console).error('❌ 清理应用资源失败:', error);
   }
 }
 

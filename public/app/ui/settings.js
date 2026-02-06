@@ -91,6 +91,17 @@ async function loadSettings() {
         if (retry) retry.value = settings.retryCount;
       }
 
+      if (settings.translationRequestCacheEnabled !== undefined) {
+        const el = document.getElementById("translationRequestCacheEnabled");
+        if (el) el.checked = !!settings.translationRequestCacheEnabled;
+      }
+      if (settings.translationRequestCacheTTLSeconds !== undefined) {
+        const el = document.getElementById("translationRequestCacheTTLSeconds");
+        const raw = parseInt(settings.translationRequestCacheTTLSeconds);
+        const ttl = Number.isFinite(raw) ? Math.max(1, Math.min(600, raw)) : 5;
+        if (el) el.value = ttl;
+      }
+
       if (settings.deepseekUseKeyContext !== undefined) {
         const el = document.getElementById("deepseekUseKeyContext");
         if (el) el.checked = !!settings.deepseekUseKeyContext;

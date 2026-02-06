@@ -17,7 +17,22 @@ const __devEnabled =
   (typeof isDevelopment === "boolean" && isDevelopment) ||
   (typeof isDevelopment === "function" && isDevelopment());
 if (__devEnabled) {
-  window.__setDropAreaActive = setDropAreaActive;
+  try {
+    if (window.ArchDebug) {
+      window.ArchDebug.setFlag('setDropAreaActive', setDropAreaActive, {
+        windowKey: '__setDropAreaActive',
+        mirrorWindow: false,
+      });
+    } else {
+      window.__setDropAreaActive = setDropAreaActive;
+    }
+  } catch (_) {
+    try {
+      if (!window.ArchDebug) {
+        window.__setDropAreaActive = setDropAreaActive;
+      }
+    } catch (_) {}
+  }
 }
 
 function handleDragOver(e) {

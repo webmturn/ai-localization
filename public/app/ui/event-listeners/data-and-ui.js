@@ -10,6 +10,65 @@ function registerEventListenersDataAndUi(ctx) {
   const clearProjectOnlyBtn = document.getElementById("clearProjectOnlyBtn");
   const clearAllCacheBtn = document.getElementById("clearAllCacheBtn");
   const cancelClearCacheBtn = document.getElementById("cancelClearCacheBtn");
+  const requestFileSystemAccessBtn = document.getElementById(
+    "requestFileSystemAccessBtn"
+  );
+  const storageBackendStatus = document.getElementById("storageBackendStatus");
+
+  async function updateStorageBackendStatus() {
+    if (!storageBackendStatus) return;
+    const backend =
+      storageManager && typeof storageManager.getPreferredBackend === "function"
+        ? storageManager.getPreferredBackend()
+        : null;
+    const backendId = backend?.backendId || "unknown";
+    const labels = {
+      filesystem: "文件夹存储（File System Access）",
+      indexeddb: "浏览器本地（IndexedDB）",
+      localStorage: "浏览器本地（localStorage）",
+    };
+
+    if (backendId === "filesystem") {
+      let statusText = labels.filesystem || backendId;
+      const fsBackend = storageManager?.backends?.filesystem;
+      if (!fsBackend || typeof fsBackend.isSupported !== "function" || !fsBackend.isSupported()) {
+        statusText = "文件夹存储（不可用）";
+      } else {
+        let handle = fsBackend.directoryHandle;
+        if (!handle && typeof fsBackend.loadHandleFromIdb === "function") {
+          try {
+            handle = await fsBackend.loadHandleFromIdb();
+          } catch (_) {}
+        }
+
+        if (!handle) {
+          statusText = "文件夹存储（未授权）";
+        } else if (typeof handle.queryPermission === "function") {
+          try {
+            const permission = await handle.queryPermission({ mode: "readwrite" });
+            if (permission === "prompt") {
+              statusText = "文件夹存储（待授权）";
+            } else if (permission === "denied") {
+              statusText = "文件夹存储（未授权）";
+            }
+          } catch (_) {}
+        }
+      }
+
+      storageBackendStatus.textContent = `当前存储：${statusText}`;
+      return;
+    }
+
+    storageBackendStatus.textContent = `当前存储：${
+      labels[backendId] || backendId
+    }`;
+  }
+
+  if (typeof window !== "undefined") {
+    window.updateStorageBackendStatus = updateStorageBackendStatus;
+  }
+
+  updateStorageBackendStatus();
 
   // 清除缓存
   if (clearCacheBtn) {
@@ -23,6 +82,76 @@ function registerEventListenersDataAndUi(ctx) {
         tag: "data",
         scope: "dataManagement",
         label: "clearCacheBtn:clickOpenModal",
+      }
+    );
+  }
+
+  if (requestFileSystemAccessBtn) {
+    EventManager.add(
+      requestFileSystemAccessBtn,
+      "click",
+      async () => {
+        if (!storageManager || typeof storageManager.requestFileSystemBackend !== "function") {
+          showNotification(
+            "warning",
+            "存储不可用",
+            "当前环境不支持 File System Access。"
+          );
+          return;
+        }
+
+        try {
+          const ok = await storageManager.requestFileSystemBackend();
+          if (ok) {
+            try {
+              const settings =
+                typeof safeJsonParse === "function"
+                  ? safeJsonParse(localStorage.getItem("translatorSettings"), {})
+                  : JSON.parse(localStorage.getItem("translatorSettings") || "{}");
+              settings.preferredStorageBackend = "filesystem";
+              localStorage.setItem("translatorSettings", JSON.stringify(settings));
+            } catch (e) {
+              console.warn("保存存储后端设置失败:", e);
+            }
+
+            if (
+              typeof autoSaveManager !== "undefined" &&
+              autoSaveManager?.saveProject &&
+              AppState?.project
+            ) {
+              try {
+                await autoSaveManager.saveProject();
+              } catch (e) {
+                console.warn("切换文件存储后保存当前项目失败:", e);
+              }
+            }
+
+            updateStorageBackendStatus();
+            showNotification(
+              "success",
+              "文件夹存储已启用",
+              "已切换为文件夹存储，后续保存将写入本地文件夹。"
+            );
+          } else {
+            showNotification(
+              "warning",
+              "未授权",
+              "未获取文件夹权限，继续使用浏览器本地存储。"
+            );
+          }
+        } catch (error) {
+          console.error("文件夹存储授权失败:", error);
+          showNotification(
+            "error",
+            "授权失败",
+            error?.message || "无法启用文件夹存储"
+          );
+        }
+      },
+      {
+        tag: "data",
+        scope: "dataManagement",
+        label: "requestFileSystemAccessBtn:click",
       }
     );
   }
@@ -86,6 +215,18 @@ function registerEventListenersDataAndUi(ctx) {
         closeModal("clearCacheModal");
 
         try {
+          const fsBackend = storageManager?.backends?.filesystem;
+          if (fsBackend && typeof fsBackend.clearPersistedHandle === "function") {
+            await fsBackend.clearPersistedHandle();
+          }
+          if (storageManager) {
+            storageManager.preferredBackendId = "indexeddb";
+          }
+        } catch (e) {
+          console.warn("清理文件系统句柄失败:", e);
+        }
+
+        try {
           if (
             storageManager &&
             typeof storageManager.clearAllProjects === "function"
@@ -99,6 +240,24 @@ function registerEventListenersDataAndUi(ctx) {
         }
 
         try {
+          try {
+            const raw = localStorage.getItem("translatorSettings");
+            const settings = raw
+              ? typeof safeJsonParse === "function"
+                ? safeJsonParse(raw, {})
+                : JSON.parse(raw)
+              : {};
+            if (settings && typeof settings === "object") {
+              settings.preferredStorageBackend = "indexeddb";
+              localStorage.setItem(
+                "translatorSettings",
+                JSON.stringify(settings)
+              );
+            }
+          } catch (e) {
+            console.warn("重置 preferredStorageBackend 失败:", e);
+          }
+
           localStorage.clear();
         } catch (e) {
           console.error("清理 localStorage 失败:", e);
@@ -752,6 +911,13 @@ function registerEventListenersDataAndUi(ctx) {
           document
             .getElementById("terminologyModal")
             .classList.remove("hidden");
+          // 刷新术语库列表
+          if (typeof window.updateTerminologyList === "function") {
+            window.updateTerminologyList();
+          }
+          if (typeof window.updateTerminologyPagination === "function") {
+            window.updateTerminologyPagination();
+          }
         } else if (tab.textContent.trim() === "质量检查") {
           document
             .getElementById("qualityReportModal")
@@ -997,6 +1163,13 @@ function registerEventListenersDataAndUi(ctx) {
         if (tabName === "terminology") {
           const terminologyModal = document.getElementById("terminologyModal");
           if (terminologyModal) terminologyModal.classList.remove("hidden");
+          // 刷新术语库列表
+          if (typeof window.updateTerminologyList === "function") {
+            window.updateTerminologyList();
+          }
+          if (typeof window.updateTerminologyPagination === "function") {
+            window.updateTerminologyPagination();
+          }
         } else if (tabName === "quality") {
           const qualityReportModal = document.getElementById("qualityReportModal");
           if (qualityReportModal) qualityReportModal.classList.remove("hidden");

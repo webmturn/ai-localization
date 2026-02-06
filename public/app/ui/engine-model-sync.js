@@ -291,3 +291,14 @@ function initEngineModelSync() {
     }
   } catch (_) {}
 }
+
+// 暴露到全局并在 DOM 加载后自动初始化
+window.initEngineModelSync = initEngineModelSync;
+
+// DOM 加载完成后自动初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initEngineModelSync);
+} else {
+  // DOM 已经加载完成，延迟执行确保其他脚本已加载
+  setTimeout(initEngineModelSync, 0);
+}

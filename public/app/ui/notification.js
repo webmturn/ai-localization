@@ -10,7 +10,33 @@ function showNotification(type, title, message) {
   const notificationTitle = document.getElementById("notificationTitle");
   const notificationMessage = document.getElementById("notificationMessage");
 
-  if (!window.__notificationQueue) window.__notificationQueue = [];
+  let notificationQueue;
+  try {
+    notificationQueue = window.ArchDebug
+      ? window.ArchDebug.getFlag('notificationQueue', {
+          windowKey: '__notificationQueue',
+        })
+      : window.__notificationQueue;
+  } catch (_) {
+    notificationQueue = window.__notificationQueue;
+  }
+  if (!Array.isArray(notificationQueue)) notificationQueue = [];
+  try {
+    if (window.ArchDebug) {
+      window.ArchDebug.setFlag('notificationQueue', notificationQueue, {
+        windowKey: '__notificationQueue',
+        mirrorWindow: false,
+      });
+    } else {
+      window.__notificationQueue = notificationQueue;
+    }
+  } catch (_) {
+    try {
+      if (!window.ArchDebug) {
+        window.__notificationQueue = notificationQueue;
+      }
+    } catch (_) {}
+  }
 
   const isVisible =
     notification &&
@@ -19,11 +45,11 @@ function showNotification(type, title, message) {
 
   const payload = { type, title, message };
   if (isVisible) {
-    window.__notificationQueue.push(payload);
-    if (window.__notificationQueue.length > NOTIFICATION_QUEUE_LIMIT) {
-      window.__notificationQueue.splice(
+    notificationQueue.push(payload);
+    if (notificationQueue.length > NOTIFICATION_QUEUE_LIMIT) {
+      notificationQueue.splice(
         0,
-        window.__notificationQueue.length - NOTIFICATION_QUEUE_LIMIT
+        notificationQueue.length - NOTIFICATION_QUEUE_LIMIT
       );
     }
     clearTimeout(notification.hideTimeout);
@@ -87,7 +113,16 @@ function closeNotification() {
   // 移除body类
   document.body.classList.remove("has-notification");
 
-  const q = window.__notificationQueue;
+  let q;
+  try {
+    q = window.ArchDebug
+      ? window.ArchDebug.getFlag('notificationQueue', {
+          windowKey: '__notificationQueue',
+        })
+      : window.__notificationQueue;
+  } catch (_) {
+    q = window.__notificationQueue;
+  }
   if (Array.isArray(q) && q.length > 0) {
     const next = q.shift();
     setTimeout(() => {

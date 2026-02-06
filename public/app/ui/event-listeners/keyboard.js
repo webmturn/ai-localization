@@ -285,6 +285,18 @@
     );
   }
 
+  // 创建键盘服务对象
+  const keyboardService = {
+    KEYBOARD_SHORTCUT_DEFINITIONS,
+    getEffectiveShortcutKeys,
+    eventToKeyString,
+    formatKeyDisplay,
+    saveShortcutOverride,
+    resetShortcutToDefault,
+    registerEventListenersKeyboard
+  };
+
+  // 暴露到全局（向后兼容）
   window.KEYBOARD_SHORTCUT_DEFINITIONS = KEYBOARD_SHORTCUT_DEFINITIONS;
   window.getEffectiveShortcutKeys = getEffectiveShortcutKeys;
   window.eventToKeyString = eventToKeyString;
@@ -292,4 +304,13 @@
   window.saveShortcutOverride = saveShortcutOverride;
   window.resetShortcutToDefault = resetShortcutToDefault;
   window.registerEventListenersKeyboard = registerEventListenersKeyboard;
+
+  // 尝试注册到DI系统
+  if (typeof window.diContainer !== 'undefined') {
+    try {
+      window.diContainer.registerFactory('keyboardService', () => keyboardService);
+    } catch (error) {
+      console.warn('KeyboardService DI注册失败:', error.message);
+    }
+  }
 })();

@@ -110,6 +110,12 @@ function registerEventListenersSettings(ctx) {
             window.loadProjectPromptTemplatesToUI();
           } catch (_) {}
         }
+        if (
+          targetTab === "data" &&
+          typeof window.updateStorageBackendStatus === "function"
+        ) {
+          window.updateStorageBackendStatus();
+        }
       },
       {
         tag: "settings",
@@ -131,7 +137,11 @@ function registerEventListenersSettings(ctx) {
     } catch (_) {}
 
     try {
-      const dict = window.__DEFAULT_PROJECT_PROMPT_TEMPLATES;
+      const dict = window.ArchDebug
+        ? window.ArchDebug.getFlag('DEFAULT_PROJECT_PROMPT_TEMPLATES', {
+            windowKey: '__DEFAULT_PROJECT_PROMPT_TEMPLATES',
+          })
+        : window.__DEFAULT_PROJECT_PROMPT_TEMPLATES;
       if (dict && dict[engineKey]) return String(dict[engineKey]);
     } catch (_) {}
 
@@ -449,6 +459,20 @@ function registerEventListenersSettings(ctx) {
           : 30;
         if (apiTimeoutInput) apiTimeoutInput.value = apiTimeout;
 
+        const translationRequestCacheEnabled =
+          document.getElementById("translationRequestCacheEnabled")?.checked ??
+          false;
+        const rawCacheTtl = parseInt(
+          document.getElementById("translationRequestCacheTTLSeconds")?.value,
+        );
+        const translationRequestCacheTTLSeconds = Number.isFinite(rawCacheTtl)
+          ? Math.max(1, Math.min(600, rawCacheTtl))
+          : 5;
+        try {
+          const el = document.getElementById("translationRequestCacheTTLSeconds");
+          if (el) el.value = translationRequestCacheTTLSeconds;
+        } catch (_) {}
+
         // 保存设置到 localStorage
         const rawDefaultEngine =
           document.getElementById("defaultEngine")?.value || "deepseek";
@@ -497,6 +521,9 @@ function registerEventListenersSettings(ctx) {
             parseInt(document.getElementById("concurrentLimit")?.value) || 5,
           retryCount:
             parseInt(document.getElementById("retryCount")?.value) || 2,
+
+          translationRequestCacheEnabled,
+          translationRequestCacheTTLSeconds,
 
           deepseekUseKeyContext:
             document.getElementById("deepseekUseKeyContext")?.checked || false,
@@ -587,6 +614,10 @@ function registerEventListenersSettings(ctx) {
           const existingRaw = localStorage.getItem("translatorSettings");
           if (existingRaw) {
             const existing = JSON.parse(existingRaw);
+            if (existing?.preferredStorageBackend) {
+              settings.preferredStorageBackend =
+                existing.preferredStorageBackend;
+            }
             if (existing && typeof existing.keyboardShortcuts === "object" && Object.keys(existing.keyboardShortcuts).length > 0) {
               settings.keyboardShortcuts = existing.keyboardShortcuts;
             }

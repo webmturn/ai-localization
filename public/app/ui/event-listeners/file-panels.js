@@ -7,8 +7,15 @@ function registerEventListenersFilePanels(ctx) {
     const isDev = typeof isDevelopment !== "undefined" && isDevelopment;
     let enabled = false;
     try {
+      var debugLogsFlag =
+        typeof window !== "undefined"
+          ? window.ArchDebug
+            ? window.ArchDebug.getFlag('DEBUG_LOGS')
+            : window.__DEBUG_LOGS
+          : undefined;
+
       enabled =
-        (typeof window !== "undefined" && window.__DEBUG_LOGS === true) ||
+        debugLogsFlag === true ||
         (typeof localStorage !== "undefined" &&
           localStorage.getItem("debugLogs") === "1");
     } catch (_) {}

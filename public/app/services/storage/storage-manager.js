@@ -601,6 +601,19 @@ class StorageManager {
     }
   }
 
+  async retryIndexedDbAvailability() {
+    if (this.indexedDbAvailable) return true;
+    const wasUnavailable = this.__idbAvailabilityChecked && !this.indexedDbAvailable;
+    this.__idbAvailabilityChecked = false;
+    const ok = await this.checkIndexedDbAvailability();
+    if (ok && wasUnavailable && this.preferredBackendId === "localStorage") {
+      this.preferredBackendId = "indexeddb";
+      this.__persistPreferredBackend("indexeddb");
+      (loggers.storage || console).log("IndexedDB 已恢复可用，已自动切回 indexeddb");
+    }
+    return ok;
+  }
+
   async ensureBackendAvailable(options = {}) {
     if (this.preferredBackendId === "filesystem") {
       const fsBackend = this.backends.filesystem;
@@ -1146,6 +1159,14 @@ class StorageManager {
 }
 
 const storageManager = new StorageManager();
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !storageManager.indexedDbAvailable) {
+      storageManager.retryIndexedDbAvailability().catch(() => {});
+    }
+  });
+}
 
 // IDB GC/清理函数已拆分到 idb-operations.js
 // 文件内容键管理函数已拆分到 file-content-keys.js

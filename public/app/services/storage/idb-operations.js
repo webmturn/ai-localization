@@ -123,6 +123,17 @@ function openFileContentDB() {
   return __fileContentDB.opening;
 }
 
+const __fileContentLsFallbackPrefix = "__fc:";
+let __fileContentLsFallbackNotified = false;
+
+function __fileContentLsFallbackWarn(action) {
+  if (__fileContentLsFallbackNotified) return;
+  __fileContentLsFallbackNotified = true;
+  (window.loggers?.storage || console).warn(
+    `文件内容${action}：IndexedDB不可用，已降级到 localStorage（容量受限）`
+  );
+}
+
 function idbPutFileContent(key, content) {
   return openFileContentDB().then(
     (db) =>
@@ -134,7 +145,15 @@ function idbPutFileContent(key, content) {
         tx.onerror = () => reject(tx.error || new Error("IndexedDB写入失败"));
         tx.onabort = () => reject(tx.error || new Error("IndexedDB写入中止"));
       })
-  );
+  ).catch((e) => {
+    try {
+      localStorage.setItem(__fileContentLsFallbackPrefix + key, content);
+      __fileContentLsFallbackWarn("写入");
+      return true;
+    } catch (lsErr) {
+      throw e;
+    }
+  });
 }
 
 function idbGetFileContent(key) {
@@ -147,7 +166,16 @@ function idbGetFileContent(key) {
         req.onsuccess = () => resolve(req.result ? req.result.content : null);
         req.onerror = () => reject(req.error || new Error("IndexedDB读取失败"));
       })
-  );
+  ).catch((e) => {
+    try {
+      const val = localStorage.getItem(__fileContentLsFallbackPrefix + key);
+      if (val !== null) {
+        __fileContentLsFallbackWarn("读取");
+        return val;
+      }
+    } catch (_) {}
+    throw e;
+  });
 }
 
 function idbPutProject(key, projectJson) {

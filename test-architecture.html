@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>架构系统测试</title>
+</head>
+<body>
+    <h1>架构系统测试</h1>
+    <div id="status">正在加载...</div>
+    <div id="details"></div>
+    
+    <script>
+        // 监听架构初始化事件
+        let statusDiv = document.getElementById('status');
+        let detailsDiv = document.getElementById('details');
+        
+        function updateStatus(message, isError = false) {
+            statusDiv.innerHTML = message;
+            statusDiv.style.color = isError ? 'red' : 'green';
+            console.log(message);
+        }
+        
+        function addDetail(message) {
+            detailsDiv.innerHTML += '<p>' + message + '</p>';
+        }
+        
+        // 监听脚本加载进度
+        window.addEventListener('scriptLoadProgress', (event) => {
+            const { loaded, total, progress } = event.detail;
+            updateStatus(`脚本加载进度: ${loaded}/${total} (${progress.toFixed(1)}%)`);
+        });
+        
+        // 监听所有脚本加载完成
+        window.addEventListener('allScriptsLoaded', (event) => {
+            const { totalTime, errors, loadedCount, totalCount } = event.detail;
+            addDetail(`✅ 所有脚本加载完成: ${loadedCount}/${totalCount} (${totalTime.toFixed(2)}ms)`);
+            if (errors.length > 0) {
+                addDetail(`⚠️ ${errors.length} 个脚本加载失败`);
+            }
+        });
+        
+        // 检查架构初始化状态
+        function checkArchitecture() {
+            setTimeout(() => {
+                if (window.Architecture?.initializer?.initialized) {
+                    updateStatus('✅ 架构初始化成功完成');
+                    addDetail('✅ 架构命名空间: ' + (window.Architecture ? '已创建' : '未创建'));
+                    addDetail('✅ 错误管理器: ' + (window.errorManager ? '已初始化' : '未初始化'));
+                    addDetail('✅ 依赖注入: ' + (window.diContainer ? '已初始化' : '未初始化'));
+                    addDetail('✅ 模块管理器: ' + (window.moduleManager ? '已初始化' : '未初始化'));
+                } else {
+                    updateStatus('⏳ 等待架构初始化...');
+                    checkArchitecture();
+                }
+            }, 1000);
+        }
+        
+        checkArchitecture();
+    </script>
+    
+    <!-- 加载主应用脚本 -->
+    <script>
+        // 设置正确的基准路径
+        window.App = window.App || {};
+        window.App.__appBasePath = './public/';
+    </script>
+    <script src="public/app.js"></script>
+</body>
+</html>

@@ -46,6 +46,8 @@
     "app/core/event-manager.js",
     "app/core/event-binding-manager.js",              // 新增：事件绑定管理器
     "app/core/dom-optimization-manager.js",           // P1新增：DOM优化管理器
+    "app/utils/dom-cache-integration.js",             // DOM缓存集成（被 service-startup-manager 引用）
+    "app/core/architecture-integration-helpers.js",   // 架构集成助手（被 bootstrap 引用）
     "app/core/service-startup-manager.js"             // 服务启动管理器
   ];
 

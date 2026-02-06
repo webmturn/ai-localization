@@ -76,12 +76,32 @@ const ERROR_CATEGORIES = {
 
 // ==================== 自定义错误类 ====================
 class TranslationToolError extends Error {
+  /**
+   * 错误追踪ID计数器
+   * @private
+   */
+  static _errorCounter = 0;
+  
+  /**
+   * 生成唯一的错误追踪ID
+   * @returns {string} 错误追踪ID (格式: ERR-YYYYMMDD-HHMMSS-XXXX)
+   */
+  static generateTraceId() {
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+    const counter = String(++TranslationToolError._errorCounter).padStart(4, '0');
+    const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `ERR-${date}-${time}-${counter}-${random}`;
+  }
+  
   constructor(code, message, details = {}) {
     super(message);
     this.name = 'TranslationToolError';
     this.code = code;
     this.details = details;
     this.timestamp = new Date().toISOString();
+    this.traceId = TranslationToolError.generateTraceId(); // 错误追踪ID
     this.severity = this._determineSeverity(code);
     this.category = this._determineCategory(code);
     this.recoverable = this._isRecoverable(code);
@@ -100,10 +120,12 @@ class TranslationToolError extends Error {
       [ERROR_CODES.API_RATE_LIMITED]: ERROR_SEVERITY.MEDIUM,
       [ERROR_CODES.NETWORK_ERROR]: ERROR_SEVERITY.MEDIUM,
       [ERROR_CODES.API_KEY_MISSING]: ERROR_SEVERITY.HIGH,
+      [ERROR_CODES.API_KEY_INVALID]: ERROR_SEVERITY.HIGH,
       [ERROR_CODES.STORAGE_QUOTA_EXCEEDED]: ERROR_SEVERITY.HIGH,
       [ERROR_CODES.STORAGE_CORRUPTED]: ERROR_SEVERITY.CRITICAL,
       [ERROR_CODES.INTERNAL_ERROR]: ERROR_SEVERITY.CRITICAL
     };
+    
     return severityMap[code] || ERROR_SEVERITY.MEDIUM;
   }
   
@@ -128,6 +150,7 @@ class TranslationToolError extends Error {
   
   toJSON() {
     return {
+      traceId: this.traceId,
       name: this.name,
       code: this.code,
       message: this.message,
@@ -139,6 +162,14 @@ class TranslationToolError extends Error {
       stack: this.stack,
       originalStack: this.originalStack
     };
+  }
+  
+  /**
+   * 获取用于日志显示的格式化字符串
+   * @returns {string}
+   */
+  toLogString() {
+    return `[${this.traceId}] ${this.code}: ${this.message}`;
   }
 }
 
@@ -343,6 +374,14 @@ class ErrorManager {
         code = ERROR_CODES.API_KEY_MISSING;
       } else if (errorString.includes('格式') || errorString.includes('invalid')) {
         code = ERROR_CODES.API_KEY_INVALID;
+      }
+    }
+
+    // 如果仍然是 UNKNOWN_ERROR，但原始错误里带有已知的错误代码，则沿用原始错误代码
+    if (code === ERROR_CODES.UNKNOWN_ERROR) {
+      const originalCode = error?.code || error?.details?.originalError?.code;
+      if (originalCode && Object.values(ERROR_CODES).includes(originalCode)) {
+        code = originalCode;
       }
     }
     
@@ -684,17 +723,119 @@ class ErrorManager {
   }
 }
 
-// ==================== 全局实例 ====================
-const errorManager = new ErrorManager();
+// ==================== 全局错误管理器实例 ====================
+let errorManager;
 
-// ==================== 导出接口 ====================
-window.ErrorManager = ErrorManager;
-window.TranslationToolError = TranslationToolError;
-window.ERROR_CODES = ERROR_CODES;
-window.ERROR_SEVERITY = ERROR_SEVERITY;
-window.ERROR_CATEGORIES = ERROR_CATEGORIES;
-window.errorManager = errorManager;
+/**
+ * 初始化错误管理器
+ */
+function initializeErrorManager() {
+  if (!errorManager) {
+    errorManager = new ErrorManager();
+    
+    // 将错误管理器暴露到全局
+    window.errorManager = errorManager;
+    
+    // 提供便捷的全局错误处理函数
+    window.handleError = (error, context) => errorManager.handleError(error, context);
+    window.createError = (code, message, details) => errorManager.createError(code, message, details);
+    
+    console.log('✅ 错误管理器初始化完成');
+  }
+  
+  return errorManager;
+}
 
-// 便捷函数
-window.createError = (code, message, details) => errorManager.createError(code, message, details);
-window.handleError = (error, context) => errorManager.handleError(error, context);
+// ==================== 统一错误处理函数 ====================
+
+/**
+ * 统一的异步操作错误处理包装器
+ * @param {Function} asyncFunction - 异步函数
+ * @param {Object} context - 上下文信息
+ * @returns {Promise} 包装后的Promise
+ */
+async function withErrorHandling(asyncFunction, context = {}) {
+  try {
+    return await asyncFunction();
+  } catch (error) {
+    const handledError = errorManager.handleError(error, context);
+    
+    // 如果错误不可恢复，重新抛出
+    if (!handledError.recoverable) {
+      throw handledError;
+    }
+    
+    return null;
+  }
+}
+
+/**
+ * 统一的翻译操作错误处理
+ * @param {Function} translationFunction - 翻译函数
+ * @param {Object} context - 翻译上下文
+ * @returns {Promise} 翻译结果
+ */
+async function withTranslationErrorHandling(translationFunction, context = {}) {
+  return withErrorHandling(translationFunction, {
+    ...context,
+    category: 'translation',
+    retryable: true
+  });
+}
+
+/**
+ * 统一的存储操作错误处理
+ * @param {Function} storageFunction - 存储函数
+ * @param {Object} context - 存储上下文
+ * @returns {Promise} 存储结果
+ */
+async function withStorageErrorHandling(storageFunction, context = {}) {
+  return withErrorHandling(storageFunction, {
+    ...context,
+    category: 'storage',
+    retryable: true
+  });
+}
+
+/**
+ * 统一的网络请求错误处理
+ * @param {Function} networkFunction - 网络请求函数
+ * @param {Object} context - 网络上下文
+ * @returns {Promise} 请求结果
+ */
+async function withNetworkErrorHandling(networkFunction, context = {}) {
+  return withErrorHandling(networkFunction, {
+    ...context,
+    category: 'network',
+    retryable: true,
+    maxRetries: 3
+  });
+}
+
+// ==================== 导出 ====================
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    ErrorManager,
+    TranslationToolError,
+    ERROR_CODES,
+    ERROR_SEVERITY,
+    ERROR_CATEGORIES,
+    initializeErrorManager,
+    withErrorHandling,
+    withTranslationErrorHandling,
+    withStorageErrorHandling,
+    withNetworkErrorHandling
+  };
+} else {
+  // 浏览器环境，暴露到全局
+  window.ErrorManager = ErrorManager;
+  window.TranslationToolError = TranslationToolError;
+  window.ERROR_CODES = ERROR_CODES;
+  window.ERROR_SEVERITY = ERROR_SEVERITY;
+  window.ERROR_CATEGORIES = ERROR_CATEGORIES;
+  window.initializeErrorManager = initializeErrorManager;
+  window.withErrorHandling = withErrorHandling;
+  window.withTranslationErrorHandling = withTranslationErrorHandling;
+  window.withStorageErrorHandling = withStorageErrorHandling;
+  window.withNetworkErrorHandling = withNetworkErrorHandling;
+}

@@ -275,4 +275,11 @@ const EventManager = {
   },
 };
 
+// ==================== 全局导出 ====================
+if (typeof window !== "undefined") {
+  // 兼容新旧代码，以及DI / 架构验证对全局的访问
+  window.EventManager = EventManager;
+  window.eventManager = EventManager;
+}
+
 // DOM 加载完成后执行

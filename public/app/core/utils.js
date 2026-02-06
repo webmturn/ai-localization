@@ -103,7 +103,22 @@ function filterItems(
 
         var suffix = "";
         try {
-          suffix = typeof window.__appScriptSuffix === "string" ? window.__appScriptSuffix : "";
+          var appScriptSuffix = window.ArchDebug
+            ? window.ArchDebug.getFlag('appScriptSuffix')
+            : (function () {
+                try {
+                  var App = window.App;
+                  if (App && typeof App.__appScriptSuffix === 'string') {
+                    return App.__appScriptSuffix;
+                  }
+                } catch (_) {}
+                try {
+                  return window.__appScriptSuffix;
+                } catch (_) {
+                  return undefined;
+                }
+              })();
+          suffix = typeof appScriptSuffix === "string" ? appScriptSuffix : "";
         } catch (_) {}
 
         s.src = key + suffix;
@@ -230,3 +245,115 @@ function filterItems(
     return terminologyIoPromise;
   };
 })();
+
+// ==================== 服务获取辅助函数 ====================
+
+/**
+ * 安全地从DI容器获取服务
+ * @param {string} serviceName - 服务名称
+ * @param {string} [fallbackGlobal] - 备用全局变量名（用于向后兼容）
+ * @returns {*} 服务实例，如果未找到则返回 null
+ */
+function getServiceSafely(serviceName, fallbackGlobal) {
+  try {
+    // 优先从DI容器获取
+    if (window.diContainer && window.diContainer.has(serviceName)) {
+      return window.diContainer.resolve(serviceName);
+    }
+
+    // 尝试从服务定位器获取
+    if (window.serviceLocator && window.serviceLocator.has(serviceName)) {
+      return window.serviceLocator.get(serviceName);
+    }
+  } catch (error) {
+    const logger = window.loggers?.service || console;
+    logger.warn?.(`获取服务 ${serviceName} 失败:`, error);
+  }
+
+  // 备用方案：从全局变量获取
+  if (fallbackGlobal) {
+    const globalValue = window[fallbackGlobal];
+    if (globalValue !== undefined) {
+      return globalValue;
+    }
+  }
+
+  // 最后尝试直接从 serviceName 获取
+  const directValue = window[serviceName];
+  if (directValue !== undefined) {
+    return directValue;
+  }
+
+  return null;
+}
+
+/**
+ * 获取服务（如果不存在则抛出错误）
+ * @param {string} serviceName - 服务名称
+ * @returns {*} 服务实例
+ * @throws {Error} 如果服务未找到
+ */
+function getService(serviceName) {
+  const service = getServiceSafely(serviceName, serviceName);
+  if (service === null) {
+    throw new Error(`服务 ${serviceName} 未注册或不可用`);
+  }
+  return service;
+}
+
+/**
+ * 检查服务是否存在
+ * @param {string} serviceName - 服务名称
+ * @returns {boolean} 服务是否存在
+ */
+function hasService(serviceName) {
+  try {
+    if (window.diContainer && window.diContainer.has(serviceName)) {
+      return true;
+    }
+    if (window.serviceLocator && window.serviceLocator.has(serviceName)) {
+      return true;
+    }
+    return window[serviceName] !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 批量获取服务
+ * @param {string[]} serviceNames - 服务名称数组
+ * @returns {Object} 服务名称到实例的映射
+ */
+function getServices(serviceNames) {
+  const services = {};
+  serviceNames.forEach(name => {
+    try {
+      services[name] = getServiceSafely(name, name);
+    } catch (error) {
+      services[name] = null;
+    }
+  });
+  return services;
+}
+
+/**
+ * 创建服务依赖注入包装器
+ * @param {Function} fn - 需要依赖注入的函数
+ * @param {string[]} dependencies - 依赖的服务名称列表
+ * @returns {Function} 包装后的函数
+ */
+function withDependencies(fn, dependencies) {
+  return function(...args) {
+    const services = getServices(dependencies);
+    return fn.call(this, services, ...args);
+  };
+}
+
+// 暴露到全局
+window.getServiceSafely = getServiceSafely;
+window.getService = getService;
+window.hasService = hasService;
+window.getServices = getServices;
+window.withDependencies = withDependencies;
+

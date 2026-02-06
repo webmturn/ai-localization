@@ -1271,6 +1271,30 @@
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">翻译失败时自动重试的次数</p>
                                 </div>
 
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-100">请求去重与短期缓存（可选）</h5>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">用于减少重复请求与提升短时间内重复翻译的性能（默认关闭）</p>
+
+                                    <div class="mt-4 space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">启用翻译请求短期缓存</label>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">相同请求在 TTL 内会直接复用响应（仍会进行请求去重）</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" id="translationRequestCacheEnabled" class="sr-only peer" title="启用翻译请求短期缓存" aria-label="启用翻译请求短期缓存">
+                                                <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">缓存 TTL（秒）</label>
+                                            <input type="number" id="translationRequestCacheTTLSeconds" value="5" min="1" max="600" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="缓存 TTL（秒）" aria-label="缓存 TTL（秒）">
+                                            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">建议 3-10 秒；过长可能导致误复用</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-5">
                                     <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-100">DeepSeek 准确度增强（可选）</h5>
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">通过 key/字段名与 priming 样本提升短词与结构化文件的翻译准确度</p>
@@ -1746,6 +1770,17 @@
                                     </div>
                                 </div>
 
+                                <div class="border-t border-gray-200 pt-5">
+                                    <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">文件存储</h5>
+                                    <div class="space-y-2">
+                                        <button id="requestFileSystemAccessBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
+                                            <i class="fa fa-folder-open mr-2 text-gray-500 dark:text-gray-400"></i>启用文件夹存储
+                                        </button>
+                                        <div id="storageBackendStatus" class="text-xs text-gray-500 dark:text-gray-400">当前存储：浏览器本地（IndexedDB/localStorage）</div>
+                                    </div>
+                                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">授权后项目将保存到所选文件夹中的 <span class="font-mono">translator-storage.json</span>。</p>
+                                </div>
+
                                 <div>
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">导出数据</h5>
                                     <div class="space-y-2">
@@ -1863,7 +1898,7 @@
                     <div class="space-y-4">
                         <div class="pl-6">
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">1. 导入文件</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">点击上方「浏览文件」或拖拽文件到上传区域。支持 XML、Android strings.xml、XLIFF（.xlf/.xliff）、JSON、PO、RESX、iOS Strings、Qt TS 等格式；其他扩展名会按文本方式尝试解析。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">点击上方「浏览文件」或拖拽文件到上传区域。支持 XML、Android strings.xml、XLIFF（.xlf/.xliff）、JSON、YAML、CSV/TSV、PO、RESX、iOS Strings、Qt TS 等格式；其他扩展名会按文本方式尝试解析。</p>
                         </div>
                         <div class="pl-6">
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">2. 查看翻译项</h5>
@@ -1900,7 +1935,7 @@
                         </div>
                         <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">✅ 质量检查</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">自动检测空译文、长度异常等问题，并生成可导出的报告。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">自动检测空译文、长度异常、占位符缺失、数字不一致、HTML标签不匹配等问题，并生成可导出的报告。</p>
                         </div>
                         <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg md:col-span-2">
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">⚙️ 设置与外观</h5>
@@ -1986,7 +2021,7 @@
                     <div class="space-y-4">
                         <div>
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 支持哪些文件格式？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 支持 XML、Android strings.xml、iOS Strings、JSON、XLIFF、PO、RESX、Qt TS 等。其他扩展名会按文本方式尝试解析。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 支持 XML、Android strings.xml、iOS Strings、JSON、YAML、CSV/TSV、XLIFF、PO、RESX、Qt TS 等。其他扩展名会按文本方式尝试解析。</p>
                         </div>
                         <div>
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 如何配置 API 密钥？</h5>
@@ -1998,7 +2033,15 @@
                         </div>
                         <div>
                             <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 数据存储在哪里？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 项目与设置等数据均保存在浏览器本地，不会上传到任何服务器。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 项目与设置等数据均保存在浏览器本地（localStorage + IndexedDB），不会上传到任何服务器。自动保存功能默认每10秒检查并保存更改。</p>
+                        </div>
+                        <div>
+                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 如何暂停/恢复自动保存？</h5>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 可在控制台使用 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">autoSaveManager.pause()</code> 暂停，<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">autoSaveManager.resume()</code> 恢复。</p>
+                        </div>
+                        <div>
+                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 质量检查包含哪些项目？</h5>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 包括空译文、长度异常、占位符缺失、数字不一致、标点符号异常、重复词、HTML标签不匹配、未翻译检测等。</p>
                         </div>
                     </div>
                 </section>

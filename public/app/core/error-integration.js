@@ -21,7 +21,6 @@ class ErrorSystemIntegrator {
    */
   async initialize(options = {}) {
     if (this.initialized) {
-      console.warn('错误处理系统已经初始化');
       return;
     }
     
@@ -34,7 +33,9 @@ class ErrorSystemIntegrator {
     } = options;
     
     try {
-      console.log('🔧 初始化错误处理系统...');
+      // 使用日志系统
+      const logger = window.loggers?.errors || console;
+      logger.info?.('初始化错误处理系统...') || console.log('🔧 初始化错误处理系统...');
       
       // 1. 设置通知处理器
       this._setupNotificationHandler(notificationHandler);
@@ -67,7 +68,7 @@ class ErrorSystemIntegrator {
       await this._runHealthCheck();
       
       this.initialized = true;
-      console.log('✅ 错误处理系统初始化完成');
+      logger.info?.('错误处理系统初始化完成') || console.log('✅ 错误处理系统初始化完成');
       
       // 显示初始化成功通知
       this._showNotification('success', '系统就绪', '错误处理系统已成功初始化');
@@ -133,8 +134,19 @@ class ErrorSystemIntegrator {
    * 初始化错误管理器
    */
   _initializeErrorManager(options) {
+    // 如果错误管理器实例不存在，尝试创建它
     if (!window.errorManager) {
-      throw new Error('ErrorManager实例未找到');
+      if (window.initializeErrorManager && typeof window.initializeErrorManager === 'function') {
+        try {
+          window.initializeErrorManager();
+          console.log('🔧 错误管理器实例已创建');
+        } catch (error) {
+          console.error('❌ 创建错误管理器实例失败:', error);
+          throw new Error('ErrorManager实例创建失败');
+        }
+      } else {
+        throw new Error('ErrorManager实例未找到');
+      }
     }
     
     // 配置错误管理器
@@ -160,7 +172,9 @@ class ErrorSystemIntegrator {
     modules.forEach(moduleName => {
       if (window[moduleName]) {
         this.modules.set(moduleName, window[moduleName]);
-        console.log(`✓ 已注册模块: ${moduleName}`);
+        // 使用日志系统
+        const logger = window.loggers?.errors || console;
+        logger.debug?.(`已注册模块: ${moduleName}`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`✓ 已注册模块: ${moduleName}`));
       } else {
         console.warn(`⚠️ 模块未找到: ${moduleName}`);
       }
@@ -172,7 +186,9 @@ class ErrorSystemIntegrator {
    */
   _setupGlobalErrorHandlers() {
     // 这些处理器已经在ErrorManager中设置，这里只是确认
-    console.log('✓ 全局错误处理器已激活');
+    // 使用日志系统
+    const logger = window.loggers?.errors || console;
+    logger.debug?.('全局错误处理器已激活') || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log('✓ 全局错误处理器已激活'));
   }
   
   /**
@@ -195,7 +211,9 @@ class ErrorSystemIntegrator {
       return result;
     };
     
-    console.log('✓ 性能监控已启用');
+    // 使用日志系统
+    const logger = window.loggers?.errors || console;
+    logger.debug?.('性能监控已启用') || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log('✓ 性能监控已启用'));
   }
   
   /**
@@ -203,7 +221,8 @@ class ErrorSystemIntegrator {
    */
   _configureErrorReporting() {
     // 这里可以配置远程错误报告服务
-    console.log('✓ 错误报告已配置');
+    const logger = window.loggers?.errors || console;
+    logger.debug?.('错误报告已配置') || console.log('✓ 错误报告已配置');
   }
   
   /**
@@ -231,7 +250,8 @@ class ErrorSystemIntegrator {
     if (failures.length > 0) {
       console.warn('健康检查发现问题:', failures);
     } else {
-      console.log('✅ 所有健康检查通过');
+      const logger = window.loggers?.errors || console;
+      logger.debug?.('所有健康检查通过') || console.log('✅ 所有健康检查通过');
     }
   }
   
@@ -388,6 +408,22 @@ window.errorSystemIntegrator = new ErrorSystemIntegrator();
 
 // 自动初始化（如果在浏览器环境中）
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  // 当架构初始化器存在时，由架构步骤统一触发错误系统初始化，避免重复初始化
+  const shouldAutoInit = !(window.architectureInitializer || window.ArchitectureInitializer);
+
+  if (!shouldAutoInit) {
+    setTimeout(() => {
+      try {
+        if (window.errorSystemIntegrator?.initialized) return;
+        if (window.Architecture?.initializer?.initialized) return;
+        window.errorSystemIntegrator.initialize().catch((error) => {
+          console.error('自动初始化错误处理系统失败:', error);
+        });
+      } catch (error) {
+        console.error('自动初始化错误处理系统失败:', error);
+      }
+    }, 5000);
+  } else {
   // 等待DOM加载完成后自动初始化
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -409,5 +445,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         });
       }
     }, 100);
+  }
   }
 }

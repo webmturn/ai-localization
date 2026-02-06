@@ -888,6 +888,35 @@ class StorageManager {
     }
   }
 
+  async disconnectFilesystem() {
+    const fsBackend = this.backends.filesystem;
+
+    try {
+      await this.migrateToBackend("indexeddb");
+    } catch (e) {
+      (loggers.storage || console).warn("从 filesystem 迁移到 indexeddb 失败:", e);
+    }
+
+    this.preferredBackendId = "indexeddb";
+    this.__fsFallbackPending = false;
+    this.__persistPreferredBackend("indexeddb");
+
+    if (fsBackend && typeof fsBackend.clearPersistedHandle === "function") {
+      try {
+        await fsBackend.clearPersistedHandle();
+      } catch (e) {
+        (loggers.storage || console).warn("清理文件系统句柄失败:", e);
+      }
+    }
+
+    if (typeof window.updateStorageBackendStatus === "function") {
+      window.updateStorageBackendStatus();
+    }
+
+    (loggers.storage || console).log("已停用文件夹存储，切回 IndexedDB");
+    return true;
+  }
+
   async requestFileSystemBackend() {
     const fsBackend = this.backends.filesystem;
     if (!fsBackend || !fsBackend.isSupported()) {

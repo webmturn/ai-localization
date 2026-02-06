@@ -1776,6 +1776,9 @@
                                         <button id="requestFileSystemAccessBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
                                             <i class="fa fa-folder-open mr-2 text-gray-500 dark:text-gray-400"></i>启用文件夹存储
                                         </button>
+                                        <button id="disconnectFileSystemBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 rounded-md hover:bg-orange-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center" style="display:none;">
+                                            <i class="fa fa-times-circle mr-2"></i>停用文件夹存储，切回浏览器本地
+                                        </button>
                                         <div id="storageBackendStatus" class="text-xs text-gray-500 dark:text-gray-400">当前存储：浏览器本地（IndexedDB/localStorage）</div>
                                     </div>
                                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">授权后项目将保存到所选文件夹中的 <span class="font-mono">translator-storage.json</span>。</p>

@@ -16,6 +16,7 @@ function registerEventListenersDataManagement(ctx) {
   const requestFileSystemAccessBtn = document.getElementById(
     "requestFileSystemAccessBtn"
   );
+  const disconnectFileSystemBtn = document.getElementById("disconnectFileSystemBtn");
   const storageBackendStatus = document.getElementById("storageBackendStatus");
 
   async function updateStorageBackendStatus() {
@@ -59,12 +60,16 @@ function registerEventListenersDataManagement(ctx) {
       }
 
       storageBackendStatus.textContent = `当前存储：${statusText}`;
+      if (requestFileSystemAccessBtn) requestFileSystemAccessBtn.style.display = "none";
+      if (disconnectFileSystemBtn) disconnectFileSystemBtn.style.display = "";
       return;
     }
 
     storageBackendStatus.textContent = `当前存储：${
       labels[backendId] || backendId
     }`;
+    if (requestFileSystemAccessBtn) requestFileSystemAccessBtn.style.display = "";
+    if (disconnectFileSystemBtn) disconnectFileSystemBtn.style.display = "none";
   }
 
   if (typeof window !== "undefined") {
@@ -85,6 +90,41 @@ function registerEventListenersDataManagement(ctx) {
         tag: "data",
         scope: "dataManagement",
         label: "clearCacheBtn:clickOpenModal",
+      }
+    );
+  }
+
+  if (disconnectFileSystemBtn) {
+    EventManager.add(
+      disconnectFileSystemBtn,
+      "click",
+      async () => {
+        if (!storageManager || typeof storageManager.disconnectFilesystem !== "function") {
+          showNotification("warning", "不可用", "当前存储管理器不支持此操作。");
+          return;
+        }
+
+        try {
+          await storageManager.disconnectFilesystem();
+          updateStorageBackendStatus();
+          showNotification(
+            "success",
+            "已切回浏览器本地存储",
+            "文件夹存储已停用，数据已迁移回 IndexedDB。"
+          );
+        } catch (error) {
+          console.error("停用文件夹存储失败:", error);
+          showNotification(
+            "error",
+            "停用失败",
+            error?.message || "无法停用文件夹存储"
+          );
+        }
+      },
+      {
+        tag: "data",
+        scope: "dataManagement",
+        label: "disconnectFileSystemBtn:click",
       }
     );
   }

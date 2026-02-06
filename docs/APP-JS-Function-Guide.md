@@ -173,7 +173,7 @@
 
 ## 6. 网络请求：`NetworkUtils`
 
-- **定义位置**：`app/network/network-utils.js`；全局实例 `networkUtils` 同文件内创建。
+- **定义位置**：`app/network/network-utils.js`；同文件末尾创建全局实例 `networkUtils`（以全局标识符形式可直接访问，不要求挂到 `window.networkUtils`）。
 - **`fetchWithTimeout(url, options, timeout)`**
   - **用途**：`fetch` + 超时 + AbortController；并追踪活动请求。
   - **返回**：`Response`（Promise）。

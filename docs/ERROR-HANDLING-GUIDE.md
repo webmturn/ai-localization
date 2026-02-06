@@ -149,7 +149,9 @@ const retryableErrors = collector.getRetryableErrors();
 
 ```javascript
 // 使用增强版NetworkUtils
-const networkUtils = new NetworkUtilsV2();
+// NetworkUtilsV2 由 public/app/network/error-handler.js 暴露为 window.networkUtilsV2
+// 同时为向后兼容，window.NetworkUtils 会被指向 NetworkUtilsV2
+const networkUtils = window.networkUtilsV2;
 
 try {
   const response = await networkUtils.fetchWithErrorHandling(
@@ -276,7 +278,7 @@ console.log('错误统计:', {
 errorManager.exportErrorLog();
 
 // 获取网络请求统计
-const networkStats = networkUtilsV2.getRequestStats();
+const networkStats = window.networkUtilsV2.getRequestStats();
 console.log('网络请求统计:', networkStats);
 ```
 
@@ -287,7 +289,7 @@ console.log('网络请求统计:', networkStats);
 errorManager.clearErrorHistory();
 
 // 重置网络统计
-networkUtilsV2.resetStats();
+window.networkUtilsV2.resetStats();
 ```
 
 ## 开发和调试
@@ -304,6 +306,9 @@ testSpecificError(ERROR_CODES.NETWORK_ERROR, '网络连接失败');
 // 显示帮助信息
 showErrorHandlingHelp();
 ```
+
+> 说明：`runErrorHandlingDemo/testErrorHandlingFixes/quickValidation/demonstrateUsage/showErrorHandlingHelp/errorDashboard` 位于
+> `public/app/dev-tools/*`，仅在加载这些脚本后可用（通常依赖 `public/app.js` 的开发模式加载逻辑）。
 
 ### 开发模式功能
 
@@ -342,7 +347,7 @@ showErrorHandlingHelp();
    const networkUtils = new NetworkUtils();
    
    // 新代码
-   const networkUtils = new NetworkUtilsV2();
+   const networkUtils = window.networkUtilsV2;
    ```
 
 ### 向后兼容性

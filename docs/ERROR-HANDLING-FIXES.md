@@ -67,6 +67,9 @@
 - 🆕 添加了系统健康检查
 - 🆕 完善了模块注册和配置
 
+> 说明：`ErrorSystemIntegrator` 与 `initializeErrorSystem(...)` 位于 `public/app/core/error-integration.js`，并暴露为
+> `window.ErrorSystemIntegrator` / `window.initializeErrorSystem`。此外仓库现状会创建全局实例 `window.errorSystemIntegrator`。
+
 #### 解决的问题：
 - ✅ 解决了循环依赖问题
 - ✅ 统一了初始化流程
@@ -90,8 +93,7 @@ window.errorManager = new ErrorManager();
 showNotification(type, title, message); // 可能未定义
 
 // 修复后：依赖注入，清晰的初始化流程
-const integrator = new ErrorSystemIntegrator();
-await integrator.initialize({
+const integrator = await window.initializeErrorSystem({
   notificationHandler: customNotificationHandler
 });
 ```
@@ -278,7 +280,7 @@ console.log('批量操作结果:', results.summary);
 const stats = errorManager.getErrorStats();
 
 // 获取系统状态
-const status = errorSystemIntegrator.getSystemStatus();
+const status = window.errorSystemIntegrator.getSystemStatus();
 
 // 导出错误日志
 errorManager.exportErrorLog();

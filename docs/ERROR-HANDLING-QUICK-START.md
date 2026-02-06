@@ -1,6 +1,6 @@
 # 错误处理系统快速上手指南
 
-## 🚀 立即开始
+## 立即开始
 
 ### 1. 验证系统是否正常工作
 
@@ -16,6 +16,8 @@ testErrorHandlingFixes()
 // 查看错误统计
 errorManager.getErrorStats()
 ```
+
+> 说明：`quickValidation/testErrorHandlingFixes/demonstrateUsage/runErrorHandlingDemo/showErrorHandlingHelp/errorDashboard` 位于 `public/app/dev-tools/*`，仅在加载这些脚本后可用（通常依赖 `public/app.js` 的开发模式加载逻辑）。
 
 ### 2. 基本使用示例
 

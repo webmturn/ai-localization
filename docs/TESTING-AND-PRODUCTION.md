@@ -15,6 +15,9 @@
 - 调试工具和监控 ✅
 ```
 
+> 说明：`public/app.js` 使用 `typeof isDevelopment !== 'undefined' && isDevelopment` 判断是否进入开发模式。
+> `isDevelopment` 由 `public/app/core/dev-tools.js` 提供（基于 URL `?debug=true` / `localStorage.debugMode` / hostname 判定）。
+
 ### 生产模式 (`isDevelopment = false` 或未定义)
 ```javascript
 // 只加载必要功能
@@ -46,13 +49,18 @@ public/app/features/
 
 ### 开发和测试文件（生产环境排除）
 ```
-public/app/core/
-├── error-demo.js         ❌ 错误演示
-└── error-test.js         ❌ 功能测试
-
-public/app/examples/
-└── error-handling-examples.js  ❌ 使用示例
+public/app/dev-tools/
+├── error-demo.js                 ❌ 错误演示
+├── error-test.js                 ❌ 功能测试
+├── error-system-test.js          ❌ 系统测试
+├── error-handling-examples.js    ❌ 使用示例
+├── p0-integration-test.js        ❌ 集成测试（阶段性）
+├── p1-decoupling-test.js         ❌ 解耦测试（阶段性）
+├── p2-improvements-test.js       ❌ 改进验证（阶段性）
+└── legacy-cleanup-test.js        ❌ 遗留清理验证（阶段性）
 ```
+
+> 说明：仓库当前将演示/测试脚本集中放在 `public/app/dev-tools/`，用于浏览器控制台手动运行或在开发模式下按需加载。
 
 ## 🚀 生产环境部署
 
@@ -77,9 +85,7 @@ npm run build-prod
    ```bash
    # 复制public目录，排除测试文件
    cp -r public/ dist/public/
-   rm dist/public/app/core/error-demo.js
-   rm dist/public/app/core/error-test.js
-   rm -rf dist/public/app/examples/
+   rm -rf dist/public/app/dev-tools/
    ```
 
 2. **设置生产环境标识**
@@ -87,7 +93,6 @@ npm run build-prod
    // 在index.html中添加
    <script>
    window.isProduction = true;
-   window.isDevelopment = false;
    </script>
    ```
 
@@ -147,8 +152,9 @@ productionMonitor.enable({
 ### 开发阶段
 1. **启用开发模式**
    ```javascript
-   // 在dev-tools.js或全局设置
-   window.isDevelopment = true;
+   // 由 public/app/core/dev-tools.js 判定
+   // 方式1：URL 添加 ?debug=true 后刷新
+   // 方式2：localStorage.debugMode = 'true' 后刷新
    ```
 
 2. **使用完整功能**
@@ -181,9 +187,8 @@ productionMonitor.enable({
 
 2. **验证生产模式**
    ```javascript
-   // 临时切换到生产模式
-   window.isDevelopment = false;
-   // 刷新页面验证
+   // 生产模式下不要启用 debug
+   // 例如：移除 URL 中的 ?debug=true，或将 localStorage.debugMode 设为 'false' 后刷新
    ```
 
 ### 部署阶段
@@ -218,9 +223,11 @@ const isDebugMode = new URLSearchParams(window.location.search).has('debug');
 
 if (!isProduction || isDebugMode) {
   // 加载测试代码
-  scripts.push("app/core/error-demo.js", ...);
+  scripts.push("app/dev-tools/error-demo.js", ...);
 }
 ```
+
+> 注意：若你依赖“开发模式自动加载”测试脚本，请确保 `public/app.js` 中的开发脚本列表与当前目录实际位置一致（仓库现状为 `public/app/dev-tools/`）。
 
 ### 添加新的测试文件
 1. **创建测试文件**

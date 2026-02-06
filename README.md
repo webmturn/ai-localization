@@ -97,13 +97,14 @@ npm run update-cdn
 
 ## 📚 文档
 
-- [快速开始](docs/QUICK-START.md) - 5 分钟上手指南
-- [项目结构](docs/PROJECT-STRUCTURE.md) - 详细的目录结构说明
-- [GitHub 发布清单](docs/GITHUB-RELEASE-CHECKLIST.md) - 发布前检查项
-- [CDN 更新指南](docs/README-CDN-UPDATE.md) - 如何更新第三方库
-- [Tailwind CSS 指南](docs/README-TAILWIND.md) - Tailwind CSS 使用说明
-- [Node.js 安装指南](docs/NodeJS-Install-Guide.md) - Node.js 安装步骤
-- [app 模块与函数说明](docs/APP-JS-Function-Guide.md) - 维护与二次开发参考
+### 必读入口
+- [快速开始](docs/QUICK-START.md)
+- [文档索引（全部文档）](docs/INDEX.md)
+- [Node.js 安装指南](docs/NodeJS-Install-Guide.md)
+- [CDN 更新指南](docs/README-CDN-UPDATE.md)
+- [Tailwind CSS 指南](docs/README-TAILWIND.md)
+- [项目结构](docs/PROJECT-STRUCTURE.md)
+- [API 参考](docs/API-REFERENCE.md)
 
 ## 🎯 主要功能
 
@@ -122,11 +123,18 @@ npm run update-cdn
 
 ## 🔧 技术栈
 
-- **前端框架**: 原生 JavaScript
+- **前端框架**: 原生 JavaScript (现代化架构系统)
 - **样式框架**: Tailwind CSS (本地构建)
 - **图标库**: Font Awesome 4.7.0 (本地化)
 - **图表库**: Chart.js 4.5.1 (本地化)
 - **Excel 处理**: SheetJS 0.20.1 (本地化)
+
+### 🏗️ 架构组件
+- **命名空间管理**: 防止全局变量污染
+- **依赖注入系统**: 松耦合的服务管理
+- **模块管理器**: 自动依赖解析和加载
+- **DOM优化管理器**: 批量DOM操作和虚拟滚动
+- **错误管理系统**: 统一的错误处理和恢复
 
 ## 📝 许可证
 
@@ -136,8 +144,8 @@ MIT
 
 欢迎提交 Issue 和 Pull Request！
 
+贡献指南请查看 [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## 📞 支持
 
 如有问题，请查看文档或提交 Issue。
-
-

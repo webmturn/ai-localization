@@ -27,7 +27,8 @@
 
 1. 用户打开 `public/index.html`。
 2. `public/app.js` 顺序加载所有脚本模块，确保依赖一致性。
-3. `core/bootstrap.js` 在 DOMContentLoaded 后执行：
+3. `public/app.js` 在架构初始化完成后调用 `window.__appBootstrap(bootstrapContext)`（由 `public/app/core/bootstrap.js` 暴露）。
+4. `public/app/core/bootstrap.js` 在 DOMContentLoaded 后执行应用初始化：
    - 清理 DOM 缓存、注册生命周期事件。
    - 初始化事件监听器、加载设置、初始化存储后端。
    - 进行引擎/模型联动初始化。
@@ -43,64 +44,64 @@
 
 **质量检查相关状态与函数：**
 
-- **`AppState.qualityCheckResults`**（定义于 `app/core/state.js`，唯一数据源）
+- **`AppState.qualityCheckResults`**（定义于 `public/app/core/state.js`，唯一数据源）
   - **用途**：存放最近一次质量检查的汇总结果，供图表、报告 UI、导出使用。
   - **结构**：`{ overallScore, translatedCount, totalCount, issues[], termMatches, lastCheckTime, scope?, fileName? }`。
-  - **写入**：仅由 `app/features/quality/run.js` 在运行质量检查时对属性赋值/追加；`app/features/quality/scoring.js` 写入 `overallScore`。
-  - **读取**：`app/features/quality/charts.js`、`export.js`、`ui.js` 用于绘图、导出 PDF/JSON、更新报告面板。
-  - **兼容**：`app/core/state.js` 中设置 `window.qualityCheckResults = AppState.qualityCheckResults`，旧代码或外部脚本使用全局名时仍指向同一对象。
+  - **写入**：仅由 `public/app/features/quality/run.js` 在运行质量检查时对属性赋值/追加；`public/app/features/quality/scoring.js` 写入 `overallScore`。
+  - **读取**：`public/app/features/quality/charts.js`、`public/app/features/quality/export.js`、`public/app/features/quality/ui.js` 用于绘图、导出 PDF/JSON、更新报告面板。
+  - **兼容**：`public/app/core/state.js` 中设置 `window.qualityCheckResults = AppState.qualityCheckResults`，旧代码或外部脚本使用全局名时仍指向同一对象。
 
-- **`__getQualityCheckOptions()`**（定义于 `app/features/quality/checks.js`）
+- **`__getQualityCheckOptions()`**（定义于 `public/app/features/quality/checks.js`）
   - **用途**：从 `localStorage.translatorSettings` 读取质量检查开关（术语、占位符、标点、长度、数字等），供检查逻辑、图表、导出、报告 UI 共用。
   - **返回**：`{ checkTerminology, checkPlaceholders, checkPunctuation, checkLength, checkNumbers }`（均为 boolean）。
-  - **调用方**：`checks.js` 内部、`charts.js`、`export.js`、`ui.js`（质量模块加载后可用）。
+  - **调用方**：`public/app/features/quality/checks.js` 内部、`public/app/features/quality/charts.js`、`public/app/features/quality/export.js`、`public/app/features/quality/ui.js`（质量模块加载后可用）。
 
 ### 4.2 核心工具层（core/）
 
-- `utils.js`：防抖/节流、JSON 安全解析、动态脚本加载（懒加载 Chart.js/SheetJS/质量模块/导出模块）。
-- `dom-cache.js`：DOM 缓存，避免重复查询，提高性能。
-- `event-manager.js`：统一管理事件监听器，支持清理与统计，避免内存泄漏。
+- `public/app/core/utils.js`：防抖/节流、JSON 安全解析、动态脚本加载（懒加载 Chart.js/SheetJS/质量模块/导出模块）。
+- `public/app/core/dom-cache.js`：DOM 缓存，避免重复查询，提高性能。
+- `public/app/core/event-manager.js`：统一管理事件监听器，支持清理与统计，避免内存泄漏。
 
 ### 4.3 服务层（services/）与网络层（network/）
 
 - **services/**  
-  - `auto-save-manager.js`：自动保存与“快速保存”节流；支持保存降级策略。  
-  - `storage/storage-manager.js`：多后端存储（IndexedDB/LocalStorage），支持项目索引、多项目管理、降级与异常提示。  
-  - `security-utils.js`：输入清洗、API Key 校验、文件大小/XML 校验、加解密工具。  
+  - `public/app/services/auto-save-manager.js`：自动保存与“快速保存”节流；支持保存降级策略。  
+  - `public/app/services/storage/storage-manager.js`：多后端存储（IndexedDB/LocalStorage），支持项目索引、多项目管理、降级与异常提示。  
+  - `public/app/services/security-utils.js`：输入清洗、API Key 校验、文件大小/XML 校验、加解密工具。  
   - `translation/`：翻译引擎与批量翻译逻辑。
 - **network/**  
-  - `network-utils.js`：封装请求超时与取消、请求大小校验，供翻译请求等调用。
+  - `public/app/network/network-utils.js`：封装请求超时与取消、请求大小校验，供翻译请求等调用。
 
-### 4.4 解析器层（features/files/parse.js + parsers/）
+### 4.4 解析器层（public/app/features/files/parse.js + public/app/parsers/）
 
-- `features/files/parse.js` 为解析入口：根据扩展名与 XML 结构（DOMParser + root/localName/关键节点）选择并调用 `parsers/` 下对应解析器。
-- **parsers/** 包含：`xliff.js`、`qt-ts.js`、`ios-strings.js`、`resx.js`、`po.js`、`json.js`、`xml-android.js`、`xml-generic.js`、`text.js` 等；XML 类文件优先按结构识别格式（android/xliff/ts/resx），失败时回退到通用 XML 或文本兜底解析。
+- `public/app/features/files/parse.js` 为解析入口：根据扩展名与 XML 结构（DOMParser + root/localName/关键节点）选择并调用 `public/app/parsers/` 下对应解析器。
+- **public/app/parsers/** 包含：`xliff.js`、`qt-ts.js`、`ios-strings.js`、`resx.js`、`po.js`、`json.js`、`xml-android.js`、`xml-generic.js`、`text.js` 等；XML 类文件优先按结构识别格式（android/xliff/ts/resx），失败时回退到通用 XML 或文本兜底解析。
 - 解析时做 XML 安全校验、编码处理、元数据与原始内容保存。
 
 ### 4.5 功能层（features/）
 
 #### 翻译管理
-- `render.js`：分页与列表渲染（PC/移动端合并列表），支持搜索高亮与空态处理。
-- `search.js`：搜索过滤与缓存，支持文件内搜索与分页。
-- `selection.js`：单选/多选逻辑、选中样式同步、计数器更新。
-- `actions.js`：翻译、查找替换、错误处理等；调用 translationService。
+- `public/app/features/translations/render.js`：分页与列表渲染（PC/移动端合并列表），支持搜索高亮与空态处理。
+- `public/app/features/translations/search.js`：搜索过滤与缓存，支持文件内搜索与分页。
+- `public/app/features/translations/selection.js`：单选/多选逻辑、选中样式同步、计数器更新。
+- `public/app/features/translations/actions.js`：翻译、查找替换、错误处理等；调用 translationService。
 
 #### 文件处理
-- `features/files/read.js`：编码检测 + 解码策略。
-- `features/files/parse.js`：解析入口，按文件类型调用对应解析器。
-- `features/files/process.js`：处理多文件导入、合并翻译项、更新 UI 和存储。
+- `public/app/features/files/read.js`：编码检测 + 解码策略。
+- `public/app/features/files/parse.js`：解析入口，按文件类型调用对应解析器。
+- `public/app/features/files/process.js`：处理多文件导入、合并翻译项、更新 UI 和存储。
 
 #### 项目管理
-- `features/projects/manager.js`：项目创建/切换/导入/导出/删除，统一更新 AppState。
+- `public/app/features/projects/manager.js`：项目创建/切换/导入/导出/删除，统一更新 AppState。
 
 #### 导入/导出
-- `features/translations/export/*`：
+- `public/app/features/translations/export/*`：
   - 项目导出/打开
   - 多格式翻译文件导出（XML/JSON/PO 等）
   - 术语库导入/导出（CSV/JSON/XML/Excel）
 
 #### 质量检查
-- `features/quality/*`：对翻译项进行长度、术语一致性、变量/标签匹配等检查，支持并发与进度 UI。
+- `public/app/features/quality/*`：对翻译项进行长度、术语一致性、变量/标签匹配等检查，支持并发与进度 UI。
 
 ### 4.6 UI 层（ui/）
 
@@ -110,21 +111,21 @@
 - `ui/event-listeners/*`：集中注册 UI 行为（数据与 UI、文件面板、键盘、质量、术语、翻译列表与搜索等）。
 - `ui/perf/sync-heights.js`：列表高度同步，减少布局抖动。
 
-**兼容层**：`app/compat/` 提供 files、perf、quality 等兼容桥接，供旧入口或按需加载使用。
+**兼容层**：`public/app/compat/` 提供 files、perf、quality 等兼容桥接，供旧入口或按需加载使用。
 
 ## 5. 核心数据流梳理
 
 ### 5.1 文件导入流
 ```
-用户拖拽/选择文件 -> file-drop.js -> processFiles
-  -> parseFileAsync -> parse.js -> parser -> items
+用户拖拽/选择文件 -> public/app/ui/file-drop.js -> processFiles
+  -> parseFileAsync -> public/app/features/files/parse.js -> parser -> items
   -> AppState.project.translationItems + fileMetadata
   -> updateFileTree/updateTranslationLists -> autoSave
 ```
 
 ### 5.2 翻译流
 ```
-用户点击翻译按钮 -> actions.js
+用户点击翻译按钮 -> public/app/features/translations/actions.js
   -> translationService.translateBatch
      -> 引擎调用（DeepSeek/OpenAI/Google）
      -> rate-limit & retry
@@ -141,8 +142,8 @@
 
 ### 5.4 质量检查流
 ```
-运行质量检查 -> quality/run.js
-  -> 批量并发检查 -> checks.js
+运行质量检查 -> public/app/features/quality/run.js
+  -> 批量并发检查 -> public/app/features/quality/checks.js
   -> 汇总报告/更新 UI
 ```
 

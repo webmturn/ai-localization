@@ -157,7 +157,9 @@ console.log(`清理完成: 删除 ${cleanupResult.cleaned} 项，释放 ${cleanu
 
 ```javascript
 // 使用增强版的网络工具
-const networkUtils = new NetworkErrorHandler.NetworkUtilsV2();
+// NetworkUtilsV2 由 public/app/network/error-handler.js 暴露为 window.networkUtilsV2
+// NetworkErrorHandler 也同样挂载在 window 上（window.NetworkErrorHandler）
+const networkUtils = window.networkUtilsV2;
 
 // 带错误处理的请求
 try {
@@ -194,7 +196,7 @@ const batchResult = await networkUtils.batchRequest(requests, {
 console.log('批量请求结果:', batchResult.summary);
 
 // 网络连接检查
-const connectivity = await NetworkErrorHandler.checkNetworkConnectivity();
+const connectivity = await window.NetworkErrorHandler.checkNetworkConnectivity();
 if (connectivity.issues.length > 0) {
   console.warn('网络问题:', connectivity.issues);
 }
@@ -264,7 +266,7 @@ await initializeErrorSystem({
 });
 
 // 检查系统状态
-const status = errorSystemIntegrator.getSystemStatus();
+const status = window.errorSystemIntegrator.getSystemStatus();
 console.log('错误处理系统状态:', status);
 ```
 
@@ -443,7 +445,7 @@ async function safeTranslation(text, engine) {
   }
   
   // 3. 检查网络连接
-  const connectivity = await NetworkErrorHandler.checkNetworkConnectivity();
+  const connectivity = await window.NetworkErrorHandler.checkNetworkConnectivity();
   if (!connectivity.online) {
     throw errorManager.createError(ERROR_CODES.NETWORK_ERROR, '网络连接不可用');
   }

@@ -54,6 +54,9 @@ npm run build-css
    npm run watch-css
    ```
 
+   > 说明：仓库现状下，`public/app.js` 使用 `typeof isDevelopment !== 'undefined' && isDevelopment` 判断是否加载开发/测试脚本。
+   > `isDevelopment` 由 `public/app/core/dev-tools.js` 提供（基于 URL `?debug=true` / `localStorage.debugMode` / hostname 判定）。
+
 2. **编辑文件**
    - 修改 `src/input.css` 添加自定义样式
    - 修改 `public/index.html` 调整页面结构

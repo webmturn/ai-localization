@@ -13,6 +13,7 @@ html/
 │
 ├── docs/                # 文档目录
 │   ├── APP-JS-Function-Guide.md    # app 模块与函数说明（维护/二次开发）
+│   ├── INDEX.md                  # 文档索引（入口）
 │   ├── GITHUB-RELEASE-CHECKLIST.md # GitHub 发布前检查清单
 │   ├── NodeJS-Install-Guide.md     # Node.js 安装指南
 │   ├── PROJECT-ANALYSIS-REPORT.md  # 项目综合分析报告
@@ -20,7 +21,9 @@ html/
 │   ├── QUICK-START.md             # 快速上手指南
 │   ├── README-CDN-UPDATE.md        # CDN 更新指南
 │   ├── README-TAILWIND.md         # Tailwind CSS 本地安装与使用说明
-│   └── STORAGE-DESIGN-DRAFT.md    # 存储方案草案（多后端设计参考）
+│   ├── STORAGE-DESIGN-DRAFT.md    # 存储方案草案（多后端设计参考）
+│   └── history/                   # 归档/过程文档（阶段报告、分析记录等）
+│       └── README.md              # 归档说明
 │
 ├── scripts/             # 脚本目录
 │   ├── tools.ps1                # 整合脚本（Node 检查 / 版本检查 / 配置更新 / CDN 下载）

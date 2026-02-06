@@ -707,10 +707,7 @@ function registerCoreServices() {
   
   // 注册P1新增的性能优化服务
   diContainer.registerFactory('domOptimizationManager', () => window.domOptimizationManager || window.DOMOptimizationManager);
-  diContainer.registerFactory('requestDeduplicationManager', () => window.requestDeduplicationManager || window.RequestDeduplicationManager);
-  
-  // 注册P1新增的统一错误处理器
-  diContainer.registerFactory('unifiedErrorHandler', () => window.unifiedErrorHandler || window.UnifiedErrorHandler);
+  // requestDeduplicationManager、unifiedErrorHandler 已从生产加载移除
   
   console.log('✅ 核心服务注册完成');
 }

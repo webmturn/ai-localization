@@ -40,7 +40,7 @@
     "app/core/errors/error-manager.js",
     "app/core/errors/error-utils.js",
     "app/core/errors/error-integration.js",
-    "app/core/errors/unified-error-handler.js",              // P1新增：统一错误处理器
+    // unified-error-handler.js 已移除（未被业务代码使用，且侵入式patch addEventListener/Promise.catch）
     // 核心服务
     "app/services/security-utils.js",
     "app/core/event-manager.js",

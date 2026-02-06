@@ -40,3 +40,23 @@ function downloadFile(content, filename) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+// ==================== 暴露到全局 Utils 命名空间 ====================
+if (typeof window !== 'undefined') {
+  // 确保 Utils 命名空间存在
+  if (!window.Utils) {
+    window.Utils = {};
+  }
+  
+  // 添加工具函数到 Utils 命名空间
+  window.Utils.escapeCsv = escapeCsv;
+  window.Utils.escapeXml = escapeXml;
+  window.Utils.escapeHtml = escapeHtml;
+  window.Utils.downloadFile = downloadFile;
+  
+  // 同时保持全局函数可用（向后兼容）
+  window.escapeCsv = escapeCsv;
+  window.escapeXml = escapeXml;
+  window.escapeHtml = escapeHtml;
+  window.downloadFile = downloadFile;
+}

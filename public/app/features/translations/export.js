@@ -1,7 +1,36 @@
 // Compatibility shim: load split export modules in order
 (function () {
-  if (window.__translationsExportShimLoaded) return;
-  window.__translationsExportShimLoaded = true;
+  try {
+    var shimLoaded = window.ArchDebug
+      ? window.ArchDebug.getFlag('translationsExportShimLoaded')
+      : window.__translationsExportShimLoaded;
+    if (shimLoaded) return;
+
+    if (window.ArchDebug) {
+      window.ArchDebug.setFlag('translationsExportShimLoaded', true, {
+        mirrorWindow: false,
+      });
+    } else {
+      window.__translationsExportShimLoaded = true;
+    }
+  } catch (_) {
+    try {
+      if (window.ArchDebug) {
+        var shimLoaded2 = window.ArchDebug.getFlag('translationsExportShimLoaded');
+        if (shimLoaded2) return;
+        window.ArchDebug.setFlag('translationsExportShimLoaded', true, {
+          mirrorWindow: false,
+        });
+        return;
+      }
+    } catch (_) {}
+    try {
+      if (!window.ArchDebug) {
+        if (window.__translationsExportShimLoaded) return;
+        window.__translationsExportShimLoaded = true;
+      }
+    } catch (_) {}
+  }
 
   var base = "app/features/translations/export/";
   var parts = [

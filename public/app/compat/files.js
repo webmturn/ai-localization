@@ -1,55 +1,97 @@
-// ==================== 文件处理功能（优化版） ====================
+// ==================== 文件处理功能（现代化版本） ====================
+/**
+ * 文件处理功能兼容层
+ * 使用现代DI系统，简化兼容性逻辑
+ */
 
-// 读取单个文件
+// 读取单个文件（现代化版本）
 async function readFileAsync(file) {
-  const App = window.App;
-  const impl = App?.impl?.readFileAsync;
-  if (typeof impl === "function") return impl(file);
-  const legacy =
-    typeof __readFileAsyncImpl === "function" ? __readFileAsyncImpl : null;
-  if (typeof legacy === "function") return legacy(file);
-  throw new Error(
-    "readFileAsync: no implementation found (App.impl.readFileAsync / __readFileAsyncImpl)"
-  );
+  // 优先使用DI系统
+  if (typeof getServiceSafely === 'function') {
+    const fileService = getServiceSafely('fileManager', null);
+    if (fileService?.readFileAsync) {
+      return await fileService.readFileAsync(file);
+    }
+  }
+  
+  // 备用：使用App命名空间
+  if (window.App?.impl?.readFileAsync) {
+    return await window.App.impl.readFileAsync(file);
+  }
+  
+  // 最后备用：直接调用legacy实现
+  if (typeof __readFileAsyncImpl === "function") {
+    return await __readFileAsyncImpl(file);
+  }
+  
+  throw new Error("readFileAsync: 未找到文件读取实现");
 }
 
-// 解析单个文件
+// 解析单个文件（现代化版本）
 async function parseFileAsync(file) {
-  const App = window.App;
-  const impl = App?.impl?.parseFileAsync;
-  if (typeof impl === "function") return impl(file);
-  const legacy =
-    typeof __parseFileAsyncImpl === "function" ? __parseFileAsyncImpl : null;
-  if (typeof legacy === "function") return legacy(file);
-  throw new Error(
-    "parseFileAsync: no implementation found (App.impl.parseFileAsync / __parseFileAsyncImpl)"
-  );
+  // 优先使用DI系统
+  if (typeof getServiceSafely === 'function') {
+    const parserService = getServiceSafely('parserManager', null);
+    if (parserService?.parseFileAsync) {
+      return await parserService.parseFileAsync(file);
+    }
+  }
+  
+  // 备用：使用App命名空间
+  if (window.App?.impl?.parseFileAsync) {
+    return await window.App.impl.parseFileAsync(file);
+  }
+  
+  // 最后备用：直接调用legacy实现
+  if (typeof __parseFileAsyncImpl === "function") {
+    return await __parseFileAsyncImpl(file);
+  }
+  
+  throw new Error("parseFileAsync: 未找到文件解析实现");
 }
 
-// 处理多个文件（优化版）
+// 处理多个文件（现代化版本）
 async function processFiles(files) {
-  const App = window.App;
-  const impl = App?.impl?.processFiles;
-  if (typeof impl === "function") return impl(files);
-  const legacy =
-    typeof __processFilesImpl === "function" ? __processFilesImpl : null;
-  if (typeof legacy === "function") return legacy(files);
-  throw new Error(
-    "processFiles: no implementation found (App.impl.processFiles / __processFilesImpl)"
-  );
+  // 优先使用DI系统
+  if (typeof getServiceSafely === 'function') {
+    const fileProcessor = getServiceSafely('fileProcessor', null);
+    if (fileProcessor?.processFiles) {
+      return await fileProcessor.processFiles(files);
+    }
+  }
+  
+  // 备用：使用App命名空间
+  if (window.App?.impl?.processFiles) {
+    return await window.App.impl.processFiles(files);
+  }
+  
+  // 最后备用：直接调用legacy实现
+  if (typeof __processFilesImpl === "function") {
+    return await __processFilesImpl(files);
+  }
+  
+  throw new Error("processFiles: 未找到文件处理实现");
 }
 
-// 完成文件处理
+// 完成文件处理（现代化版本）
 async function completeFileProcessing(files, newItems) {
-  const App = window.App;
-  const impl = App?.impl?.completeFileProcessing;
-  if (typeof impl === "function") return impl(files, newItems);
-  const legacy =
-    typeof __completeFileProcessingImpl === "function"
-      ? __completeFileProcessingImpl
-      : null;
-  if (typeof legacy === "function") return legacy(files, newItems);
-  throw new Error(
-    "completeFileProcessing: no implementation found (App.impl.completeFileProcessing / __completeFileProcessingImpl)"
-  );
+  // 优先使用DI系统
+  if (typeof getServiceSafely === 'function') {
+    const fileProcessor = getServiceSafely('fileProcessor', null);
+    if (fileProcessor?.completeFileProcessing) {
+      return await fileProcessor.completeFileProcessing(files, newItems);
+    }
+  }
+  
+  // 备用：使用App命名空间
+  if (window.App?.impl?.completeFileProcessing) {
+    return await window.App.impl.completeFileProcessing(files, newItems);
+  }
+  
+  // 最后备用：直接调用legacy实现
+  if (typeof __completeFileProcessingImpl === "function") {
+    return await __completeFileProcessingImpl(files, newItems);
+  }
+  
+  throw new Error("completeFileProcessing: 未找到文件处理完成实现");
 }

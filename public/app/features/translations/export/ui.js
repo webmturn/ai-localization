@@ -81,6 +81,15 @@ function openModal(modalId) {
         window.loadProjectPromptTemplatesToUI();
       } catch (_) {}
     }
+    // 打开术语库模态框时刷新列表
+    if (modalId === "terminologyModal") {
+      if (typeof window.updateTerminologyList === "function") {
+        window.updateTerminologyList();
+      }
+      if (typeof window.updateTerminologyPagination === "function") {
+        window.updateTerminologyPagination();
+      }
+    }
   }
 }
 

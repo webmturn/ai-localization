@@ -1,30 +1,32 @@
 // ==================== 性能优化工具函数 ====================
-// 优化目标：
-// 1. 减少高频DOM查询：使用DOMCache缓存常用DOM元素
-// 2. 减少频繁函数调用：使用debounce/throttle限制syncTranslationHeights调用
-// 3. 优化渲染性能：使用requestAnimationFrame和批量读写分离
-// 4. 分页显示：每页itemsPerPage条，避免一次渲染过多DOM
-// 5. 使用DocumentFragment批量插入减少重排
-//
-// 注意：debounce 和 throttle 已在文件开头统一定义，这里不再重复
+/**
+ * 性能优化的同步高度函数
+ * 使用现代架构系统，简化兼容性逻辑
+ */
 
-// 更新同步高度函数（优化版 - 使用防抖和缓存）
+// 同步翻译高度（现代化版本）
 function syncTranslationHeights(afterSync) {
-  const App = window.App;
-  const impl = App?.impl?.syncTranslationHeights;
-  if (typeof impl === "function") return impl(afterSync);
-  const legacy =
-    typeof __syncTranslationHeightsImpl === "function"
-      ? __syncTranslationHeightsImpl
-      : null;
-  if (typeof legacy === "function") return legacy(afterSync);
-  throw new Error(
-    "syncTranslationHeights: no implementation found (App.impl.syncTranslationHeights / __syncTranslationHeightsImpl)"
-  );
+  // 优先使用DI系统获取实现
+  if (typeof getServiceSafely === 'function') {
+    const perfService = getServiceSafely('performanceMonitor', 'performanceMonitor');
+    if (perfService?.syncTranslationHeights) {
+      return perfService.syncTranslationHeights(afterSync);
+    }
+  }
+  
+  // 备用：使用全局实现
+  if (window.App?.impl?.syncTranslationHeights) {
+    return window.App.impl.syncTranslationHeights(afterSync);
+  }
+  
+  // 最后备用：直接调用legacy实现
+  if (typeof __syncTranslationHeightsImpl === "function") {
+    return __syncTranslationHeightsImpl(afterSync);
+  }
+  
+  console.warn('syncTranslationHeights: 未找到实现，跳过同步');
 }
 
-// 创建防抖版本的同步函数（300ms防抖）
-const debouncedSyncHeights = debounce(syncTranslationHeights, 300);
-
-// 创建节流版本的同步函数（100ms节流）
-const throttledSyncHeights = throttle(syncTranslationHeights, 100);
+// 使用通用防抖节流函数，避免与事件绑定管理器混淆
+const debouncedSyncHeights = window.debounce ? window.debounce(syncTranslationHeights, 300) : syncTranslationHeights;
+const throttledSyncHeights = window.throttle ? window.throttle(syncTranslationHeights, 100) : syncTranslationHeights;

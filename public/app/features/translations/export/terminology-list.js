@@ -149,10 +149,10 @@ function updateTerminologyList() {
   if (!terminologyListElement) return;
 
   // 使用 AppState 获取数据
-  const terminologyList = AppState.terminology.list;
-  const currentTerminologyPage = AppState.terminology.currentPage;
-  const terminologyPerPage = AppState.terminology.perPage;
-  const filteredTerminology = AppState.terminology.filtered;
+  const terminologyList = AppState.terminology?.list || [];
+  const currentTerminologyPage = AppState.terminology?.currentPage || 1;
+  const terminologyPerPage = AppState.terminology?.perPage || 10;
+  const filteredTerminology = AppState.terminology?.filtered || terminologyList;
 
   // 计算分页
   const startIndex = (currentTerminologyPage - 1) * terminologyPerPage;
@@ -402,3 +402,9 @@ function deleteTerm(termId) {
     }
   }
 }
+
+// 暴露函数到全局作用域
+window.updateTerminologyList = updateTerminologyList;
+window.updateTerminologyPagination = updateTerminologyPagination;
+window.filterTerminology = filterTerminology;
+window.switchTerminologyTab = switchTerminologyTab;

@@ -65,4 +65,14 @@ function initTerminology() {
   }
 }
 
+// 暴露到全局并在 DOM 加载后自动初始化
+window.initTerminology = initTerminology;
+
+// DOM 加载完成后自动初始化术语库
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTerminology);
+} else {
+  setTimeout(initTerminology, 0);
+}
+
 // 加载示例项目

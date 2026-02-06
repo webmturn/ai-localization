@@ -1,18 +1,23 @@
 function rebuildFilteredTranslationItems(options = {}) {
-  const all = Array.isArray(AppState.project?.translationItems)
-    ? AppState.project.translationItems
+  // 使用DI获取应用状态
+  const appState = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('appState', 'AppState') 
+    : window.AppState;
+    
+  const all = Array.isArray(appState?.project?.translationItems)
+    ? appState.project.translationItems
     : [];
 
   const selectedFile =
     options && Object.prototype.hasOwnProperty.call(options, "selectedFile")
       ? options.selectedFile
-      : AppState?.translations?.selectedFile;
+      : appState?.translations?.selectedFile;
 
   let base = selectedFile
     ? all.filter((item) => item?.metadata?.file === selectedFile)
     : all;
 
-  const searchQuery = (AppState?.translations?.searchQuery || "")
+  const searchQuery = (appState?.translations?.searchQuery || "")
     .toString()
     .toLowerCase()
     .trim();
@@ -33,7 +38,7 @@ function rebuildFilteredTranslationItems(options = {}) {
     });
   }
 
-  AppState.translations.filtered = [...base];
+  appState.translations.filtered = [...base];
 }
 
 function formatTranslationError(errorLike, engine) {
@@ -284,11 +289,28 @@ function previewFindReplace(options = {}) {
   const previewEl = document.getElementById("findReplacePreviewCount");
   if (!previewEl) return 0;
 
-  if (!AppState.project || !Array.isArray(AppState.project.translationItems)) {
+  // 使用DI获取应用状态
+  const appState = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('appState', 'AppState') 
+    : window.AppState;
+    
+  if (!appState?.project || !Array.isArray(appState.project.translationItems)) {
     previewEl.textContent = "0";
     __setFindReplacePreviewList([], 0);
     if (!silent) {
-      showNotification("warning", "无项目", "请先上传文件或打开项目");
+      // 使用验证器
+      if (typeof TranslationValidators !== 'undefined') {
+        const errorManager = typeof getServiceSafely === 'function' 
+          ? getServiceSafely('errorManager', 'errorManager') 
+          : window.errorManager;
+        if (errorManager) {
+          errorManager.handleError(new Error('请先上传文件或打开项目'), { context: 'previewFindReplace' });
+        } else {
+          showNotification("warning", "无项目", "请先上传文件或打开项目");
+        }
+      } else {
+        showNotification("warning", "无项目", "请先上传文件或打开项目");
+      }
     }
     return 0;
   }
@@ -361,8 +383,25 @@ function applyFindReplace() {
   const caseSensitive =
     !!document.getElementById("findReplaceCaseSensitive")?.checked;
 
-  if (!AppState.project || !Array.isArray(AppState.project.translationItems)) {
-    showNotification("warning", "无项目", "请先上传文件或打开项目");
+  // 使用DI获取应用状态
+  const appState = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('appState', 'AppState') 
+    : window.AppState;
+    
+  if (!appState?.project || !Array.isArray(appState.project.translationItems)) {
+    // 使用验证器
+    if (typeof TranslationValidators !== 'undefined') {
+      const errorManager = typeof getServiceSafely === 'function' 
+        ? getServiceSafely('errorManager', 'errorManager') 
+        : window.errorManager;
+      if (errorManager) {
+        errorManager.handleError(new Error('请先上传文件或打开项目'), { context: 'applyFindReplace' });
+      } else {
+        showNotification("warning", "无项目", "请先上传文件或打开项目");
+      }
+    } else {
+      showNotification("warning", "无项目", "请先上传文件或打开项目");
+    }
     return;
   }
 
@@ -423,14 +462,26 @@ function applyFindReplace() {
     return;
   }
 
-  AppState.project.updatedAt = new Date();
-  AppState.translations.items = AppState.project.translationItems;
-  autoSaveManager.markDirty();
+  appState.project.updatedAt = new Date();
+  appState.translations.items = appState.project.translationItems;
+  
+  // 使用DI获取自动保存管理器
+  const autoSave = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
+    : window.autoSaveManager;
+  if (autoSave) {
+    autoSave.markDirty();
+  }
 
-  rebuildFilteredTranslationItems();
-  updateTranslationLists();
-  updateCounters();
-  updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
+  // 使用统一的UI更新器
+  if (typeof updateTranslationUI === 'function') {
+    updateTranslationUI({ reason: "查找替换完成" });
+  } else {
+    rebuildFilteredTranslationItems();
+    updateTranslationLists();
+    updateCounters();
+    updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
+  }
 
   showNotification(
     "success",
@@ -448,21 +499,42 @@ try {
 } catch (_) {}
 
 function clearSelectedTargets() {
-  if (AppState.translations.selected === -1 || !AppState.project) {
-    showNotification("warning", "未选择项", "请先选择要清除译文的项");
+  // 使用DI获取应用状态
+  const appState = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('appState', 'AppState') 
+    : window.AppState;
+    
+  if (appState.translations.selected === -1 || !appState.project) {
+    // 使用验证器
+    if (typeof TranslationValidators !== 'undefined') {
+      try {
+        TranslationValidators.validateItemSelected();
+      } catch (error) {
+        const errorManager = typeof getServiceSafely === 'function' 
+          ? getServiceSafely('errorManager', 'errorManager') 
+          : window.errorManager;
+        if (errorManager) {
+          errorManager.handleError(error, { context: 'clearSelectedTargets' });
+        } else {
+          showNotification("warning", "未选择项", "请先选择要清除译文的项");
+        }
+      }
+    } else {
+      showNotification("warning", "未选择项", "请先选择要清除译文的项");
+    }
     return;
   }
 
   const selectedIndices =
-    (AppState.translations.multiSelected || []).length > 0
-      ? Array.from(new Set(AppState.translations.multiSelected)).sort(
+    (appState.translations.multiSelected || []).length > 0
+      ? Array.from(new Set(appState.translations.multiSelected)).sort(
           (a, b) => a - b,
         )
-      : [AppState.translations.selected];
+      : [appState.translations.selected];
 
   let cleared = 0;
   for (const idx of selectedIndices) {
-    const item = AppState.project.translationItems?.[idx];
+    const item = appState.project.translationItems?.[idx];
     if (!item) continue;
     item.qualityScore = 0;
     updateTranslationItem(idx, "");
@@ -470,14 +542,24 @@ function clearSelectedTargets() {
   }
 
   if (cleared > 0) {
-    autoSaveManager.markDirty();
+    // 使用DI获取自动保存管理器
+    const autoSave = typeof getServiceSafely === 'function' 
+      ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
+      : window.autoSaveManager;
+    if (autoSave) {
+      autoSave.markDirty();
+    }
   }
 
-  rebuildFilteredTranslationItems();
-
-  updateTranslationLists();
-  updateCounters();
-  updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
+  // 使用统一的UI更新器
+  if (typeof updateTranslationUI === 'function') {
+    updateTranslationUI({ reason: "清除译文完成" });
+  } else {
+    rebuildFilteredTranslationItems();
+    updateTranslationLists();
+    updateCounters();
+    updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
+  }
 
   if (selectedIndices.length > 1) {
     showNotification("success", "清除完成", `已清除 ${cleared} 项译文`);
@@ -488,288 +570,474 @@ function clearSelectedTargets() {
 
 // 翻译选中项
 async function translateSelected() {
-  if (AppState.translations.selected === -1 || !AppState.project) {
-    showNotification("warning", "未选择项", "请先选择要翻译的项");
-    return;
+  // 使用新的分层架构
+  const controller = getTranslationUIController();
+  if (controller) {
+    await controller.handleTranslateSelected();
+  } else {
+    // 备用逻辑：使用原有实现
+    await translateSelectedFallback();
   }
+}
 
-  const selectedIndices =
-    (AppState.translations.multiSelected || []).length > 0
-      ? Array.from(new Set(AppState.translations.multiSelected)).sort(
-          (a, b) => a - b,
-        )
-      : [AppState.translations.selected];
-  const selectedItems = selectedIndices
-    .map((idx) => AppState.project.translationItems?.[idx])
-    .filter(Boolean);
-
-  if (selectedItems.length === 0) {
-    showNotification("warning", "未选择项", "请先选择要翻译的项");
-    return;
-  }
-
-  showTranslationProgress();
-  updateProgress(0, selectedItems.length, "准备翻译...");
-
-  const sourceLang = AppState.project.sourceLanguage || "en";
-  const targetLang = AppState.project.targetLanguage || "zh";
-
-  const settings = safeJsonParse(
-    localStorage.getItem("translatorSettings"),
-    {},
-  );
-  const engine =
-    settings.translationEngine ||
-    settings.defaultEngine ||
-    document.getElementById("translationEngine")?.value ||
-    "deepseek";
-
-  AppState.translations.isInProgress = true;
-  AppState.translations.isPaused = false;
-  AppState.translations.lastFailedItems = [];
-  AppState.translations.lastBatchContext = {
-    scope: "selected",
-    sourceLang,
-    targetLang,
-    engine,
-    selectedFile: AppState?.translations?.selectedFile || null,
-  };
-  updateTranslationControlState();
-
-  let translationCount = 0;
-  const batchUpdateInterval = 20;
-  const updateUIIfNeeded = () => {
-    translationCount++;
-    if (translationCount % batchUpdateInterval === 0) {
-      rebuildFilteredTranslationItems();
-      updateTranslationLists();
-      updateCounters();
-    }
-  };
-
+// 改进版翻译选中项实现
+async function translateSelectedFallback() {
   try {
-    const { results, errors } = await translationService.translateBatch(
-      selectedItems,
+    // 使用统一验证器和结果处理器
+    const validators =
+      (typeof getServiceSafely === "function"
+        ? getServiceSafely("universalValidators")
+        : null) ||
+      (typeof getUniversalValidators === "function" ? getUniversalValidators() : null);
+    const resultHandler =
+      (typeof getServiceSafely === "function"
+        ? getServiceSafely("translationResultHandler")
+        : null) ||
+      (typeof getTranslationResultHandler === "function"
+        ? getTranslationResultHandler()
+        : null);
+
+    if (!validators || typeof validators.safeValidate !== "function") {
+      showNotification("error", "服务不可用", "验证器未加载");
+      return;
+    }
+    if (!resultHandler || typeof resultHandler.handleTranslationComplete !== "function") {
+      showNotification("error", "服务不可用", "结果处理器未加载");
+      return;
+    }
+    
+    // 验证翻译操作的前置条件
+    const validationPassed = validators.safeValidate(() => {
+      validators.validateTranslationOperation({
+        requireItemSelection: true,
+        requireFileSelection: false
+      });
+    }, { context: 'translateSelected' });
+    
+    if (!validationPassed) {
+      return; // 验证失败，已经显示了错误消息
+    }
+    
+    // 使用DI获取应用状态和服务
+    const appState = getServiceSafely('appState', 'AppState');
+    const translationService =
+      getServiceSafely('translationService', 'translationService') ||
+      (typeof window !== "undefined" ? window.translationService : null);
+    
+    if (!translationService) {
+      showNotification("error", "服务不可用", "翻译服务未加载");
+      return;
+    }
+
+    const selectedIndices =
+      (appState.translations.multiSelected || []).length > 0
+        ? Array.from(new Set(appState.translations.multiSelected)).sort((a, b) => a - b)
+        : [appState.translations.selected];
+    
+    const selectedItems = selectedIndices
+      .map((idx) => appState.project.translationItems?.[idx])
+      .filter(Boolean);
+
+    if (selectedItems.length === 0) {
+      throw new Error("请先选择要翻译的项");
+    }
+
+    // 获取翻译配置
+    const sourceLang = appState.project.sourceLanguage || "en";
+    const targetLang = appState.project.targetLanguage || "zh";
+    const settings = safeJsonParse(localStorage.getItem("translatorSettings"), {});
+    const engine =
+      settings.translationEngine ||
+      settings.defaultEngine ||
+      document.getElementById("translationEngine")?.value ||
+      "deepseek";
+
+    // 显示进度
+    showTranslationProgress();
+    updateProgress(0, selectedItems.length, "准备翻译...");
+
+    // 设置翻译状态
+    appState.translations.isInProgress = true;
+    appState.translations.isPaused = false;
+    appState.translations.lastFailedItems = [];
+    appState.translations.lastBatchContext = {
+      scope: "selected",
       sourceLang,
       targetLang,
       engine,
-      (completed, total, message) => {
-        updateProgress(completed, total, message);
-        updateUIIfNeeded();
-      },
-    );
+      selectedFile: appState?.translations?.selectedFile || null,
+    };
+    updateTranslationControlState();
 
-    hideTranslationProgress();
+    let translationCount = 0;
+    const batchUpdateInterval = 20;
+    const updateUIIfNeeded = () => {
+      translationCount++;
+      if (translationCount % batchUpdateInterval === 0) {
+        // 使用统一的UI更新器（移除重复代码）
+        if (typeof updateTranslationUI === 'function') {
+          updateTranslationUI({
+            shouldScroll: false,
+            shouldFocusTextarea: false,
+            preserveSelection: true,
+            reason: '翻译进度更新'
+          });
+        } else {
+          // 备用逻辑
+          rebuildFilteredTranslationItems();
+          updateTranslationLists();
+          updateCounters();
+        }
+      }
+    };
 
-    const actualErrors = errors.filter((e) => e.error !== "用户取消");
-    const cancelledCount = errors.filter((e) => e.error === "用户取消").length;
-    AppState.translations.lastFailedItems = actualErrors
-      .map((e) => e?.item)
-      .filter(Boolean);
+    try {
+      const { results, errors } = await translationService.translateBatch(
+        selectedItems,
+        sourceLang,
+        targetLang,
+        engine,
+        (completed, total, message) => {
+          updateProgress(completed, total, message);
+          updateUIIfNeeded();
+        },
+      );
 
-    if (!AppState.translations.isInProgress && cancelledCount > 0) {
-      showNotification(
-        "info",
-        "翻译已取消",
-        `已翻译 ${results.length} 项，取消 ${cancelledCount} 项`,
+      hideTranslationProgress();
+
+      // 使用统一的翻译结果处理器处理完成逻辑
+      resultHandler.handleTranslationComplete(
+        'translateSelected', 
+        results, 
+        errors, 
+        engine, 
+        {
+          successTitle: "翻译完成",
+          warningTitle: "翻译部分完成"
+        }
       );
-    } else if (actualErrors.length === 0) {
-      showNotification(
-        "success",
-        "翻译完成",
-        `已成功翻译 ${results.length} 项`,
-      );
-    } else {
-      const firstErr = actualErrors[0];
-      const f = formatTranslationError(firstErr, engine);
-      showNotification(
-        "warning",
-        "翻译部分完成",
-        `成功 ${results.length} 项，失败 ${actualErrors.length} 项`,
-      );
-      showSplitNotification("warning", `失败原因：${f.title}`, f.message, f.detail);
+
+    } finally {
+      // 确保清理状态
+      appState.translations.isInProgress = false;
+      updateTranslationControlState();
     }
-
-    autoSaveManager.markDirty();
-
-    rebuildFilteredTranslationItems();
-
-    updateTranslationLists();
-    updateCounters();
-    updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
   } catch (error) {
-    hideTranslationProgress();
-    if (!error?.__notified) {
-      const f = formatTranslationError(error, engine);
-      showSplitNotification(f.type, f.title, f.message, f.detail);
+    console.error('翻译选中项失败:', error);
+    
+    // 使用错误管理器处理错误
+    const errorManager = getServiceSafely('errorManager');
+    if (errorManager) {
+      errorManager.handleError(error, {
+        context: 'translateSelected',
+        operation: 'translation'
+      });
+    } else {
+      showNotification("error", "翻译失败", error.message || "未知错误");
     }
-    AppState.translations.lastFailedItems = [...selectedItems];
-  } finally {
-    AppState.translations.isInProgress = false;
-    AppState.translations.isPaused = false;
+    
+    // 清理状态
+    const appState = getServiceSafely('appState', 'AppState');
+    if (appState) {
+      appState.translations.isInProgress = false;
+    }
     updateTranslationControlState();
   }
 }
 
 // 翻译所有项
 async function translateAll() {
-  if (!AppState.project || !AppState.project.translationItems.length) {
-    showNotification("warning", "无翻译项", "请先上传文件");
-    return;
+  // 使用新的分层架构
+  const controller = getTranslationUIController();
+  if (controller) {
+    await controller.handleTranslateAll();
+  } else {
+    // 备用逻辑：使用原有实现
+    await translateAllFallback();
   }
+}
 
-  const selectedFile = AppState?.translations?.selectedFile;
-  if (!selectedFile) {
-    showNotification(
-      "warning",
-      "未选择文件",
-      "请先在左侧文件列表选择要翻译的文件",
-    );
-    return;
-  }
-
-  // 获取待翻译的项
-  const pendingItems = AppState.project.translationItems
-    .filter((item) => item?.metadata?.file === selectedFile)
-    .filter((item) => item.status === "pending");
-
-  if (pendingItems.length === 0) {
-    showNotification("info", "无需翻译", "所有项都已翻译完成");
-    return;
-  }
-
-  // 显示翻译进度模态框
-  showTranslationProgress();
-
-  // 设置进度初始值
-  updateProgress(0, pendingItems.length, "准备翻译...");
-
-  // 获取语言设置
-  const sourceLang = AppState.project.sourceLanguage || "en";
-  const targetLang = AppState.project.targetLanguage || "zh";
-
-  // 获取翻译引擎
-  const settings = safeJsonParse(
-    localStorage.getItem("translatorSettings"),
-    {},
-  );
-  const engine =
-    settings.translationEngine ||
-    settings.defaultEngine ||
-    document.getElementById("translationEngine")?.value ||
-    "deepseek";
-
-  // 开始批量翻译
-  AppState.translations.isInProgress = true;
-  AppState.translations.isPaused = false;
-  AppState.translations.lastFailedItems = [];
-  AppState.translations.lastBatchContext = {
-    scope: "file",
-    sourceLang,
-    targetLang,
-    engine,
-    selectedFile: selectedFile || null,
-  };
-  updateTranslationControlState();
-
-  // 批量翻译时禁用UI更新，只在结束时更新一次
-  let translationCount = 0;
-  const batchUpdateInterval = 20; // 每20条更新一次UI
-
-  const updateUIIfNeeded = () => {
-    translationCount++;
-    // 每20条更新一次UI，提供适度的视觉反馈
-    if (translationCount % batchUpdateInterval === 0) {
-      console.log(`批量更新UI: 已翻译 ${translationCount} 条`);
-      rebuildFilteredTranslationItems({ selectedFile });
-      updateTranslationLists();
-      updateCounters();
-    }
-  };
-
+// 改进版翻译全部实现
+async function translateAllFallback() {
   try {
-    // 调用批量翻译
-    const { results, errors } = await translationService.translateBatch(
-      pendingItems,
+    // 使用统一验证器和结果处理器
+    const validators =
+      (typeof getServiceSafely === "function"
+        ? getServiceSafely("universalValidators")
+        : null) ||
+      (typeof getUniversalValidators === "function" ? getUniversalValidators() : null);
+    const resultHandler =
+      (typeof getServiceSafely === "function"
+        ? getServiceSafely("translationResultHandler")
+        : null) ||
+      (typeof getTranslationResultHandler === "function"
+        ? getTranslationResultHandler()
+        : null);
+
+    if (!validators || typeof validators.safeValidate !== "function") {
+      showNotification("error", "服务不可用", "验证器未加载");
+      return;
+    }
+    if (!resultHandler || typeof resultHandler.handleTranslationComplete !== "function") {
+      showNotification("error", "服务不可用", "结果处理器未加载");
+      return;
+    }
+    
+    // 验证翻译操作的前置条件
+    const validationPassed = validators.safeValidate(() => {
+      validators.validateTranslationOperation({
+        requireFileSelection: true
+      });
+    }, { context: 'translateAll' });
+    
+    if (!validationPassed) {
+      return; // 验证失败，已经显示了错误消息
+    }
+    
+    // 使用DI获取应用状态和服务
+    const appState = getServiceSafely('appState', 'AppState');
+    const translationService =
+      getServiceSafely('translationService', 'translationService') ||
+      (typeof window !== "undefined" ? window.translationService : null);
+    
+    if (!translationService) {
+      showNotification("error", "服务不可用", "翻译服务未加载");
+      return;
+    }
+
+    const selectedFile = appState?.translations?.selectedFile;
+
+    // 获取待翻译的项
+    const pendingItems = appState.project.translationItems
+      .filter((item) => item?.metadata?.file === selectedFile)
+      .filter((item) => item.status === "pending");
+
+    if (pendingItems.length === 0) {
+      showNotification("info", "无需翻译", "所有项都已翻译完成");
+      return;
+    }
+
+    // 获取翻译配置
+    const sourceLang = appState.project.sourceLanguage || "en";
+    const targetLang = appState.project.targetLanguage || "zh";
+    const settings = safeJsonParse(localStorage.getItem("translatorSettings"), {});
+    const engine = settings.translationEngine || settings.defaultEngine || 
+                  document.getElementById("translationEngine")?.value || "deepseek";
+
+    // 显示进度
+    showTranslationProgress();
+    updateProgress(0, pendingItems.length, "准备翻译...");
+
+    // 设置翻译状态
+    appState.translations.isInProgress = true;
+    appState.translations.isPaused = false;
+    appState.translations.lastFailedItems = [];
+    appState.translations.lastBatchContext = {
+      scope: "file",
       sourceLang,
       targetLang,
       engine,
-      // 进度回调函数
-      (completed, total, message) => {
-        updateProgress(completed, total, message);
-        // 每20条更新一次UI，而不是每条都更新
-        updateUIIfNeeded();
-      },
-    );
+      selectedFile: selectedFile || null,
+    };
+    updateTranslationControlState();
 
-    // 翻译完成或取消
-    hideTranslationProgress();
+    let translationCount = 0;
+    const batchUpdateInterval = 20;
+    const updateUIIfNeeded = () => {
+      translationCount++;
+      if (translationCount % batchUpdateInterval === 0) {
+        // 使用日志系统替代 console.log
+        const logger = window.loggers?.app || console;
+        logger.debug?.(`批量更新UI: 已翻译 ${translationCount} 条`);
 
-    // 统计实际错误（排除用户取消）
-    const actualErrors = errors.filter((e) => e.error !== "用户取消");
-    const cancelledCount = errors.filter((e) => e.error === "用户取消").length;
-    AppState.translations.lastFailedItems = actualErrors
-      .map((e) => e?.item)
-      .filter(Boolean);
+        // 使用统一的UI更新器（移除重复代码）
+        if (typeof updateTranslationUI === 'function') {
+          updateTranslationUI({
+            selectedFile,
+            shouldScroll: false,
+            shouldFocusTextarea: false,
+            preserveSelection: true,
+            reason: '翻译进度更新'
+          });
+        } else {
+          // 备用逻辑
+          rebuildFilteredTranslationItems({ selectedFile });
+          updateTranslationLists();
+          updateCounters();
+        }
+      }
+    };
 
-    if (!AppState.translations.isInProgress && cancelledCount > 0) {
-      // 用户取消
-      showNotification(
-        "info",
-        "翻译已取消",
-        `已翻译 ${results.length} 项，取消 ${cancelledCount} 项`,
+    try {
+      const { results, errors } = await translationService.translateBatch(
+        pendingItems,
+        sourceLang,
+        targetLang,
+        engine,
+        (completed, total, message) => {
+          updateProgress(completed, total, message);
+          updateUIIfNeeded();
+        },
       );
-    } else if (actualErrors.length === 0) {
-      // 全部成功
-      showNotification(
-        "success",
-        "翻译完成",
-        `已成功翻译 ${results.length} 项`,
+
+      hideTranslationProgress();
+
+      // 使用统一的翻译结果处理器处理完成逻辑
+      resultHandler.handleTranslationComplete(
+        'translateAll', 
+        results, 
+        errors, 
+        engine, 
+        {
+          successTitle: "翻译完成",
+          warningTitle: "翻译部分完成",
+          selectedFile: selectedFile
+        }
       );
-    } else {
-      // 部分失败
-      const firstErr = actualErrors[0];
-      const f = formatTranslationError(firstErr, engine);
-      showNotification(
-        "warning",
-        "翻译部分完成",
-        `成功 ${results.length} 项，失败 ${actualErrors.length} 项`,
-      );
-      showSplitNotification("warning", `失败原因：${f.title}`, f.message, f.detail);
+
+    } finally {
+      // 确保清理状态
+      window.AppState.translations.isInProgress = false;
+      window.AppState.translations.isPaused = false;
+      updateTranslationControlState();
     }
-
-    // 标记为已修改，触发自动保存
-    autoSaveManager.markDirty();
-
-    // 翻译完成后执行最后一次完整更新
-    console.log("批量翻译完成，执行最后更新...");
-    rebuildFilteredTranslationItems({ selectedFile });
-    updateTranslationLists();
-    updateCounters();
   } catch (error) {
-    hideTranslationProgress();
-    const f = formatTranslationError(error, engine);
-    showSplitNotification(f.type, f.title, f.message, f.detail);
-    console.error("批量翻译错误:", error);
-    AppState.translations.lastFailedItems = [...pendingItems];
-  } finally {
-    AppState.translations.isInProgress = false;
-    AppState.translations.isPaused = false;
+    console.error('翻译全部失败:', error);
+    showNotification("error", "翻译失败", error.message || "未知错误");
+    window.AppState.translations.isInProgress = false;
+    window.AppState.translations.isPaused = false;
     updateTranslationControlState();
   }
 }
 
+// ==================== 分层架构辅助函数 ====================
+
+/**
+ * 获取翻译UI控制器
+ */
+function getTranslationUIController() {
+  // 优先使用DI系统
+  let controller = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('translationUIController', null) 
+    : null;
+    
+  // 备用：使用全局实例
+  if (!controller && window.translationUIController) {
+    controller = window.translationUIController;
+  }
+  
+  return controller;
+}
+
+/**
+ * 获取翻译业务逻辑服务
+ */
+function getTranslationBusinessLogic() {
+  // 优先使用DI系统
+  let businessLogic = typeof getServiceSafely === 'function' 
+    ? getServiceSafely('translationBusinessLogic', null) 
+    : null;
+    
+  // 备用：使用全局实例
+  if (!businessLogic && window.translationBusinessLogic) {
+    businessLogic = window.translationBusinessLogic;
+  }
+  
+  return businessLogic;
+}
+
+/**
+ * 初始化分层架构控制器（如果需要）
+ */
+function initializeTranslationControllers() {
+  // 检查是否已经初始化
+  if (window.translationUIController && window.translationBusinessLogic) {
+    return;
+  }
+  
+  try {
+    // 获取依赖
+    const dependencies = {
+      appState: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('appState', 'AppState') 
+        : window.AppState,
+      validators: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('translationValidators', 'TranslationValidators') 
+        : window.TranslationValidators,
+      translationService: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('translationService', 'translationService') 
+        : window.translationService,
+      errorManager: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('errorManager', 'errorManager') 
+        : window.errorManager,
+      autoSaveManager: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
+        : window.autoSaveManager,
+      resultHandler: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('translationResultHandler', null) 
+        : null,
+      uiUpdater: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('translationUIUpdater', null) 
+        : window.TranslationUIUpdater,
+      notificationService: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('notificationService', null) 
+        : null,
+      eventManager: typeof getServiceSafely === 'function' 
+        ? getServiceSafely('eventManager', 'eventManager') 
+        : window.eventManager
+    };
+    
+    // 创建业务逻辑服务
+    if (typeof createTranslationBusinessLogic === 'function' && !window.translationBusinessLogic) {
+      window.translationBusinessLogic = createTranslationBusinessLogic(dependencies);
+    }
+    
+    // 创建UI控制器
+    if (typeof createTranslationUIController === 'function' && !window.translationUIController) {
+      window.translationUIController = createTranslationUIController({
+        ...dependencies,
+        businessLogic: window.translationBusinessLogic
+      });
+      
+      // 初始化控制器
+      window.translationUIController.initialize();
+    }
+    
+    console.log('🎯 翻译分层架构控制器已初始化');
+    
+  } catch (error) {
+    console.warn('⚠️ 翻译分层架构初始化失败，使用备用方案:', error);
+  }
+}
+
+// ==================== 原有函数重构 ====================
+
 // 取消翻译
 function cancelTranslation() {
-  AppState.translations.isInProgress = false;
-  AppState.translations.isPaused = false;
+  const controller = getTranslationUIController();
+  if (controller) {
+    controller.handleCancelTranslation();
+  } else {
+    // 备用逻辑
+    const appState = typeof getServiceSafely === 'function' 
+      ? getServiceSafely('appState', 'AppState') 
+      : window.AppState;
+      
+    appState.translations.isInProgress = false;
+    appState.translations.isPaused = false;
 
-  // 取消所有活动的网络请求
-  networkUtils.cancelAll();
+    // 取消所有活动的网络请求
+    const networkUtils = typeof getServiceSafely === 'function' 
+      ? getServiceSafely('networkUtils', 'networkUtils') 
+      : window.networkUtils;
+    if (networkUtils) {
+      networkUtils.cancelAll();
+    }
 
-  hideTranslationProgress();
-  updateTranslationControlState();
-  showNotification("info", "翻译已取消", "翻译过程已被用户取消");
+    hideTranslationProgress();
+    updateTranslationControlState();
+    showNotification("info", "翻译已取消", "翻译过程已被用户取消");
+  }
 }
 
 function pauseTranslation() {
@@ -831,20 +1099,32 @@ async function retryFailedTranslations() {
   AppState.translations.isPaused = false;
   updateTranslationControlState();
 
-  let translationCount = 0;
-  const batchUpdateInterval = 20;
-  const updateUIIfNeeded = () => {
-    translationCount++;
-    if (translationCount % batchUpdateInterval === 0) {
-      if (selectedFile) {
-        rebuildFilteredTranslationItems({ selectedFile });
-      } else {
-        rebuildFilteredTranslationItems();
+    let translationCount = 0;
+    const batchUpdateInterval = 20;
+    const updateUIIfNeeded = () => {
+      translationCount++;
+      if (translationCount % batchUpdateInterval === 0) {
+        // 使用统一的UI更新器（移除重复代码）
+        if (typeof updateTranslationUI === 'function') {
+          updateTranslationUI({
+            selectedFile,
+            shouldScroll: false,
+            shouldFocusTextarea: false,
+            preserveSelection: true,
+            reason: '重试翻译进度更新'
+          });
+        } else {
+          // 备用逻辑
+          if (selectedFile) {
+            rebuildFilteredTranslationItems({ selectedFile });
+          } else {
+            rebuildFilteredTranslationItems();
+          }
+          updateTranslationLists();
+          updateCounters();
+        }
       }
-      updateTranslationLists();
-      updateCounters();
-    }
-  };
+    };
 
   try {
     const { results, errors } = await translationService.translateBatch(
@@ -860,44 +1140,79 @@ async function retryFailedTranslations() {
 
     hideTranslationProgress();
 
-    const actualErrors = errors.filter((e) => e.error !== "用户取消");
-    const cancelledCount = errors.filter((e) => e.error === "用户取消").length;
-    AppState.translations.lastFailedItems = actualErrors
-      .map((e) => e?.item)
-      .filter(Boolean);
+    // 使用翻译结果处理器（V2 改进版）
+    const resultHandler = typeof getServiceSafely === 'function'
+      ? getServiceSafely('translationResultHandler')
+      : null;
 
-    if (!AppState.translations.isInProgress && cancelledCount > 0) {
-      showNotification(
-        "info",
-        "翻译已取消",
-        `已翻译 ${results.length} 项，取消 ${cancelledCount} 项`
-      );
-    } else if (actualErrors.length === 0) {
-      showNotification(
-        "success",
-        "重试完成",
-        `已成功翻译 ${results.length} 项`
-      );
+    if (resultHandler && typeof resultHandler.handleTranslationResults === 'function') {
+      // 使用类方法处理结果
+      resultHandler.handleTranslationResults(results, errors, engine, {
+        successTitle: "重试完成",
+        warningTitle: "重试部分完成",
+        cancelTitle: "翻译已取消",
+        operation: "retryFailedTranslations"
+      });
+    } else if (typeof handleTranslationResults === 'function') {
+      // 使用全局函数处理结果
+      handleTranslationResults(results, errors, engine, {
+        successTitle: "重试完成",
+        warningTitle: "重试部分完成",
+        operation: "retryFailedTranslations"
+      });
     } else {
-      const firstErr = actualErrors[0];
-      const f = formatTranslationError(firstErr, engine);
-      showNotification(
-        "warning",
-        "重试部分完成",
-        `成功 ${results.length} 项，失败 ${actualErrors.length} 项`
-      );
-      showSplitNotification("warning", `失败原因：${f.title}`, f.message, f.detail);
+      // 最后的备用逻辑（保持向后兼容）
+      const actualErrors = errors.filter((e) => e.error !== "用户取消");
+      const cancelledCount = errors.filter((e) => e.error === "用户取消").length;
+      AppState.translations.lastFailedItems = actualErrors
+        .map((e) => e?.item)
+        .filter(Boolean);
+
+      if (!AppState.translations.isInProgress && cancelledCount > 0) {
+        showNotification(
+          "info",
+          "翻译已取消",
+          `已翻译 ${results.length} 项，取消 ${cancelledCount} 项`
+        );
+      } else if (actualErrors.length === 0) {
+        showNotification(
+          "success",
+          "重试完成",
+          `已成功翻译 ${results.length} 项`
+        );
+      } else {
+        const firstErr = actualErrors[0];
+        const f = formatTranslationError(firstErr, engine);
+        showNotification(
+          "warning",
+          "重试部分完成",
+          `成功 ${results.length} 项，失败 ${actualErrors.length} 项`
+        );
+        showSplitNotification("warning", `失败原因：${f.title}`, f.message, f.detail);
+      }
     }
 
     autoSaveManager.markDirty();
-    if (selectedFile) {
-      rebuildFilteredTranslationItems({ selectedFile });
+    
+    // 使用通用的UI更新函数（如果可用）
+    if (typeof updateTranslationUI === 'function') {
+      updateTranslationUI({
+        selectedFile: selectedFile,
+        shouldScroll: false,
+        shouldFocusTextarea: false,
+        reason: "重试翻译完成"
+      });
     } else {
-      rebuildFilteredTranslationItems();
+      // 降级到原有的UI更新逻辑
+      if (selectedFile) {
+        rebuildFilteredTranslationItems({ selectedFile });
+      } else {
+        rebuildFilteredTranslationItems();
+      }
+      updateTranslationLists();
+      updateCounters();
+      updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
     }
-    updateTranslationLists();
-    updateCounters();
-    updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
   } catch (error) {
     hideTranslationProgress();
     const f = formatTranslationError(error, engine);

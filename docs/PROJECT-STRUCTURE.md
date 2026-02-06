@@ -53,11 +53,19 @@ html/
 │   ├── index.html           # 主 HTML 文件
 │   ├── app.js               # 应用入口（按顺序加载 public/app/**）
 │   ├── app/                 # 应用核心逻辑（模块化代码）
-│   │   ├── core/                # 核心架构（DI容器、日志、启动引导等）
+│   │   ├── core/                # 核心系统（启动引导、状态、日志、事件等）
+│   │   │   ├── architecture/        # 架构系统子目录
+│   │   │   │   ├── dependency-injection.js  # DI容器与服务定位器
+│   │   │   │   ├── architecture-initializer.js # 架构初始化器
+│   │   │   │   ├── namespace-manager.js     # 命名空间管理
+│   │   │   │   └── ...（6文件）
+│   │   │   ├── errors/              # 错误处理子目录
+│   │   │   │   ├── error-manager.js         # 错误管理器
+│   │   │   │   ├── unified-error-handler.js # 统一错误处理器
+│   │   │   │   └── ...（6文件）
 │   │   │   ├── bootstrap.js         # 应用引导（DOM初始化、服务启动）
-│   │   │   ├── dependency-injection.js # DI容器与服务定位器
 │   │   │   ├── logger-config.js     # 日志配置系统（分类日志器）
-│   │   │   └── ...
+│   │   │   └── ...（12文件）
 │   │   ├── features/
 │   │   │   └── translations/
 │   │   │       ├── actions.js       # 翻译操作（翻译选中/全部/取消/重试）
@@ -72,8 +80,10 @@ html/
 │   │   │       └── ...
 │   │   └── ui/
 │   │       └── event-listeners/
-│   │           ├── data-management.js   # 数据管理监听器（从 data-and-ui.js 拆分）
-│   │           ├── data-and-ui.js       # UI交互监听器
+│   │           ├── settings-prompt-templates.js # Prompt模板管理（从 settings.js 拆分）
+│   │           ├── settings-deepseek.js   # DeepSeek高级设置（从 settings.js 拆分）
+│   │           ├── data-management.js     # 数据管理监听器（从 data-and-ui.js 拆分）
+│   │           ├── data-and-ui.js         # UI交互监听器
 │   │           └── ...
 │   └── styles.css           # 构建后的 CSS 文件（由 Tailwind 生成）
 ├── package.json         # npm 项目配置

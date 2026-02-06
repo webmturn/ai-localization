@@ -294,6 +294,7 @@ class StorageManager {
     this.__metaProjectsIndexKey = "__meta__:projectsIndex";
     this.__projectKeyPrefix = "project:";
     this.__legacyCurrentProjectKey = "currentProject";
+    this.__fsFallbackPending = false;
   }
 
   __normalizeProjectId(project) {
@@ -468,6 +469,18 @@ class StorageManager {
     else next.push(entry);
     await this.saveProjectsIndex(next);
 
+    if (preferred.backendId === "filesystem") {
+      const durableFallback = this.backends.indexeddb || this.backends.localStorage;
+      if (durableFallback) {
+        try {
+          await this.__saveJsonToBackend(durableFallback, key, normalized);
+          await this.__saveJsonToBackend(durableFallback, this.__legacyCurrentProjectKey, normalized);
+          await this.__saveJsonToBackend(durableFallback, this.__metaActiveProjectIdKey, normalized.id);
+          await this.__saveJsonToBackend(durableFallback, this.__metaProjectsIndexKey, next);
+        } catch (_) {}
+      }
+    }
+
     return true;
   }
 
@@ -637,10 +650,12 @@ class StorageManager {
             : typeof navigator !== "undefined" && navigator.userActivation?.isActive;
         try {
           await fsBackend.ensureReady({ allowPrompt });
+          this.__fsFallbackPending = false;
         } catch (error) {
           this.preferredBackendId = "indexeddb";
-          if (
-            allowPrompt &&
+          if (!allowPrompt) {
+            this.__fsFallbackPending = true;
+          } else if (
             !this.__notifiedFsUnavailable &&
             typeof showNotification === "function"
           ) {
@@ -849,6 +864,28 @@ class StorageManager {
     );
 
     return { ok: errors.length === 0, migrated: migratedProjects.length, errors };
+  }
+
+  async tryReconnectFilesystem() {
+    if (!this.__fsFallbackPending) return false;
+    const fsBackend = this.backends.filesystem;
+    if (!fsBackend || !fsBackend.isSupported()) return false;
+    if (!(typeof navigator !== "undefined" && navigator.userActivation?.isActive)) return false;
+
+    try {
+      await fsBackend.ensureReady({ allowPrompt: false });
+      this.preferredBackendId = "filesystem";
+      this.__fsFallbackPending = false;
+      this.__persistPreferredBackend("filesystem");
+      (loggers.storage || console).log("File System Access 权限已恢复，已切回 filesystem 后端");
+
+      if (typeof window.updateStorageBackendStatus === "function") {
+        window.updateStorageBackendStatus();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   async requestFileSystemBackend() {
@@ -1166,6 +1203,13 @@ if (typeof document !== "undefined") {
       storageManager.retryIndexedDbAvailability().catch(() => {});
     }
   });
+
+  document.addEventListener("click", function __fsReconnectOnClick() {
+    if (storageManager.__fsFallbackPending) {
+      storageManager.tryReconnectFilesystem().catch(() => {});
+    }
+    document.removeEventListener("click", __fsReconnectOnClick);
+  }, { once: true });
 }
 
 // IDB GC/清理函数已拆分到 idb-operations.js

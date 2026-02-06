@@ -53,6 +53,28 @@ html/
 │   ├── index.html           # 主 HTML 文件
 │   ├── app.js               # 应用入口（按顺序加载 public/app/**）
 │   ├── app/                 # 应用核心逻辑（模块化代码）
+│   │   ├── core/                # 核心架构（DI容器、日志、启动引导等）
+│   │   │   ├── bootstrap.js         # 应用引导（DOM初始化、服务启动）
+│   │   │   ├── dependency-injection.js # DI容器与服务定位器
+│   │   │   ├── logger-config.js     # 日志配置系统（分类日志器）
+│   │   │   └── ...
+│   │   ├── features/
+│   │   │   └── translations/
+│   │   │       ├── actions.js       # 翻译操作（翻译选中/全部/取消/重试）
+│   │   │       ├── find-replace.js  # 查找替换（从 actions.js 拆分）
+│   │   │       ├── progress.js      # 进度UI（从 actions.js 拆分）
+│   │   │       └── ...
+│   │   ├── services/
+│   │   │   └── storage/
+│   │   │       ├── idb-operations.js    # IndexedDB底层操作（从 storage-manager.js 拆分）
+│   │   │       ├── file-content-keys.js # 文件内容键管理（从 storage-manager.js 拆分）
+│   │   │       ├── storage-manager.js   # 存储管理器（多后端调度）
+│   │   │       └── ...
+│   │   └── ui/
+│   │       └── event-listeners/
+│   │           ├── data-management.js   # 数据管理监听器（从 data-and-ui.js 拆分）
+│   │           ├── data-and-ui.js       # UI交互监听器
+│   │           └── ...
 │   └── styles.css           # 构建后的 CSS 文件（由 Tailwind 生成）
 ├── package.json         # npm 项目配置
 └── .gitignore           # Git 忽略文件配置

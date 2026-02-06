@@ -404,6 +404,11 @@
 
 ## 13. 翻译流程（UI 层）
 
+> **模块拆分说明**：原 `actions.js`（1405行）已拆分为三个文件：
+> - `public/app/features/translations/actions.js` — 翻译操作（翻译选中/全部/取消/重试/暂停/恢复）
+> - `public/app/features/translations/find-replace.js` — 查找替换功能
+> - `public/app/features/translations/progress.js` — 进度 UI（进度条/日志/控制按钮状态）
+
 - **`translateSelected()`**
   - **用途**：翻译当前选中项；弹出进度框；构建上下文并调用 `translateText()`。
 
@@ -412,11 +417,17 @@
 - **`cancelTranslation()`**
   - **用途**：设置 `AppState.translations.isInProgress=false`，`networkUtils.cancelAll()`，关闭进度框并提示。
 
-### 进度弹窗
+### 查找替换（`find-replace.js`）
+
+- **`previewFindReplace(options)`** — 预览查找替换匹配数和预览列表
+- **`applyFindReplace()`** — 执行查找替换，更新 `targetText` 和状态
+
+### 进度弹窗（`progress.js`）
 
 - **`showTranslationProgress()` / `hideTranslationProgress()`**
 - **`updateProgress(current, total, status)`**
 - **`addProgressLog(message)`**
+- **`updateTranslationControlState()`** — 同步暂停/恢复/重试按钮的启用状态
 
 ## 14. 通知与模态框
 
@@ -541,6 +552,24 @@
 - **副作用**：是否会改 `AppState`、操作 DOM、读写 localStorage、发网络请求
 - **典型调用点**：由哪个事件/哪个模块触发
 - **异常/失败策略**：抛错/返回默认值/降级处理
+
+## 18.5 存储模块拆分说明
+
+> **模块拆分说明**：原 `storage-manager.js`（1453行）已拆分为三个文件：
+> - `public/app/services/storage/idb-operations.js` — IndexedDB 底层操作（`openFileContentDB`、所有 `idb*` 前缀函数、GC/清理）
+> - `public/app/services/storage/file-content-keys.js` — 文件内容键管理（`buildFileContentKey`、`hydrateFileMetadataContentKeys`、`ensureOriginalContentLoadedForFile`）
+> - `public/app/services/storage/storage-manager.js` — 存储管理器（多后端调度、项目 CRUD、后端切换）
+
+> **事件监听器拆分说明**：原 `data-and-ui.js`（1184行）已拆分为：
+> - `public/app/ui/event-listeners/data-management.js` — 数据管理（存储后端状态、缓存清理、导出/导入、示例数据清除）
+> - `public/app/ui/event-listeners/data-and-ui.js` — UI 交互（密码切换、主题/字体、侧边栏、标签页、拖拽调整宽度）
+
+## 18.6 日志系统
+
+- **日志配置**：`public/app/core/logger-config.js` 定义 `loggerConfig`（全局单例）和预创建的 `loggers` 对象。
+- **日志分类**：`architecture`、`modules`、`services`、`scripts`、`errors`、`app`、`storage`、`startup`、`translation`。
+- **使用方式**：`(loggers.startup || console).info('...')` — 安全降级，若 loggers 未初始化则回退到 console。
+- **级别控制**：生产环境默认 `ERROR`，开发模式 `INFO`。可通过 `window.setLogLevel(LOG_LEVELS.DEBUG)` 运行时调整。
 
 ## 19. 维护建议与待改进项（备忘）
 

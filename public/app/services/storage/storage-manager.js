@@ -708,6 +708,126 @@ class StorageManager {
     return false;
   }
 
+  __persistPreferredBackend(backendId) {
+    try {
+      const raw = localStorage.getItem("translatorSettings");
+      const settings = typeof safeJsonParse === "function"
+        ? safeJsonParse(raw, {})
+        : JSON.parse(raw || "{}");
+      if (settings && typeof settings === "object") {
+        settings.preferredStorageBackend = backendId;
+        localStorage.setItem("translatorSettings", JSON.stringify(settings));
+      }
+    } catch (e) {
+      (loggers.storage || console).warn("持久化 preferredStorageBackend 失败:", e);
+    }
+  }
+
+  async migrateToBackend(targetBackendId) {
+    const targetBackend = this.backends[targetBackendId];
+    if (!targetBackend) return { ok: false, error: "目标后端不存在" };
+
+    const sourceIds = ["indexeddb", "localStorage", "filesystem"].filter(
+      (id) => id !== targetBackendId
+    );
+
+    let projectsIndex = [];
+    let activeProjectId = null;
+    const migratedProjects = [];
+    const errors = [];
+
+    for (const srcId of sourceIds) {
+      const src = this.backends[srcId];
+      if (!src) continue;
+      if (srcId === "indexeddb") {
+        const ok = await this.checkIndexedDbAvailability();
+        if (!ok) continue;
+      }
+
+      try {
+        const idx = await this.__loadJsonFromBackend(src, this.__metaProjectsIndexKey);
+        if (Array.isArray(idx) && idx.length > projectsIndex.length) {
+          projectsIndex = idx;
+        }
+      } catch (_) {}
+
+      if (!activeProjectId) {
+        try {
+          const aid = await this.__loadJsonFromBackend(src, this.__metaActiveProjectIdKey);
+          if (typeof aid === "string" && aid) activeProjectId = aid;
+        } catch (_) {}
+      }
+    }
+
+    const allProjectIds = new Set(
+      projectsIndex.map((p) => p && p.id).filter(Boolean)
+    );
+    if (activeProjectId) allProjectIds.add(activeProjectId);
+
+    for (const projectId of allProjectIds) {
+      const key = this.__buildProjectStorageKey(projectId);
+      let projectData = null;
+
+      for (const srcId of sourceIds) {
+        const src = this.backends[srcId];
+        if (!src) continue;
+        if (srcId === "indexeddb") {
+          const ok = await this.checkIndexedDbAvailability();
+          if (!ok) continue;
+        }
+        try {
+          const data = await this.__loadJsonFromBackend(src, key);
+          if (data) { projectData = data; break; }
+        } catch (_) {}
+      }
+
+      if (!projectData) continue;
+
+      try {
+        await this.__saveJsonToBackend(targetBackend, key, projectData);
+        migratedProjects.push(projectId);
+      } catch (e) {
+        errors.push({ projectId, error: e });
+      }
+    }
+
+    try {
+      if (projectsIndex.length > 0) {
+        await this.__saveJsonToBackend(targetBackend, this.__metaProjectsIndexKey, projectsIndex);
+      }
+      if (activeProjectId) {
+        await this.__saveJsonToBackend(targetBackend, this.__metaActiveProjectIdKey, activeProjectId);
+      }
+    } catch (e) {
+      errors.push({ meta: true, error: e });
+    }
+
+    try {
+      for (const srcId of sourceIds) {
+        const src = this.backends[srcId];
+        if (!src) continue;
+        if (srcId === "indexeddb") {
+          const ok = await this.checkIndexedDbAvailability();
+          if (!ok) continue;
+        }
+        try {
+          const legacy = await this.__loadJsonFromBackend(src, this.__legacyCurrentProjectKey);
+          if (legacy) {
+            await this.__saveJsonToBackend(targetBackend, this.__legacyCurrentProjectKey, legacy);
+            break;
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    (loggers.storage || console).log(
+      `存储迁移完成: ${migratedProjects.length}个项目迁移到${targetBackendId}` +
+      (errors.length > 0 ? `，${errors.length}个错误` : "")
+    );
+
+    return { ok: errors.length === 0, migrated: migratedProjects.length, errors };
+  }
+
   async requestFileSystemBackend() {
     const fsBackend = this.backends.filesystem;
     if (!fsBackend || !fsBackend.isSupported()) {
@@ -827,6 +947,7 @@ class StorageManager {
           this.preferredBackendId = "localStorage";
           this.indexedDbAvailable = false;
           this.__idbAvailabilityChecked = true;
+          this.__persistPreferredBackend("localStorage");
 
           const ok = await this.saveProject(project);
 

@@ -106,15 +106,31 @@ function registerEventListenersDataManagement(ctx) {
         try {
           const ok = await storageManager.requestFileSystemBackend();
           if (ok) {
-            try {
-              const settings =
-                typeof safeJsonParse === "function"
-                  ? safeJsonParse(localStorage.getItem("translatorSettings"), {})
-                  : JSON.parse(localStorage.getItem("translatorSettings") || "{}");
-              settings.preferredStorageBackend = "filesystem";
-              localStorage.setItem("translatorSettings", JSON.stringify(settings));
-            } catch (e) {
-              console.warn("保存存储后端设置失败:", e);
+            if (typeof storageManager.__persistPreferredBackend === "function") {
+              storageManager.__persistPreferredBackend("filesystem");
+            } else {
+              try {
+                const settings =
+                  typeof safeJsonParse === "function"
+                    ? safeJsonParse(localStorage.getItem("translatorSettings"), {})
+                    : JSON.parse(localStorage.getItem("translatorSettings") || "{}");
+                settings.preferredStorageBackend = "filesystem";
+                localStorage.setItem("translatorSettings", JSON.stringify(settings));
+              } catch (e) {
+                console.warn("保存存储后端设置失败:", e);
+              }
+            }
+
+            let migrateMsg = "";
+            if (typeof storageManager.migrateToBackend === "function") {
+              try {
+                const result = await storageManager.migrateToBackend("filesystem");
+                if (result.migrated > 0) {
+                  migrateMsg = `已迁移 ${result.migrated} 个历史项目。`;
+                }
+              } catch (e) {
+                console.warn("迁移数据到文件存储失败:", e);
+              }
             }
 
             if (
@@ -133,7 +149,7 @@ function registerEventListenersDataManagement(ctx) {
             showNotification(
               "success",
               "文件夹存储已启用",
-              "已切换为文件夹存储，后续保存将写入本地文件夹。"
+              "已切换为文件夹存储，后续保存将写入本地文件夹。" + (migrateMsg ? " " + migrateMsg : "")
             );
           } else {
             showNotification(

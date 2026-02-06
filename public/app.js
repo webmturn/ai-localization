@@ -52,6 +52,8 @@
 
   // 服务层脚本
   var serviceScripts = [
+    "app/services/storage/idb-operations.js",      // IndexedDB底层操作（从 storage-manager.js 拆分）
+    "app/services/storage/file-content-keys.js",  // 文件内容键管理（从 storage-manager.js 拆分）
     "app/services/storage/storage-manager.js",
     "app/services/storage/error-handler.js",
     "app/services/storage/storage-error-handler.js",    // 新增：统一存储错误处理器

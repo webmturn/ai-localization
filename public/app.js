@@ -104,6 +104,8 @@
     "app/features/translations/ui-updates.js",        // 新增：UI更新器
     "app/services/translation/business-logic.js",    // 新增：翻译业务逻辑服务
     "app/features/translations/ui-controller.js",    // 新增：翻译UI控制器
+    "app/features/translations/find-replace.js", // 查找替换（从 actions.js 拆分）
+    "app/features/translations/progress.js",     // 进度UI（从 actions.js 拆分）
     "app/features/translations/actions.js",
     "app/features/translations/error-handler.js",
     "app/features/translations/export/shared.js",

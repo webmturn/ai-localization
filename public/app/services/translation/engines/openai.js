@@ -13,6 +13,12 @@ TranslationService.prototype.translateWithOpenAI = async function (
     settings.openaiModel ||
     "gpt-4o-mini";
 
+  const cacheEnabled = !!settings.translationRequestCacheEnabled;
+  const rawCacheTtlSeconds = parseInt(settings.translationRequestCacheTTLSeconds);
+  const cacheTtlSeconds = Number.isFinite(rawCacheTtlSeconds)
+    ? Math.max(1, Math.min(600, rawCacheTtlSeconds))
+    : 5;
+
   if (!apiKey) {
     const err = new Error("OpenAI API密钥未配置");
     err.code = "API_KEY_MISSING";
@@ -88,7 +94,7 @@ TranslationService.prototype.translateWithOpenAI = async function (
   }
 
   try {
-    const response = await networkUtils.fetchWithTimeout(
+    const response = await networkUtils.fetchWithDedupe(
       "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
@@ -112,7 +118,12 @@ TranslationService.prototype.translateWithOpenAI = async function (
           max_tokens: 2000,
         }),
       },
-      (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000
+      {
+        timeout: (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000,
+        dedupe: true,
+        cache: cacheEnabled,
+        cacheTTL: cacheTtlSeconds * 1000,
+      }
     );
 
     if (!response.ok) {

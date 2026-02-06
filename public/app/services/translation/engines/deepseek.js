@@ -9,6 +9,12 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   const apiKey = settings.deepseekApiKey;
   const model = settings.model || "deepseek-chat";
 
+  const cacheEnabled = !!settings.translationRequestCacheEnabled;
+  const rawCacheTtlSeconds = parseInt(settings.translationRequestCacheTTLSeconds);
+  const cacheTtlSeconds = Number.isFinite(rawCacheTtlSeconds)
+    ? Math.max(1, Math.min(600, rawCacheTtlSeconds))
+    : 5;
+
   if (!apiKey) {
     throw new Error("DeepSeek API密钥未配置");
   }
@@ -87,7 +93,7 @@ TranslationService.prototype.translateWithDeepSeek = async function (
       await this.checkRateLimit("deepseek");
     } catch (_) {}
 
-    const response = await networkUtils.fetchWithTimeout(
+    const response = await networkUtils.fetchWithDedupe(
       "https://api.deepseek.com/v1/chat/completions",
       {
         method: "POST",
@@ -110,7 +116,12 @@ TranslationService.prototype.translateWithDeepSeek = async function (
           temperature: settings.temperature || 0.1,
         }),
       },
-      (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000
+      {
+        timeout: (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000,
+        dedupe: true,
+        cache: cacheEnabled,
+        cacheTTL: cacheTtlSeconds * 1000,
+      }
     );
 
     if (!response.ok) {

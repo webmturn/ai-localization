@@ -52,7 +52,7 @@ function openFileContentDB() {
   if (__fileContentDB.opening) return __fileContentDB.opening;
 
   __fileContentDB.opening = new Promise((resolve, reject) => {
-    const request = indexedDB.open("xml-translator-db", 2);
+    const request = indexedDB.open("xml-translator-db", 3);
     request.onblocked = () => {
       console.warn(
         "IndexedDB升级/打开被阻塞：可能有其他标签页正在使用旧版本数据库"
@@ -73,6 +73,10 @@ function openFileContentDB() {
 
       if (!db.objectStoreNames.contains("projects")) {
         db.createObjectStore("projects", { keyPath: "key" });
+      }
+
+      if (!db.objectStoreNames.contains("fsHandles")) {
+        db.createObjectStore("fsHandles", { keyPath: "key" });
       }
     };
     request.onsuccess = (event) => {
@@ -183,6 +187,58 @@ function idbDeleteProject(key) {
   );
 }
 
+const __fsHandleStoreKey = "__fsDirectoryHandle";
+const __fsAccessState = {
+  handle: null,
+  loading: null,
+};
+
+function supportsFileSystemAccess() {
+  return (
+    typeof window !== "undefined" && typeof window.showDirectoryPicker === "function"
+  );
+}
+
+function idbPutFsHandle(handle) {
+  return openFileContentDB().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction("fsHandles", "readwrite");
+        const store = tx.objectStore("fsHandles");
+        store.put({ key: __fsHandleStoreKey, handle, updatedAt: Date.now() });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error || new Error("IndexedDB写入失败"));
+        tx.onabort = () => reject(tx.error || new Error("IndexedDB写入中止"));
+      })
+  );
+}
+
+function idbGetFsHandle() {
+  return openFileContentDB().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction("fsHandles", "readonly");
+        const store = tx.objectStore("fsHandles");
+        const req = store.get(__fsHandleStoreKey);
+        req.onsuccess = () => resolve(req.result ? req.result.handle : null);
+        req.onerror = () => reject(req.error || new Error("IndexedDB读取失败"));
+      })
+  );
+}
+
+function idbDeleteFsHandle() {
+  return openFileContentDB().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction("fsHandles", "readwrite");
+        const store = tx.objectStore("fsHandles");
+        const req = store.delete(__fsHandleStoreKey);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error || new Error("IndexedDB删除失败"));
+      })
+  );
+}
+
 class LocalStorageProjectStorage {
   constructor() {
     this.backendId = "localStorage";
@@ -254,18 +310,207 @@ class IndexedDbProjectStorage {
 class FileSystemProjectStorage {
   constructor() {
     this.backendId = "filesystem";
+    this.currentProjectKey = "currentProject";
+    this.directoryHandle = null;
+    this.storageFileName = "translator-storage.json";
+    this.__writeQueue = Promise.resolve();
+    this.__handleLoaded = false;
+  }
+
+  isSupported() {
+    return supportsFileSystemAccess();
+  }
+
+  hasHandle() {
+    return !!this.directoryHandle;
+  }
+
+  async loadHandleFromIdb() {
+    if (this.__handleLoaded) return this.directoryHandle;
+    this.__handleLoaded = true;
+
+    if (!this.isSupported()) return null;
+    if (__fsAccessState.loading) {
+      return __fsAccessState.loading;
+    }
+
+    __fsAccessState.loading = idbGetFsHandle()
+      .then((handle) => {
+        __fsAccessState.handle = handle || null;
+        this.directoryHandle = __fsAccessState.handle;
+        return this.directoryHandle;
+      })
+      .catch((error) => {
+        console.warn("读取文件系统句柄失败:", error);
+        return null;
+      })
+      .finally(() => {
+        __fsAccessState.loading = null;
+      });
+
+    return __fsAccessState.loading;
+  }
+
+  async persistHandle(handle) {
+    this.directoryHandle = handle;
+    __fsAccessState.handle = handle;
+
+    try {
+      await idbPutFsHandle(handle);
+    } catch (error) {
+      console.warn("保存文件系统句柄失败:", error);
+    }
+  }
+
+  async clearPersistedHandle() {
+    this.directoryHandle = null;
+    __fsAccessState.handle = null;
+    try {
+      await idbDeleteFsHandle();
+    } catch (error) {
+      console.warn("清理文件系统句柄失败:", error);
+    }
+  }
+
+  async ensurePermission(handle, allowPrompt) {
+    if (!handle || typeof handle.queryPermission !== "function") return true;
+    try {
+      const status = await handle.queryPermission({ mode: "readwrite" });
+      if (status === "granted") return true;
+      if (!allowPrompt || typeof handle.requestPermission !== "function") {
+        return false;
+      }
+      const requested = await handle.requestPermission({ mode: "readwrite" });
+      return requested === "granted";
+    } catch (error) {
+      console.warn("文件系统权限检查失败:", error);
+      return false;
+    }
+  }
+
+  async ensureDirectoryHandle({ allowPrompt = false } = {}) {
+    if (!this.isSupported()) {
+      throw new Error("FileSystemAccessNotSupported");
+    }
+
+    if (!this.directoryHandle) {
+      await this.loadHandleFromIdb();
+    }
+
+    if (!this.directoryHandle) {
+      if (!allowPrompt) {
+        throw new Error("FileSystemAccessNeedsUserActivation");
+      }
+
+      const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+      await this.persistHandle(handle);
+    }
+
+    const hasPermission = await this.ensurePermission(
+      this.directoryHandle,
+      allowPrompt
+    );
+    if (!hasPermission) {
+      throw new Error("FileSystemAccessDenied");
+    }
+
+    return this.directoryHandle;
+  }
+
+  async requestDirectoryHandle() {
+    return this.ensureDirectoryHandle({ allowPrompt: true });
+  }
+
+  async ensureReady({ allowPrompt = false } = {}) {
+    return this.ensureDirectoryHandle({ allowPrompt });
+  }
+
+  async __getStorageFileHandle({ allowPrompt = false, create = true } = {}) {
+    const handle = await this.ensureDirectoryHandle({ allowPrompt });
+    return handle.getFileHandle(this.storageFileName, { create });
+  }
+
+  async __readStorageObject({ allowPrompt = false } = {}) {
+    let fileHandle;
+    try {
+      fileHandle = await this.__getStorageFileHandle({
+        allowPrompt,
+        create: false,
+      });
+    } catch (error) {
+      if (error && error.name === "NotFoundError") {
+        return {};
+      }
+      throw error;
+    }
+
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    if (!text) return {};
+    const parsed =
+      typeof safeJsonParse === "function"
+        ? safeJsonParse(text, {})
+        : JSON.parse(text);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  }
+
+  async __writeStorageObject(data, { allowPrompt = false } = {}) {
+    const fileHandle = await this.__getStorageFileHandle({
+      allowPrompt,
+      create: true,
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data || {}));
+    await writable.close();
+    return true;
+  }
+
+  async __queueWrite(task) {
+    const run = this.__writeQueue.then(task, task);
+    this.__writeQueue = run.catch(() => {});
+    return run;
+  }
+
+  __shouldPromptForAccess() {
+    return (
+      typeof navigator !== "undefined" && navigator.userActivation?.isActive
+    );
+  }
+
+  async loadJson(key) {
+    const allowPrompt = this.__shouldPromptForAccess();
+    const data = await this.__readStorageObject({ allowPrompt });
+    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+  }
+
+  async saveJson(key, value) {
+    const allowPrompt = this.__shouldPromptForAccess();
+    return this.__queueWrite(async () => {
+      const data = await this.__readStorageObject({ allowPrompt });
+      data[key] = value;
+      return this.__writeStorageObject(data, { allowPrompt });
+    });
+  }
+
+  async remove(key) {
+    const allowPrompt = this.__shouldPromptForAccess();
+    return this.__queueWrite(async () => {
+      const data = await this.__readStorageObject({ allowPrompt });
+      delete data[key];
+      return this.__writeStorageObject(data, { allowPrompt });
+    });
   }
 
   async loadCurrentProject() {
-    throw new Error("FileSystemProjectStorage未实现");
+    return this.loadJson(this.currentProjectKey);
   }
 
-  async saveCurrentProject() {
-    throw new Error("FileSystemProjectStorage未实现");
+  async saveCurrentProject(project) {
+    return this.saveJson(this.currentProjectKey, project);
   }
 
   async clearCurrentProject() {
-    throw new Error("FileSystemProjectStorage未实现");
+    return this.remove(this.currentProjectKey);
   }
 }
 
@@ -584,19 +829,44 @@ class StorageManager {
     }
   }
 
-  async ensureBackendAvailable() {
+  async ensureBackendAvailable(options = {}) {
     if (this.preferredBackendId === "filesystem") {
-      this.preferredBackendId = "indexeddb";
-      if (
-        !this.__notifiedFsUnavailable &&
-        typeof showNotification === "function"
-      ) {
-        this.__notifiedFsUnavailable = true;
-        showNotification(
-          "warning",
-          "文件存储未启用",
-          "File System Access 后端尚未实现，已自动回退到 IndexedDB/localStorage。"
-        );
+      const fsBackend = this.backends.filesystem;
+      if (!fsBackend || !fsBackend.isSupported()) {
+        this.preferredBackendId = "indexeddb";
+        if (
+          !this.__notifiedFsUnavailable &&
+          typeof showNotification === "function"
+        ) {
+          this.__notifiedFsUnavailable = true;
+          showNotification(
+            "warning",
+            "文件存储不可用",
+            "当前环境不支持 File System Access，已自动回退到 IndexedDB/localStorage。"
+          );
+        }
+      } else {
+        const allowPrompt =
+          typeof options.allowPrompt === "boolean"
+            ? options.allowPrompt
+            : typeof navigator !== "undefined" && navigator.userActivation?.isActive;
+        try {
+          await fsBackend.ensureReady({ allowPrompt });
+        } catch (error) {
+          this.preferredBackendId = "indexeddb";
+          if (
+            allowPrompt &&
+            !this.__notifiedFsUnavailable &&
+            typeof showNotification === "function"
+          ) {
+            this.__notifiedFsUnavailable = true;
+            showNotification(
+              "warning",
+              "文件存储未授权",
+              "File System Access 尚未授权或无法弹出选择器，已自动回退到 IndexedDB/localStorage。"
+            );
+          }
+        }
       }
     }
 
@@ -631,15 +901,18 @@ class StorageManager {
       const preferred = settings?.preferredStorageBackend;
       if (preferred && this.backends[preferred]) {
         if (preferred === "filesystem") {
-          if (
+          const fsBackend = this.backends.filesystem;
+          if (fsBackend && fsBackend.isSupported()) {
+            this.preferredBackendId = preferred;
+          } else if (
             !this.__notifiedFsUnavailable &&
             typeof showNotification === "function"
           ) {
             this.__notifiedFsUnavailable = true;
             showNotification(
               "warning",
-              "文件存储未启用",
-              "File System Access 后端尚未实现，已忽略该设置。"
+              "文件存储不可用",
+              "当前环境不支持 File System Access，已忽略该设置。"
             );
           }
         } else {
@@ -652,9 +925,41 @@ class StorageManager {
   }
 
   getPreferredBackend() {
-    if (this.preferredBackendId === "filesystem")
-      return this.backends.indexeddb;
+    if (this.preferredBackendId === "filesystem") {
+      return this.backends.filesystem || this.backends.indexeddb;
+    }
     return this.backends[this.preferredBackendId] || this.backends.indexeddb;
+  }
+
+  isBackendAvailable(backendType) {
+    const type = String(backendType || "").toLowerCase();
+    if (type === "filesystem") {
+      const fsBackend = this.backends.filesystem;
+      return !!(fsBackend && fsBackend.isSupported());
+    }
+    if (type === "indexeddb") {
+      return typeof indexedDB !== "undefined" && this.indexedDbAvailable;
+    }
+    if (type === "localstorage") {
+      return typeof localStorage !== "undefined";
+    }
+    return false;
+  }
+
+  async requestFileSystemBackend() {
+    const fsBackend = this.backends.filesystem;
+    if (!fsBackend || !fsBackend.isSupported()) {
+      return false;
+    }
+
+    try {
+      await fsBackend.requestDirectoryHandle();
+      this.preferredBackendId = "filesystem";
+      return true;
+    } catch (error) {
+      console.warn("文件存储授权失败:", error);
+      return false;
+    }
   }
 
   async loadCurrentProject() {
@@ -787,6 +1092,9 @@ class StorageManager {
   }
 
   async clearCurrentProject() {
+    const allowPrompt =
+      typeof navigator !== "undefined" && navigator.userActivation?.isActive;
+    await this.ensureBackendAvailable({ allowPrompt });
     const active = await this.getActiveProjectId();
     if (active) {
       try {
@@ -845,6 +1153,9 @@ class StorageManager {
   }
 
   async clearAllProjects() {
+    const allowPrompt =
+      typeof navigator !== "undefined" && navigator.userActivation?.isActive;
+    await this.ensureBackendAvailable({ allowPrompt });
     const idx = await this.listProjects().catch(() => []);
     const ids = (idx || []).map((p) => p && p.id).filter(Boolean);
 

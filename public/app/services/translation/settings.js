@@ -62,7 +62,18 @@ const __DEFAULT_PROJECT_PROMPT_TEMPLATES = {
 
 try {
   if (typeof window !== "undefined") {
-    window.__DEFAULT_PROJECT_PROMPT_TEMPLATES = __DEFAULT_PROJECT_PROMPT_TEMPLATES;
+    if (window.ArchDebug) {
+      window.ArchDebug.setFlag(
+        'DEFAULT_PROJECT_PROMPT_TEMPLATES',
+        __DEFAULT_PROJECT_PROMPT_TEMPLATES,
+        {
+          windowKey: '__DEFAULT_PROJECT_PROMPT_TEMPLATES',
+          mirrorWindow: false,
+        }
+      );
+    } else {
+      window.__DEFAULT_PROJECT_PROMPT_TEMPLATES = __DEFAULT_PROJECT_PROMPT_TEMPLATES;
+    }
   }
 } catch (_) {}
 

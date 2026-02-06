@@ -7,6 +7,12 @@ TranslationService.prototype.translateWithGoogle = async function (
   const settings = await this.getSettings();
   const apiKey = settings.googleApiKey;
 
+  const cacheEnabled = !!settings.translationRequestCacheEnabled;
+  const rawCacheTtlSeconds = parseInt(settings.translationRequestCacheTTLSeconds);
+  const cacheTtlSeconds = Number.isFinite(rawCacheTtlSeconds)
+    ? Math.max(1, Math.min(600, rawCacheTtlSeconds))
+    : 5;
+
   if (!apiKey) {
     const err = new Error("Google Translate API密钥未配置");
     err.code = "API_KEY_MISSING";
@@ -27,7 +33,7 @@ TranslationService.prototype.translateWithGoogle = async function (
 
   try {
     const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
-    const response = await networkUtils.fetchWithTimeout(
+    const response = await networkUtils.fetchWithDedupe(
       url,
       {
         method: "POST",
@@ -41,7 +47,12 @@ TranslationService.prototype.translateWithGoogle = async function (
           format: "text",
         }),
       },
-      (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000
+      {
+        timeout: (settings.apiTimeout ? parseInt(settings.apiTimeout) : 30) * 1000,
+        dedupe: true,
+        cache: cacheEnabled,
+        cacheTTL: cacheTtlSeconds * 1000,
+      }
     );
 
     if (!response.ok) {

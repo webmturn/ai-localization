@@ -318,6 +318,13 @@ async function checkNetworkConnectivity() {
   };
   
   try {
+    // 检查是否为file://协议
+    if (window.location.protocol === 'file:') {
+      result.issues.push('运行在file://协议下，跳过网络连接测试');
+      result.recommendations.push('在HTTP服务器环境下运行以获得完整的网络功能');
+      return result;
+    }
+    
     // 测试延迟
     const start = performance.now();
     await fetch('/favicon.ico', { 

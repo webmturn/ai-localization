@@ -8,6 +8,17 @@ class AutoSaveManager {
     this.timerId = null;
     this.quickSaveDebounceMs = this.saveInterval;
     this.quickSaveTimerId = null;
+    
+    // 增强功能
+    this.saveCount = 0;           // 保存次数统计
+    this.errorCount = 0;          // 错误次数统计
+    this.lastError = null;        // 最后一次错误
+    this.isPaused = false;        // 是否暂停自动保存
+    this.saveQueue = [];          // 保存队列
+    this.isSaving = false;        // 是否正在保存
+    this.maxRetries = 3;          // 最大重试次数
+    this.retryDelay = 1000;       // 重试延迟(ms)
+    this.minSaveInterval = 2000;  // 最小保存间隔(ms)
   }
 
   // 启动自动保存
@@ -55,30 +66,72 @@ class AutoSaveManager {
       this.timerId = null;
       console.log("自动保存已停止");
     }
+    if (this.quickSaveTimerId) {
+      clearTimeout(this.quickSaveTimerId);
+      this.quickSaveTimerId = null;
+    }
+  }
+
+  // 暂停自动保存（不清除定时器，只是暂停保存行为）
+  pause() {
+    this.isPaused = true;
+    console.log("自动保存已暂停");
+  }
+
+  // 恢复自动保存
+  resume() {
+    this.isPaused = false;
+    console.log("自动保存已恢复");
+    // 如果有未保存的更改，立即请求保存
+    if (this.isDirty && AppState.project) {
+      this.requestQuickSave();
+    }
   }
 
   // 标记为已修改
   markDirty() {
     this.isDirty = true;
-    this.requestQuickSave();
+    if (!this.isPaused) {
+      this.requestQuickSave();
+    }
+  }
+
+  // 检查是否可以保存（防抖）
+  canSave() {
+    const now = Date.now();
+    return now - this.lastSaveTime >= this.minSaveInterval;
   }
 
   requestQuickSave() {
+    if (this.isPaused || this.isSaving) return;
+    
     if (this.quickSaveTimerId) {
       clearTimeout(this.quickSaveTimerId);
       this.quickSaveTimerId = null;
     }
 
+    // 检查最小保存间隔
+    const timeSinceLastSave = Date.now() - this.lastSaveTime;
+    const delay = Math.max(0, this.minSaveInterval - timeSinceLastSave);
+
     this.quickSaveTimerId = setTimeout(() => {
-      if (this.isDirty && AppState.project) {
+      if (this.isDirty && AppState.project && !this.isPaused) {
         this.saveProject();
       }
     }, this.quickSaveDebounceMs);
   }
 
-  // 保存项目
-  async saveProject() {
-    if (!AppState.project) return;
+  // 保存项目（带重试机制）
+  async saveProject(retryCount = 0) {
+    if (!AppState.project || this.isPaused) return;
+    
+    // 防止并发保存
+    if (this.isSaving) {
+      console.log("正在保存中，跳过本次保存请求");
+      return;
+    }
+
+    this.isSaving = true;
 
     try {
       const safeFileMetadata = {};
@@ -122,14 +175,17 @@ class AutoSaveManager {
 
       this.isDirty = false;
       this.lastSaveTime = Date.now();
+      this.saveCount++;
+      this.isSaving = false;
 
-      console.log("自动保存成功:", new Date().toLocaleTimeString());
+      console.log("自动保存成功:", new Date().toLocaleTimeString(), `(第${this.saveCount}次)`);
 
       scheduleIdbGarbageCollection();
 
       // 显示保存指示器（可选）
       this.showSaveIndicator();
     } catch (error) {
+      this.isSaving = false;
       const isQuotaExceeded =
         error?.name === "QuotaExceededError" ||
         error?.code === 22 ||
@@ -218,7 +274,66 @@ class AutoSaveManager {
     }
     return null;
   }
+
+  // 强制立即保存（跳过防抖）
+  async forceSave() {
+    if (!AppState.project) return false;
+    
+    // 清除待处理的快速保存
+    if (this.quickSaveTimerId) {
+      clearTimeout(this.quickSaveTimerId);
+      this.quickSaveTimerId = null;
+    }
+    
+    this.isDirty = true;
+    await this.saveProject();
+    return !this.isDirty; // 返回是否保存成功
+  }
+
+  // 获取保存状态统计
+  getStats() {
+    return {
+      saveCount: this.saveCount,
+      errorCount: this.errorCount,
+      lastSaveTime: this.lastSaveTime,
+      lastError: this.lastError,
+      isDirty: this.isDirty,
+      isPaused: this.isPaused,
+      isSaving: this.isSaving,
+      saveInterval: this.saveInterval,
+      isRunning: !!this.timerId
+    };
+  }
+
+  // 重置统计
+  resetStats() {
+    this.saveCount = 0;
+    this.errorCount = 0;
+    this.lastError = null;
+  }
+
+  // 获取状态描述
+  getStatusText() {
+    if (this.isSaving) return "正在保存...";
+    if (this.isPaused) return "已暂停";
+    if (this.isDirty) return "有未保存的更改";
+    if (!this.timerId) return "已停止";
+    return "已保存";
+  }
 }
 
 // 创建全局自动保存管理器
+// 创建实例并优化全局暴露
 const autoSaveManager = new AutoSaveManager();
+
+// 优先注册到DI系统，再暴露到全局
+window.autoSaveManager = autoSaveManager;
+
+// 尝试注册到DI系统
+if (typeof window.diContainer !== 'undefined') {
+  try {
+    window.diContainer.registerFactory('autoSaveManager', () => autoSaveManager);
+  } catch (error) {
+    console.warn('AutoSaveManager DI注册失败:', error.message);
+  }
+}

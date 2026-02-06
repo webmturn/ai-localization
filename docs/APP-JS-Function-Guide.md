@@ -36,23 +36,23 @@
 
 ### 2.2 质量检查结果：`AppState.qualityCheckResults`
 
-- **定义位置**：`app/core/state.js`（与 `AppState` 一同初始化，唯一数据源）。
+- **定义位置**：`public/app/core/state.js`（与 `AppState` 一同初始化，唯一数据源）。
 - **用途**：保存最近一次质量检查的汇总结果，供质量报告面板、图表、导出 JSON/PDF 使用。
-- **写入**：仅由 `app/features/quality/run.js`（运行检查时对属性赋值/追加）和 `app/features/quality/scoring.js`（计算总分时写入 `overallScore`）。
-- **读取**：`app/features/quality/charts.js`、`export.js`、`ui.js`（统一使用 `AppState.qualityCheckResults`）。
+- **写入**：仅由 `public/app/features/quality/run.js`（运行检查时对属性赋值/追加）和 `public/app/features/quality/scoring.js`（计算总分时写入 `overallScore`）。
+- **读取**：`public/app/features/quality/charts.js`、`export.js`、`ui.js`（统一使用 `AppState.qualityCheckResults`）。
 - **结构**：`{ overallScore, translatedCount, totalCount, issues[], termMatches, lastCheckTime, scope?, fileName? }`。
 - **兼容**：`window.qualityCheckResults` 在 state.js 中指向 `AppState.qualityCheckResults`，便于旧代码或控制台调试。
 
 ### 2.3 质量检查选项：`__getQualityCheckOptions()`
 
-- **定义位置**：`app/features/quality/checks.js`（质量模块懒加载后可用）。
+- **定义位置**：`public/app/features/quality/checks.js`（质量模块懒加载后可用）。
 - **用途**：从 `localStorage.translatorSettings` 读取质量检查开关（术语、占位符、标点、长度、数字），供检查逻辑、图表、导出、报告 UI 共用。
 - **返回**：`{ checkTerminology, checkPlaceholders, checkPunctuation, checkLength, checkNumbers }`（均为 boolean）。
 - **调用方**：`checks.js` 内部、`charts.js`、`export.js`、`ui.js`。
 
 ### 2.4 `DOMCache`
 
-- **定义位置**：`app/core/dom-cache.js`。
+- **定义位置**：`public/app/core/dom-cache.js`。
 - **`DOMCache.get(id)`**
   - **用途**：缓存 `document.getElementById(id)` 的结果，减少重复查询。
   - **返回**：`HTMLElement | undefined`
@@ -66,7 +66,7 @@
 
 ## 3. 调试与高频工具函数
 
-- **定义位置**：`isDevelopment`、`debugMemory` 在 `app/core/dev-tools.js`；`debounce`、`throttle`、`filterItems`、`safeJsonParse` 在 `app/core/utils.js`。
+- **定义位置**：`isDevelopment`、`debugMemory` 在 `public/app/core/dev-tools.js`；`debounce`、`throttle`、`filterItems`、`safeJsonParse` 在 `public/app/core/utils.js`。
 
 ### 3.1 `isDevelopment`（IIFE）
 
@@ -109,7 +109,7 @@
 
 ## 4. 安全工具：`SecurityUtils`
 
-- **定义位置**：`app/services/security-utils.js`；全局实例 `securityUtils` 同文件内创建。
+- **定义位置**：`public/app/services/security-utils.js`；全局实例 `securityUtils` 同文件内创建。
 
 ### 4.1 关键点
 
@@ -151,7 +151,7 @@
 ## 5. 自动保存：`AutoSaveManager`
 
 - **用途**：周期性把 `AppState.project` 通过 `storageManager.saveCurrentProject()` 持久化（优先 IndexedDB，失败时降级 localStorage）。
-- **定义位置**：`app/services/auto-save-manager.js`。
+- **定义位置**：`public/app/services/auto-save-manager.js`。
 
 ### 方法
 
@@ -173,7 +173,7 @@
 
 ## 6. 网络请求：`NetworkUtils`
 
-- **定义位置**：`app/network/network-utils.js`；同文件末尾创建全局实例 `networkUtils`（以全局标识符形式可直接访问，不要求挂到 `window.networkUtils`）。
+- **定义位置**：`public/app/network/network-utils.js`；同文件末尾创建全局实例 `networkUtils`（以全局标识符形式可直接访问，不要求挂到 `window.networkUtils`）。
 - **`fetchWithTimeout(url, options, timeout)`**
   - **用途**：`fetch` + 超时 + AbortController；并追踪活动请求。
   - **返回**：`Response`（Promise）。
@@ -233,7 +233,7 @@
 
 ## 8. 事件监听器管理：`EventManager`
 
-- **定义位置**：`app/core/event-manager.js`。
+- **定义位置**：`public/app/core/event-manager.js`。
 - **用途**：集中管理 add/remove，降低内存泄漏风险。
 
 ### 方法
@@ -256,7 +256,7 @@
 
 ### 9.1 `DOMContentLoaded` 初始化顺序（核心入口）
 
-加载后主要做（见 `app/core/bootstrap.js`）：
+加载后主要做（见 `public/app/core/bootstrap.js`）：
 - 清缓存 `DOMCache.clear()`
 - 绑定窗口 resize、visibilitychange、beforeunload
 - `initEventListeners()`
@@ -312,19 +312,19 @@
   - **用途**：读取文件、必要时校验 XML、写入 `AppState.fileMetadata[file.name]`（含 `originalContent`、`contentKey`），再按扩展名分发到对应解析器；成功时可能含 `warnings`（编码/控制字符等）。
   - **返回**：`{ success, items, fileName }`（成功时另有 `warnings` 数组）。
   - **失败策略**：返回一个带 `issues: ['FILE_PARSE_ERROR']` 的错误项。
-  - **定义位置**：实现为 `__parseFileAsyncImpl` 在 `app/features/files/parse.js`，对外入口在 `app/compat/files.js`。
+  - **定义位置**：实现为 `__parseFileAsyncImpl` 在 `public/app/features/files/parse.js`，对外入口在 `public/app/compat/files.js`。
 
 - **`processFiles(files)`**
   - **用途**：并行 `Promise.allSettled(files.map(parseFileAsync))`，汇总 items 与 warnings，然后调用 `completeFileProcessing(files, newItems, warnings)`。
-  - **定义位置**：实现为 `__processFilesImpl` 在 `app/features/files/process.js`，对外入口在 `app/compat/files.js`。
+  - **定义位置**：实现为 `__processFilesImpl` 在 `public/app/features/files/process.js`，对外入口在 `public/app/compat/files.js`。
 
-> 备注：`completeFileProcessing(files, newItems, warnings)` 用于最终合并新 items、刷新 UI、提示等；实现在 `app/features/files/process.js`。
+> 备注：`completeFileProcessing(files, newItems, warnings)` 用于最终合并新 items、刷新 UI、提示等；实现在 `public/app/features/files/process.js`。
 
 ### 10.3 多格式解析器（核心）
 
-- **定义位置**：各解析器在 `app/parsers/*.js`（xml-generic、xml-android、xliff、ios-strings、resx、po、json、text），由 `app/features/files/parse.js` 按扩展名调用。
+- **定义位置**：各解析器在 `public/app/parsers/*.js`（xml-generic、xml-android、xliff、ios-strings、resx、po、json、text），由 `public/app/features/files/parse.js` 按扩展名调用。
 - **`parseGenericXML(content, fileName)`**
-  - 定义于 `app/parsers/xml-generic.js`。TreeWalker 遍历文本节点；失败或无结果会回退 `parseXMLWithRegex()`。
+  - 定义于 `public/app/parsers/xml-generic.js`。TreeWalker 遍历文本节点；失败或无结果会回退 `parseXMLWithRegex()`。
 
 - **`parseXMLWithRegex(content, fileName)`**
   - 备用方案：提取 `>(text)</` 与 CDATA；再不行则把文件前 1000 字符作为一个项。
@@ -394,7 +394,7 @@
 - **`updateTranslationItem(index, targetText)`**
   - **用途**：编辑译文时更新对应项；根据是否为空切换 `edited/pending`；必要时仅更新状态 badge。
   - **副作用**：更新 `AppState.project.updatedAt`；当 `targetText` 实际变更时调用 `autoSaveManager.markDirty()`；调用 `updateCounters()`。
-  - **定义位置**：`app/features/translations/selection.js`。
+  - **定义位置**：`public/app/features/translations/selection.js`。
 
 - **`updateStatusBadge(index, newStatus)`**
   - **用途**：不重渲染列表，只更新状态标签文本与样式。

@@ -412,11 +412,21 @@ class StorageManager {
     if (!projectId) return null;
     const key = this.__buildProjectStorageKey(projectId);
     const { preferred, fallbacks } = await this.__withBackends();
-    const all = [preferred, ...fallbacks];
-    for (const backend of all) {
+
+    try {
+      const project = await this.__loadJsonFromBackend(preferred, key);
+      if (project) return project;
+    } catch (_) {}
+
+    for (const backend of fallbacks) {
       try {
         const project = await this.__loadJsonFromBackend(backend, key);
-        if (project) return project;
+        if (project) {
+          try {
+            await this.__saveJsonToBackend(preferred, key, project);
+          } catch (_) {}
+          return project;
+        }
       } catch (_) {}
     }
     return null;

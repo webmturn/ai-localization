@@ -402,13 +402,7 @@ function registerAllServices() {
       });
     }
 
-    // 注册备份同步管理器
-    if (!window.diContainer.has('backupSyncManager')) {
-      window.diContainer.registerSingleton('backupSyncManager', () => window.backupSyncManager, {
-        dependencies: ['storageManager'],
-        tags: ['storage', 'backup']
-      });
-    }
+    // backupSyncManager 已移至开发模式按需加载
 
     // ============ 翻译服务 ============
 
@@ -564,12 +558,7 @@ function registerAllServices() {
       });
     }
 
-    // 注册运行时类型检查器
-    if (!window.diContainer.has('runtimeTypeChecker')) {
-      window.diContainer.registerSingleton('runtimeTypeChecker', () => window.runtimeTypeChecker, {
-        tags: ['validation', 'types']
-      });
-    }
+    // runtimeTypeChecker 已移至开发模式按需加载
 
     logger.debug?.('✅ 所有服务注册完成');
 

@@ -31,12 +31,11 @@
     "app/core/state.js",
     "app/core/utils.js",
     "app/utils/validators-v2.js",                     // 新增：通用验证器
-    "app/utils/runtime-type-checker.js",              // P2新增：运行时类型检查器
-    "app/utils/dom-performance-optimizer.js",         // 性能优化：DOM操作优化工具
+    // runtime-type-checker.js、dom-performance-optimizer.js 已移至开发模式按需加载（未被业务代码引用）
     "app/core/dom-cache.js",
     "app/core/dev-tools.js",
     "app/core/performance-monitor.js",                // 性能监控系统
-    "app/core/enhanced-performance-monitor.js",      // P2新增：增强性能监控系统
+    // enhanced-performance-monitor.js 已移至开发模式按需加载（未被业务代码引用）
     // 错误处理系统
     "app/core/error-manager.js",
     "app/core/error-utils.js",
@@ -57,12 +56,11 @@
     "app/services/storage/storage-manager.js",
     "app/services/storage/error-handler.js",
     "app/services/storage/storage-error-handler.js",    // 新增：统一存储错误处理器
-    "app/services/storage/smart-storage-strategy.js",   // P2新增：智能存储降级策略
-    "app/services/storage/backup-sync-manager.js",      // P2新增：备份同步管理器
+    // smart-storage-strategy.js、backup-sync-manager.js 已移至开发模式按需加载（未被业务代码引用）
     "app/services/auto-save-manager.js",
     "app/network/network-utils.js",
     "app/network/error-handler.js",
-    "app/network/request-deduplication.js",            // P1新增：请求去重机制
+    // request-deduplication.js 已移至开发模式按需加载（未被业务代码引用）
     "app/services/translation/service-class.js",
     "app/services/translation/compat.js",
     "app/services/translation/settings.js",

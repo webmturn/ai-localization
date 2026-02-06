@@ -14,16 +14,16 @@
   var architectureScripts = [
     "app/core/logger-config.js",         // 日志配置（最先加载）
     "app/types/core-types.js",           // 核心类型定义（P2新增）
-    "app/core/namespace-manager.js",      // 命名空间管理
-    "app/core/architecture-debug.js",     // 架构调试标记管理
-    "app/core/dependency-injection.js",  // 依赖注入
-    "app/core/module-manager.js",         // 模块管理
-    "app/core/architecture-initializer.js" // 架构初始化器
+    "app/core/architecture/namespace-manager.js",      // 命名空间管理
+    "app/core/architecture/architecture-debug.js",     // 架构调试标记管理
+    "app/core/architecture/dependency-injection.js",  // 依赖注入
+    "app/core/architecture/module-manager.js",         // 模块管理
+    "app/core/architecture/architecture-initializer.js" // 架构初始化器
   ];
 
   // 错误管理器预加载脚本 - 确保错误处理在架构初始化前可用
   var errorPreloadScripts = [
-    "app/core/error-manager-preload.js"
+    "app/core/errors/error-manager-preload.js"
   ];
 
   // 核心系统脚本 - 按依赖顺序加载
@@ -37,17 +37,17 @@
     "app/core/performance-monitor.js",                // 性能监控系统
     // enhanced-performance-monitor.js 已移至开发模式按需加载（未被业务代码引用）
     // 错误处理系统
-    "app/core/error-manager.js",
-    "app/core/error-utils.js",
-    "app/core/error-integration.js",
-    "app/core/unified-error-handler.js",              // P1新增：统一错误处理器
+    "app/core/errors/error-manager.js",
+    "app/core/errors/error-utils.js",
+    "app/core/errors/error-integration.js",
+    "app/core/errors/unified-error-handler.js",              // P1新增：统一错误处理器
     // 核心服务
     "app/services/security-utils.js",
     "app/core/event-manager.js",
     "app/core/event-binding-manager.js",              // 新增：事件绑定管理器
     "app/core/dom-optimization-manager.js",           // P1新增：DOM优化管理器
     "app/utils/dom-cache-integration.js",             // DOM缓存集成（被 service-startup-manager 引用）
-    "app/core/architecture-integration-helpers.js",   // 架构集成助手（被 bootstrap 引用）
+    "app/core/architecture/architecture-integration-helpers.js",   // 架构集成助手（被 bootstrap 引用）
     "app/core/service-startup-manager.js"             // 服务启动管理器
   ];
 
@@ -188,7 +188,7 @@
     );
   } else {
     // 生产模式下加载精简版监控工具
-    scripts.push("app/core/error-production.js");
+    scripts.push("app/core/errors/error-production.js");
   }
 
   // ==================== 脚本加载逻辑 ====================

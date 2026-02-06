@@ -141,6 +141,7 @@
     "app/ui/event-listeners/terminology.js",
     "app/ui/event-listeners/settings.js",
     "app/ui/event-listeners/translations-search.js",
+    "app/ui/event-listeners/data-management.js", // 数据管理监听器（从 data-and-ui.js 拆分）
     "app/ui/event-listeners/data-and-ui.js",
     "app/ui/event-listeners/quality.js",
     "app/ui/event-listeners.js"

@@ -137,6 +137,8 @@
     "app/ui/event-listeners/translations-lists.js",
     "app/ui/event-listeners/file-panels.js",
     "app/ui/event-listeners/terminology.js",
+    "app/ui/event-listeners/settings-prompt-templates.js", // Prompt模板管理（从 settings.js 拆分）
+    "app/ui/event-listeners/settings-deepseek.js",       // DeepSeek高级设置（从 settings.js 拆分）
     "app/ui/event-listeners/settings.js",
     "app/ui/event-listeners/translations-search.js",
     "app/ui/event-listeners/data-management.js", // 数据管理监听器（从 data-and-ui.js 拆分）

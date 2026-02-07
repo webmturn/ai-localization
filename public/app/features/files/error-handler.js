@@ -506,6 +506,60 @@ function preprocessFileContent(content, fileName) {
 }
 
 /**
+ * 根据文件名和内容检测文件格式
+ * @param {string} content - 文件内容
+ * @param {string} fileName - 文件名
+ * @returns {string} 检测到的格式
+ */
+function detectFileFormat(content, fileName) {
+  const ext = (fileName || '').split('.').pop().toLowerCase();
+  const extMap = {
+    json: 'json',
+    xlf: 'xliff', xliff: 'xliff',
+    po: 'po', pot: 'po',
+    resx: 'resx',
+    ts: 'qt-ts',
+    strings: 'ios-strings',
+    yaml: 'yaml', yml: 'yaml',
+    csv: 'csv', tsv: 'csv',
+  };
+
+  if (ext in extMap) return extMap[ext];
+
+  // XML content detection
+  if (ext === 'xml' || (content && content.trimStart().startsWith('<'))) {
+    if (typeof detectXmlFormat === 'function') {
+      var detection = detectXmlFormat(content);
+      var typeMap = { android: 'xml-android', xliff: 'xliff', ts: 'qt-ts', resx: 'resx' };
+      if (detection.type in typeMap) return typeMap[detection.type];
+    }
+  }
+
+  return 'text';
+}
+
+/**
+ * 根据格式名获取对应的解析器函数
+ * @param {string} format - 格式名称
+ * @returns {Function|null} 解析器函数
+ */
+function getParser(format) {
+  var parsers = {
+    'json': typeof parseJSON === 'function' ? parseJSON : null,
+    'xliff': typeof parseXLIFF === 'function' ? parseXLIFF : null,
+    'po': typeof parsePO === 'function' ? parsePO : null,
+    'xml-android': typeof parseAndroidStrings === 'function' ? parseAndroidStrings : null,
+    'resx': typeof parseRESX === 'function' ? parseRESX : null,
+    'qt-ts': typeof parseQtTs === 'function' ? parseQtTs : null,
+    'ios-strings': typeof parseIOSStrings === 'function' ? parseIOSStrings : null,
+    'yaml': typeof parseYAML === 'function' ? parseYAML : null,
+    'csv': typeof parseCSV === 'function' ? parseCSV : null,
+    'text': typeof parseTextFile === 'function' ? parseTextFile : null,
+  };
+  return parsers[format] || null;
+}
+
+/**
  * 获取支持的文件格式列表
  * @returns {Array<string>} 支持的格式
  */
@@ -518,6 +572,7 @@ function getSupportedFormats() {
     'resx',
     'qt-ts',
     'ios-strings',
+    'yaml',
     'text',
     'csv'
   ];

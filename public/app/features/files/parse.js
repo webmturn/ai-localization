@@ -328,6 +328,22 @@ async function __parseFileAsyncImpl(file) {
           (loggers.app || console).debug("检测到JSON格式");
           return parseJSON(normalizedContent, file.name);
         },
+        yaml: () => {
+          (loggers.app || console).debug("检测到YAML格式");
+          return parseYAML(normalizedContent, file.name);
+        },
+        yml: () => {
+          (loggers.app || console).debug("检测到YAML格式");
+          return parseYAML(normalizedContent, file.name);
+        },
+        csv: () => {
+          (loggers.app || console).debug("检测到CSV格式");
+          return parseCSV(normalizedContent, file.name);
+        },
+        tsv: () => {
+          (loggers.app || console).debug("检测到TSV格式");
+          return parseCSV(normalizedContent, file.name, { delimiter: '\t' });
+        },
       };
 
       const parser = parserMap[fileExtension];

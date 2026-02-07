@@ -21,6 +21,11 @@ class ParserUtils {
       return 'utf-8';
     }
     
+    // UTF-32 LE BOM (must check before UTF-16 LE since both start with FF FE)
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE && bytes[2] === 0x00 && bytes[3] === 0x00) {
+      return 'utf-32le';
+    }
+    
     // UTF-16 LE BOM
     if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
       return 'utf-16le';
@@ -29,11 +34,6 @@ class ParserUtils {
     // UTF-16 BE BOM
     if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
       return 'utf-16be';
-    }
-    
-    // UTF-32 LE BOM
-    if (bytes[0] === 0xFF && bytes[1] === 0xFE && bytes[2] === 0x00 && bytes[3] === 0x00) {
-      return 'utf-32le';
     }
     
     // 默认 UTF-8
@@ -212,7 +212,7 @@ class ParserUtils {
    * @param {Array} items - 翻译项数组
    * @returns {Array} 合并后的数组
    */
-  static mergeeDuplicates(items) {
+  static mergeDuplicates(items) {
     const seen = new Map();
     const result = [];
     
@@ -399,8 +399,8 @@ class EnhancedParserManager {
           }
           break;
         case 'android':
-          if (typeof parseAndroidXML === 'function') {
-            items = parseAndroidXML(cleanedContent, fileName);
+          if (typeof parseAndroidStrings === 'function') {
+            items = parseAndroidStrings(cleanedContent, fileName);
           }
           break;
         case 'ios-strings':
@@ -414,8 +414,8 @@ class EnhancedParserManager {
           }
           break;
         case 'qt-ts':
-          if (typeof parseQtTS === 'function') {
-            items = parseQtTS(cleanedContent, fileName);
+          if (typeof parseQtTs === 'function') {
+            items = parseQtTs(cleanedContent, fileName);
           }
           break;
         case 'resx':
@@ -430,8 +430,8 @@ class EnhancedParserManager {
           }
           break;
         case 'text':
-          if (typeof parseText === 'function') {
-            items = parseText(cleanedContent, fileName);
+          if (typeof parseTextFile === 'function') {
+            items = parseTextFile(cleanedContent, fileName);
           }
           break;
         default:
@@ -445,7 +445,7 @@ class EnhancedParserManager {
       
       // 合并重复项
       if (options.mergeDuplicates) {
-        items = ParserUtils.mergeeDuplicates(items);
+        items = ParserUtils.mergeDuplicates(items);
       }
       
       const endTime = performance.now();

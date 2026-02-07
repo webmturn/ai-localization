@@ -106,6 +106,18 @@ async function loadSettings() {
         if (el) el.checked = !!settings.deepseekUseKeyContext;
       }
 
+      if (settings.deepseekContextAwareEnabled !== undefined) {
+        const el = DOMCache.get("deepseekContextAwareEnabled");
+        if (el) el.checked = !!settings.deepseekContextAwareEnabled;
+      }
+      if (settings.deepseekContextWindowSize !== undefined) {
+        const el = DOMCache.get("deepseekContextWindowSize");
+        const val = Math.max(1, Math.min(10, Number(settings.deepseekContextWindowSize) || 3));
+        if (el) el.value = val;
+        const label = DOMCache.get("deepseekContextWindowSizeValue");
+        if (label) label.textContent = `前后 ${val} 条`;
+      }
+
       if (settings.deepseekPrimingEnabled !== undefined) {
         const el = DOMCache.get("deepseekPrimingEnabled");
         if (el) el.checked = !!settings.deepseekPrimingEnabled;

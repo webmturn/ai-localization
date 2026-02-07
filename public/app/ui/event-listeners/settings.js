@@ -283,6 +283,10 @@ function registerEventListenersSettings(ctx) {
 
           deepseekUseKeyContext:
             DOMCache.get("deepseekUseKeyContext")?.checked || false,
+          deepseekContextAwareEnabled:
+            DOMCache.get("deepseekContextAwareEnabled")?.checked || false,
+          deepseekContextWindowSize:
+            parseInt(DOMCache.get("deepseekContextWindowSize")?.value) || 3,
           deepseekPrimingEnabled:
             DOMCache.get("deepseekPrimingEnabled")?.checked || false,
           deepseekPrimingSampleCount,

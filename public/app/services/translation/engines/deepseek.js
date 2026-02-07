@@ -240,6 +240,90 @@ function __deepseekChunkItems(items, maxChars = 6000, maxItems = 40) {
   return chunks;
 }
 
+/**
+ * 收集批次上下文：为当前chunk收集前后相邻条目作为翻译参考
+ * @param {Array} allItems - 完整的翻译项目列表
+ * @param {Array} chunkItems - 当前批次的条目
+ * @param {number} windowSize - 前后各取多少条
+ * @returns {Object} { before: [...], after: [...] }
+ */
+function __deepseekCollectChunkContext(allItems, chunkItems, windowSize) {
+  if (!allItems || !chunkItems || windowSize <= 0) return { before: [], after: [] };
+
+  // 找到当前chunk在allItems中的起止位置
+  const firstId = chunkItems[0]?.id;
+  const lastId = chunkItems[chunkItems.length - 1]?.id;
+  let startIdx = -1, endIdx = -1;
+
+  for (let i = 0; i < allItems.length; i++) {
+    if (startIdx === -1 && allItems[i]?.id === firstId) startIdx = i;
+    if (allItems[i]?.id === lastId) { endIdx = i; break; }
+  }
+
+  if (startIdx === -1) return { before: [], after: [] };
+
+  const before = [];
+  const after = [];
+  const chunkIdSet = new Set(chunkItems.map(it => it?.id));
+
+  // 收集前文
+  for (let i = Math.max(0, startIdx - windowSize); i < startIdx; i++) {
+    const it = allItems[i];
+    if (!it || chunkIdSet.has(it.id)) continue;
+    const source = (it.sourceText || "").toString().trim();
+    if (!source) continue;
+    before.push({
+      source: source.length > 120 ? source.substring(0, 120) + "..." : source,
+      target: (it.targetText || "").toString().trim().substring(0, 120) || null,
+      key: __deepseekGetItemKey(it) || null
+    });
+  }
+
+  // 收集后文
+  for (let i = endIdx + 1; i < Math.min(allItems.length, endIdx + 1 + windowSize); i++) {
+    const it = allItems[i];
+    if (!it || chunkIdSet.has(it.id)) continue;
+    const source = (it.sourceText || "").toString().trim();
+    if (!source) continue;
+    after.push({
+      source: source.length > 120 ? source.substring(0, 120) + "..." : source,
+      target: (it.targetText || "").toString().trim().substring(0, 120) || null,
+      key: __deepseekGetItemKey(it) || null
+    });
+  }
+
+  return { before, after };
+}
+
+/**
+ * 将上下文信息格式化为prompt文本
+ */
+function __deepseekFormatContextPrompt(ctx) {
+  if (!ctx) return "";
+  const { before, after } = ctx;
+  if ((!before || before.length === 0) && (!after || after.length === 0)) return "";
+
+  let text = "\n\n📎 相邻条目上下文（仅供参考，帮助你理解语境和保持翻译一致性）：";
+
+  if (before && before.length > 0) {
+    text += "\n【前文】";
+    before.forEach((item, i) => {
+      text += `\n  ${i + 1}. 原文: "${item.source}"`;
+      if (item.target) text += ` → 译文: "${item.target}"`;
+    });
+  }
+
+  if (after && after.length > 0) {
+    text += "\n【后文】";
+    after.forEach((item, i) => {
+      text += `\n  ${i + 1}. 原文: "${item.source}"`;
+      if (item.target) text += ` → 译文: "${item.target}"`;
+    });
+  }
+
+  return text;
+}
+
 function __deepseekIsCancelled() {
   try {
     return !!(
@@ -329,9 +413,18 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
   const targetLanguage = langNames[targetLang] || targetLang;
 
   const useKeyContext = !!settings.deepseekUseKeyContext;
+  const contextAwareEnabled = !!settings.deepseekContextAwareEnabled;
+  const contextWindowSize = Math.max(1, Math.min(10, Number(settings.deepseekContextWindowSize) || 3));
   const primingEnabled = !!settings.deepseekPrimingEnabled;
   const conversationEnabled = !!settings.deepseekConversationEnabled;
   const conversationScope = settings.deepseekConversationScope || "project";
+
+  // 获取完整条目列表用于上下文收集
+  const allItems = contextAwareEnabled
+    ? (Array.isArray(AppState?.translations?.items) ? AppState.translations.items
+       : Array.isArray(AppState?.project?.translationItems) ? AppState.project.translationItems
+       : [])
+    : [];
 
   const primingSamples = primingEnabled
     ? __deepseekResolvePrimingSamples(settings.deepseekPrimingSampleIds)
@@ -455,8 +548,18 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
         JSON.stringify({ items: reqItems }),
     };
 
+    // 上下文感知：为当前chunk收集前后相邻条目
+    let chunkSystemPrompt = baseSystemPrompt;
+    if (contextAwareEnabled && allItems.length > 0) {
+      const ctx = __deepseekCollectChunkContext(allItems, chunk, contextWindowSize);
+      const ctxText = __deepseekFormatContextPrompt(ctx);
+      if (ctxText) {
+        chunkSystemPrompt += ctxText;
+      }
+    }
+
     const messages = [];
-    messages.push({ role: "system", content: baseSystemPrompt });
+    messages.push({ role: "system", content: chunkSystemPrompt });
     if (history.length > 0) {
       for (const item of history) {
         if (item && item.role) {

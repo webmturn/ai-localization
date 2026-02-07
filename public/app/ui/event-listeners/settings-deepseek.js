@@ -459,5 +459,30 @@ function registerEventListenersSettingsDeepseek(ctx) {
     );
   }
 
+  // ===== 上下文感知翻译 =====
+  const ctxToggle = DOMCache.get("deepseekContextAwareEnabled");
+  const ctxOptions = DOMCache.get("deepseekContextAwareOptions");
+  const ctxSlider = DOMCache.get("deepseekContextWindowSize");
+  const ctxLabel = DOMCache.get("deepseekContextWindowSizeValue");
+
+  // 初始化可见性
+  if (ctxOptions) {
+    ctxOptions.style.display = ctxToggle?.checked ? "" : "none";
+  }
+
+  if (ctxToggle) {
+    EventManager.add(ctxToggle, "change", () => {
+      if (ctxOptions) {
+        ctxOptions.style.display = ctxToggle.checked ? "" : "none";
+      }
+    }, { tag: "settings", scope: "settingsModal", label: "deepseekContextAware:toggle" });
+  }
+
+  if (ctxSlider && ctxLabel) {
+    EventManager.add(ctxSlider, "input", () => {
+      ctxLabel.textContent = `前后 ${ctxSlider.value} 条`;
+    }, { tag: "settings", scope: "settingsModal", label: "deepseekContextWindowSize:input" });
+  }
+
   __updatePrimingSelectedCountLabel();
 }

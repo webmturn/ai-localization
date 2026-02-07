@@ -44,6 +44,7 @@ class NetworkUtilsV2 extends NetworkUtils {
       
       // 记录成功
       this._recordRequestSuccess(url);
+      this._onCircuitBreakerSuccess(url);
       
       // 检查HTTP状态
       if (!response.ok) {
@@ -261,12 +262,25 @@ class NetworkUtilsV2 extends NetworkUtils {
         (loggers.services || console).warn(`熔断器开启: ${url} (失败次数: ${breaker.failureCount})`);
       }
     } else if (breaker.state === 'half-open') {
-      // 半开状态下成功，关闭熔断器
-      breaker.state = 'closed';
-      breaker.failureCount = 0;
+      // 半开状态下非匹配错误，仍视为失败，重新开启熔断器
+      breaker.failureCount++;
+      breaker.lastFailure = now;
+      breaker.state = 'open';
     }
     
     this.circuitBreaker.set(url, breaker);
+  }
+  
+  _onCircuitBreakerSuccess(url) {
+    const breaker = this.circuitBreaker.get(url);
+    if (!breaker) return;
+    
+    if (breaker.state === 'half-open' || breaker.state === 'open') {
+      breaker.state = 'closed';
+      breaker.failureCount = 0;
+      this.circuitBreaker.set(url, breaker);
+      (loggers.services || console).info(`熔断器关闭: ${url} (请求成功)`);
+    }
   }
 }
 
@@ -285,23 +299,35 @@ async function fetchWithRetry(url, options = {}, retryOptions = {}) {
     timeout = 30000
   } = retryOptions;
   
-  const networkUtils = new NetworkUtilsV2();
-  const retryStrategy = TranslationErrorHandler.createRetryStrategy({
-    maxRetries,
-    baseDelay,
-    backoffFactor: backoffFactor,
-    retryableErrors: [
-      ERROR_CODES.NETWORK_ERROR,
-      ERROR_CODES.TIMEOUT,
-      ERROR_CODES.API_RATE_LIMITED,
-      ERROR_CODES.API_SERVER_ERROR
-    ]
-  });
+  const utils = new NetworkUtilsV2();
   
-  return await retryStrategy(
-    () => networkUtils.fetchWithErrorHandling(url, options, timeout),
-    { url, method: options.method || 'GET' }
-  );
+  let lastError = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await utils.fetchWithErrorHandling(url, options, timeout);
+    } catch (error) {
+      lastError = error;
+      
+      // 检查是否可重试
+      const retryableCodes = [
+        typeof ERROR_CODES !== 'undefined' ? ERROR_CODES.NETWORK_ERROR : 'NETWORK_ERROR',
+        typeof ERROR_CODES !== 'undefined' ? ERROR_CODES.TIMEOUT : 'TIMEOUT',
+        typeof ERROR_CODES !== 'undefined' ? ERROR_CODES.API_RATE_LIMITED : 'API_RATE_LIMITED',
+        typeof ERROR_CODES !== 'undefined' ? ERROR_CODES.API_SERVER_ERROR : 'API_SERVER_ERROR'
+      ];
+      const isRetryable = error.code && retryableCodes.includes(error.code);
+      
+      if (!isRetryable || attempt >= maxRetries) {
+        throw lastError;
+      }
+      
+      const delay = baseDelay * Math.pow(backoffFactor, attempt);
+      (loggers.services || console).warn(`请求重试 (${attempt + 1}/${maxRetries}): ${url}, 延迟 ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
 }
 
 /**

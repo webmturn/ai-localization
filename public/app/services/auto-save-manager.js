@@ -31,7 +31,7 @@ class AutoSaveManager {
       }
     }, this.saveInterval);
 
-    console.log("💾 自动保存已启动，间隔:", this.saveInterval / 1000, "秒");
+    (loggers.storage || console).info("💾 自动保存已启动，间隔:", this.saveInterval / 1000, "秒");
   }
 
   setSaveInterval(saveIntervalMs) {
@@ -268,7 +268,7 @@ class AutoSaveManager {
     try {
       const project = await storageManager.loadCurrentProject();
       if (project) {
-        console.log("📂 从自动保存恢复项目:", project.name);
+        (loggers.storage || console).info("📂 从自动保存恢复项目:", project.name);
         return project;
       }
     } catch (error) {

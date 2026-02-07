@@ -20,7 +20,29 @@
 - ⏸️ 批量翻译暂停/取消/重试
 - 🗄️ 翻译请求缓存（减少重复 API 调用）
 
-## 🚀 快速开始
+## � 截图预览
+
+### 主界面 — 翻译列表 + DeepSeek 引擎
+![主界面](docs/screenshots/01-main-interface.png)
+
+### 翻译质量报告
+![质量报告](docs/screenshots/02-quality-report.png)
+
+<details>
+<summary>更多截图</summary>
+
+### 术语库管理
+![术语库](docs/screenshots/03-terminology.png)
+
+### 设置 — 外观
+![外观设置](docs/screenshots/04-settings-appearance.png)
+
+### 设置 — 数据管理
+![数据管理](docs/screenshots/05-settings-data.png)
+
+</details>
+
+## �🚀 快速开始
 
 > **⚠️ 首次使用必读**：必须先执行 `npm install` 和 `npm run build-css`，否则打开页面将无样式。`public/styles.css` 由构建生成，未提交到仓库。
 

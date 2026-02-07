@@ -49,13 +49,23 @@ checkArchitectureStatus();
 |--------|------|----------|
 | `appState` | 应用状态 | `AppState` |
 | `errorManager` | 错误管理器 | `errorManager` |
-| `eventManager` | 事件管理器 | `EventManager` |
-| `translationService` | 翻译服务 | `translationService` |
+| `logger` | 日志系统 | `loggers` |
 | `storageManager` | 存储管理器 | `storageManager` |
+| `autoSaveManager` | 自动保存 | `autoSaveManager` |
+| `translationService` | 翻译服务 | `translationService` |
+| `translationBusinessLogic` | 翻译业务逻辑 | `translationBusinessLogic` |
+| `translationUIController` | 翻译UI控制器 | `translationUIController` |
+| `translationResultHandler` | 翻译结果处理器 | — (工厂) |
+| `translationUIUpdater` | 翻译UI更新器 | `TranslationUIUpdater` |
+| `universalValidators` | 通用验证器 | — (工厂) |
+| `translationValidators` | 翻译验证器 | `TranslationValidators` |
+| `domOptimizationManager` | DOM优化管理器 | `domOptimizationManager` |
+| `domCache` | DOM缓存 | `DOMCache` |
+| `eventManager` | 事件管理器 | `EventManager` |
+| `eventBindingManager` | 事件绑定管理器 | `eventBindingManager` |
+| `notificationService` | 通知服务 | `showNotification` |
 | `networkUtils` | 网络工具 | `networkUtils` |
 | `performanceMonitor` | 性能监控 | `performanceMonitor` |
-| `domCache` | DOM缓存 | `DOMCache` |
-| `autoSaveManager` | 自动保存 | `autoSaveManager` |
 
 ---
 

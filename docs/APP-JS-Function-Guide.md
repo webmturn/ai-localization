@@ -57,12 +57,29 @@
   - **用途**：缓存 `document.getElementById(id)` 的结果，减少重复查询。
   - **返回**：`HTMLElement | undefined`
   - **注意**：如果元素动态销毁/重建，需 `DOMCache.remove(id)` 或 `DOMCache.clear()`。
+  - **缓存失效**：内部会检查 `isConnected`，已断开连接的元素会自动刷新缓存。
+
+- **`DOMCache.query(selector)`**
+  - **用途**：缓存 `document.querySelector(selector)` 的结果。
+  - **返回**：`Element | null`
+
+- **`DOMCache.queryAll(selector)`**
+  - **用途**：调用 `document.querySelectorAll(selector)`，**不缓存**（因 NodeList 是 live 的）。
+  - **返回**：`NodeList`
 
 - **`DOMCache.clear()`**
   - **用途**：清空缓存 Map。
 
 - **`DOMCache.remove(id)`**
   - **用途**：移除单个缓存项。
+
+### 2.5 `SettingsCache`
+
+- **定义位置**：`public/app/services/translation/settings.js`。
+- **用途**：缓存 `localStorage.translatorSettings` 的解析结果，避免每次读取都执行 JSON.parse。
+- **`SettingsCache.get()`**：返回设置对象（优先缓存，缓存失效时重新读取）。
+- **`SettingsCache.save(settings)`**：同时更新缓存和 localStorage。
+- **`SettingsCache.clear()`**：清除缓存，下次 `get()` 重新读取。
 
 ## 3. 调试与高频工具函数
 
@@ -215,10 +232,18 @@
   - **注意**：API Key 错误（未配置/401/403）会提前停止重试。
 
 - **`translateBatch(items, sourceLang, targetLang, engine='deepseek', onProgress=null)`**
-  - **用途**：逐项翻译并通过回调上报进度。
+  - **用途**：批量翻译并通过回调上报进度。
+  - **DeepSeek 引擎**：使用 `translateBatchWithDeepSeek()`，支持自动分块、JSON格式输出、暂停/取消。
+  - **DeepSeek 增强功能**（通过 SettingsCache 配置）：
+    - **上下文感知翻译** (`deepseekContextAwareEnabled`)：自动收集前后N条相邻条目注入 system prompt
+    - **多轮会话记忆** (`deepseekConversationEnabled`)：跨批次保持翻译风格一致
+    - **Priming 样本** (`deepseekPrimingEnabled`)：手选样本让模型先理解命名风格
+    - **Key/字段名参考** (`deepseekUseKeyContext`)：翻译时参考 key 辅助判断语义
+    - **请求缓存** (`translationRequestCacheEnabled`)：相同请求复用结果
+  - **其他引擎**（OpenAI/Google）：逐项翻译并汇总结果。
   - **取消机制**：依赖 `AppState.translations.isInProgress`。
   - **副作用**：直接修改传入 `items` 的 `targetText/status/qualityScore`。
-  - **API Key 严格模式**：当所选引擎为 OpenAI/Google 时，批量翻译会在开始前预检 API Key，缺失/无效会立即中止，并只提示一次（避免逐条失败刷屏）。
+  - **API Key 严格模式**：引擎缺少 API Key 或 Key 格式不正确时，批量翻译会立即中止并提示。
 
 ### 7.2 `translateText(text, sourceLang='en', targetLang='zh', context=null)`
 
@@ -519,9 +544,7 @@
      - 统一要求所有"用户可控/文件可控"的字符串插值先转义。
      - 能用 DOM API（`createElement`/`textContent`）的地方尽量避免 `innerHTML`。
  
- - **调试日志未统一按环境开关**：存在较多 `console.log()`（尤其导出/批量翻译流程）。
-   - **风险**：生产环境控制台噪音、潜在泄露数据片段（源文/译文/文件名）。
-   - **建议**：把日志收敛到 `isDevelopment` 或显式 debug 开关下。
+ - **~~调试日志未统一按环境开关~~（已修复）**：日志已统一迁移到 `loggers` 分级系统（见 18.6），生产环境默认 `ERROR` 级别，仅保留 6 条必要诊断日志（启动/日志级别/开发工具/项目恢复/自动保存）。
 
 - **事件监听管理不完全统一**：已引入 `EventManager`，但仍存在直接 `addEventListener` 的绑定点。
   - **风险**：监听器清理路径不一致，长期使用可能积累"未释放监听器"的隐患。

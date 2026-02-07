@@ -131,7 +131,6 @@ TranslationService.prototype.translateBatch = async function (
         const translated = translatedList[i];
         item.targetText = translated;
         item.status = "translated";
-        item.qualityScore = Math.floor(Math.random() * 20) + 80;
 
         results.push({
           success: true,
@@ -209,7 +208,6 @@ TranslationService.prototype.translateBatch = async function (
             const translated = partial[i];
             item.targetText = translated;
             item.status = "translated";
-            item.qualityScore = Math.floor(Math.random() * 20) + 80;
 
             results.push({
               success: true,
@@ -396,7 +394,6 @@ TranslationService.prototype.translateBatch = async function (
 
       item.targetText = translated;
       item.status = "translated";
-      item.qualityScore = Math.floor(Math.random() * 20) + 80;
 
       results.push({
         success: true,

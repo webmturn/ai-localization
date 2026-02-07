@@ -314,41 +314,6 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
   }
 }
 
-function __waitForTranslationsRendered(minVersion, timeoutMs = 2000) {
-  const current = AppState?.translations?.renderVersion || 0;
-  if (current >= minVersion) return Promise.resolve();
-
-  return new Promise((resolve) => {
-    let done = false;
-
-    const finish = () => {
-      if (done) return;
-      done = true;
-      resolve();
-    };
-
-    const timer = setTimeout(() => {
-      try {
-        document.removeEventListener("translations:rendered", onRendered);
-      } catch (_) {
-        (loggers.app || console).debug("quality ui removeEventListener:", _);
-      }
-      finish();
-    }, timeoutMs);
-
-    const onRendered = (e) => {
-      const v = e?.detail?.version;
-      if (typeof v === "number" && v >= minVersion) {
-        clearTimeout(timer);
-        document.removeEventListener("translations:rendered", onRendered);
-        finish();
-      }
-    };
-
-    document.addEventListener("translations:rendered", onRendered);
-  });
-}
-
 async function __focusTranslationItemImpl(itemId) {
   closeModal("qualityReportModal");
 

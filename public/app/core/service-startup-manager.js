@@ -41,7 +41,7 @@ class ServiceStartupManager {
     this.services.set(name, serviceConfig);
     this.calculateStartupOrder();
     
-    console.log(`📋 已注册服务: ${name}`, serviceConfig);
+    (loggers.startup || console).info(`已注册服务: ${name}`, serviceConfig);
   }
 
   /**
@@ -172,7 +172,7 @@ class ServiceStartupManager {
       }
     });
 
-    console.log('✅ 核心服务注册完成');
+    (loggers.startup || console).info('核心服务注册完成');
   }
 
   /**
@@ -194,7 +194,7 @@ class ServiceStartupManager {
 
       const service = this.services.get(serviceName);
       if (!service) {
-        console.warn(`未找到服务配置: ${serviceName}`);
+        (loggers.startup || console).warn(`未找到服务配置: ${serviceName}`);
         return;
       }
 
@@ -215,7 +215,7 @@ class ServiceStartupManager {
     servicesByPriority.forEach(([name]) => visit(name));
 
     this.startupOrder = order;
-    console.log('📊 服务启动顺序:', this.startupOrder);
+    (loggers.startup || console).debug('服务启动顺序:', this.startupOrder);
   }
 
   /**
@@ -232,7 +232,7 @@ class ServiceStartupManager {
       success: false
     };
 
-    console.log('🚀 开始启动服务...');
+    (loggers.startup || console).info('开始启动服务...');
     
     try {
       this.emit('startupBegin', { order: this.startupOrder });
@@ -243,7 +243,7 @@ class ServiceStartupManager {
           results.started.push(serviceName);
           this.emit('serviceStarted', { serviceName });
         } catch (error) {
-          console.error(`❌ 服务启动失败: ${serviceName}`, error);
+          (loggers.startup || console).error(`服务启动失败: ${serviceName}`, error);
           results.failed.push({ serviceName, error: error.message });
           
           const service = this.services.get(serviceName);
@@ -261,7 +261,7 @@ class ServiceStartupManager {
       results.success = results.failed.length === 0 || 
         results.failed.every(f => !this.services.get(f.serviceName)?.critical);
 
-      console.log(`✅ 服务启动完成 (${results.totalTime.toFixed(2)}ms)`, results);
+      (loggers.startup || console).info(`服务启动完成 (${results.totalTime.toFixed(2)}ms)`, results);
       this.emit('startupComplete', results);
 
       return results;
@@ -271,7 +271,7 @@ class ServiceStartupManager {
       results.totalTime = endTime - startTime;
       results.success = false;
       
-      console.error('❌ 服务启动过程失败:', error);
+      (loggers.startup || console).error('服务启动过程失败:', error);
       this.emit('startupFailed', { error, results });
       
       throw error;
@@ -285,7 +285,7 @@ class ServiceStartupManager {
    */
   async startService(serviceName) {
     if (this.startedServices.has(serviceName)) {
-      console.log(`⏭️ 服务已启动: ${serviceName}`);
+      (loggers.startup || console).debug(`服务已启动: ${serviceName}`);
       return this.getService(serviceName);
     }
 
@@ -294,7 +294,7 @@ class ServiceStartupManager {
       throw new Error(`未找到服务配置: ${serviceName}`);
     }
 
-    console.log(`🔄 启动服务: ${serviceName}`);
+    (loggers.startup || console).debug(`启动服务: ${serviceName}`);
     
     // 检查依赖
     for (const dep of service.dependencies) {
@@ -320,7 +320,7 @@ class ServiceStartupManager {
         ]);
         const endTime = performance.now();
         
-        console.log(`⚡ ${serviceName} 启动耗时: ${(endTime - startTime).toFixed(2)}ms`);
+        (loggers.startup || console).debug(`${serviceName} 启动耗时: ${(endTime - startTime).toFixed(2)}ms`);
       }
 
       // 健康检查
@@ -341,7 +341,7 @@ class ServiceStartupManager {
       this.startedServices.add(serviceName);
       this.retryAttempts.delete(serviceName);
       
-      console.log(`✅ 服务启动成功: ${serviceName}`);
+      (loggers.startup || console).info(`服务启动成功: ${serviceName}`);
       return instance;
 
     } catch (error) {
@@ -352,7 +352,7 @@ class ServiceStartupManager {
         try {
           await service.onError(error);
         } catch (callbackError) {
-          console.error(`服务错误回调失败: ${serviceName}`, callbackError);
+          (loggers.startup || console).error(`服务错误回调失败: ${serviceName}`, callbackError);
         }
       }
 
@@ -361,7 +361,7 @@ class ServiceStartupManager {
         const attempts = (this.retryAttempts.get(serviceName) || 0) + 1;
         this.retryAttempts.set(serviceName, attempts);
         
-        console.warn(`🔄 重试启动服务: ${serviceName} (第${attempts}次)`);
+        (loggers.startup || console).warn(`重试启动服务: ${serviceName} (第${attempts}次)`);
         await this.delay(1000 * attempts); // 递增延迟
         
         this.failedServices.delete(serviceName);
@@ -376,7 +376,7 @@ class ServiceStartupManager {
    * 停止所有服务
    */
   async stopAllServices() {
-    console.log('🛑 开始停止服务...');
+    (loggers.startup || console).info('开始停止服务...');
     
     // 逆序停止服务
     const stopOrder = [...this.startupOrder].reverse();
@@ -385,11 +385,11 @@ class ServiceStartupManager {
       try {
         await this.stopService(serviceName);
       } catch (error) {
-        console.error(`停止服务失败: ${serviceName}`, error);
+        (loggers.startup || console).error(`停止服务失败: ${serviceName}`, error);
       }
     }
     
-    console.log('✅ 所有服务已停止');
+    (loggers.startup || console).info('所有服务已停止');
   }
 
   /**
@@ -408,7 +408,7 @@ class ServiceStartupManager {
     }
 
     this.startedServices.delete(serviceName);
-    console.log(`🛑 服务已停止: ${serviceName}`);
+    (loggers.startup || console).info(`服务已停止: ${serviceName}`);
   }
 
   /**
@@ -427,7 +427,7 @@ class ServiceStartupManager {
       try {
         return service.factory();
       } catch (error) {
-        console.error(`获取服务实例失败: ${serviceName}`, error);
+        (loggers.startup || console).error(`获取服务实例失败: ${serviceName}`, error);
       }
     }
     
@@ -505,7 +505,7 @@ class ServiceStartupManager {
         try {
           listener(data);
         } catch (error) {
-          console.error(`事件监听器执行失败: ${event}`, error);
+          (loggers.startup || console).error(`事件监听器执行失败: ${event}`, error);
         }
       });
     }
@@ -557,20 +557,20 @@ function showServiceStatus() {
   const status = getServiceStartupStatus();
   
   console.group('🔧 服务启动状态');
-  console.log('总服务数:', status.totalServices);
-  console.log('已启动:', status.startedServices);
-  console.log('失败服务:', status.failedServices);
+  (loggers.startup || console).info('总服务数:', status.totalServices);
+  (loggers.startup || console).info('已启动:', status.startedServices);
+  (loggers.startup || console).info('失败服务:', status.failedServices);
   
   if (status.started.length > 0) {
-    console.log('✅ 已启动的服务:', status.started);
+    (loggers.startup || console).info('已启动的服务:', status.started);
   }
   
   if (status.failed.length > 0) {
-    console.warn('❌ 失败的服务:', status.failed);
+    (loggers.startup || console).warn('失败的服务:', status.failed);
   }
   
   if (Object.keys(status.retryAttempts).length > 0) {
-    console.log('🔄 重试记录:', status.retryAttempts);
+    (loggers.startup || console).debug('重试记录:', status.retryAttempts);
   }
   
   console.groupEnd();
@@ -603,9 +603,9 @@ if (typeof module !== 'undefined' && module.exports) {
       namespaceManager.addToNamespace('App.core', 'initializeCoreServices', initializeCoreServices);
       namespaceManager.addToNamespace('App.debug', 'showServiceStatus', showServiceStatus);
     } catch (error) {
-      console.warn('服务启动管理器命名空间注册失败:', error.message);
+      (loggers.startup || console).warn('服务启动管理器命名空间注册失败:', error.message);
     }
   }
 }
 
-console.log('🔧 服务启动管理器已加载');
+(loggers.startup || console).debug('服务启动管理器已加载');

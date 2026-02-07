@@ -4,11 +4,11 @@ const NOTIFICATION_QUEUE_LIMIT = 5;
 
 // 显示通知
 function showNotification(type, title, message) {
-  const notification = document.getElementById("notification");
-  const icon = document.getElementById("notificationIcon");
-  const iconInner = document.getElementById("notificationIconInner");
-  const notificationTitle = document.getElementById("notificationTitle");
-  const notificationMessage = document.getElementById("notificationMessage");
+  const notification = DOMCache.get("notification");
+  const icon = DOMCache.get("notificationIcon");
+  const iconInner = DOMCache.get("notificationIconInner");
+  const notificationTitle = DOMCache.get("notificationTitle");
+  const notificationMessage = DOMCache.get("notificationMessage");
 
   let notificationQueue;
   try {
@@ -35,7 +35,9 @@ function showNotification(type, title, message) {
       if (!window.ArchDebug) {
         window.__notificationQueue = notificationQueue;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("notification queue register:", _);
+    }
   }
 
   const isVisible =
@@ -102,7 +104,7 @@ function showNotification(type, title, message) {
 
 // 关闭通知
 function closeNotification() {
-  const notification = document.getElementById("notification");
+  const notification = DOMCache.get("notification");
   if (notification && notification.hideTimeout) {
     clearTimeout(notification.hideTimeout);
     notification.hideTimeout = null;
@@ -128,7 +130,9 @@ function closeNotification() {
     setTimeout(() => {
       try {
         showNotification(next.type, next.title, next.message);
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("notification queue dispatch:", _);
+      }
     }, 150);
   }
 }

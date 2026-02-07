@@ -2,13 +2,7 @@ let searchCache = new Map(); // 搜索结果缓存
 let lastSearchQuery = ""; // 上次搜索查询
 let lastSearchScope = ""; // 上次搜索范围（按文件）
 
-function __devLog() {
-  if (typeof isDevelopment !== "undefined" && isDevelopment) {
-    try {
-      console.log.apply(console, arguments);
-    } catch (_) {}
-  }
-}
+// __devLog 已在 render.js 中定义，此处不再重复
 
 function applySearchFilter() {
   try {
@@ -88,7 +82,7 @@ function applySearchFilter() {
     // 重置到第一页
     AppState.translations.currentPage = 1;
   } catch (error) {
-    console.error("应用搜索过滤时出错:", error);
+    (loggers.app || console).error("应用搜索过滤时出错:", error);
     AppState.translations.filtered = AppState.project
       ? [...AppState.project.translationItems]
       : [];
@@ -103,16 +97,16 @@ function updatePaginationUI(
   currentPage,
   totalPages
 ) {
-  const sourcePagination = document.getElementById("sourcePagination");
-  const targetPagination = document.getElementById("targetPagination");
+  const sourcePagination = DOMCache.get("sourcePagination");
+  const targetPagination = DOMCache.get("targetPagination");
   const itemsPerPage = AppState.translations.itemsPerPage; // 使用 AppState 中的设置
 
   try {
     // 更新源文本分页信息
-    const sourceStartRange = document.getElementById("sourceStartRange");
-    const sourceEndRange = document.getElementById("sourceEndRange");
-    const sourceTotalItems = document.getElementById("sourceTotalItems");
-    const sourcePageInfo = document.getElementById("sourcePageInfo");
+    const sourceStartRange = DOMCache.get("sourceStartRange");
+    const sourceEndRange = DOMCache.get("sourceEndRange");
+    const sourceTotalItems = DOMCache.get("sourceTotalItems");
+    const sourcePageInfo = DOMCache.get("sourcePageInfo");
 
     if (sourceStartRange)
       sourceStartRange.textContent = totalItems > 0 ? startRange : 0;
@@ -122,14 +116,14 @@ function updatePaginationUI(
     if (sourcePageInfo) sourcePageInfo.textContent = `第 ${currentPage} 页`;
 
     // 更新分页按钮状态
-    const sourcePrevBtn = document.getElementById("sourcePrevBtn");
-    const sourceNextBtn = document.getElementById("sourceNextBtn");
+    const sourcePrevBtn = DOMCache.get("sourcePrevBtn");
+    const sourceNextBtn = DOMCache.get("sourceNextBtn");
 
     if (sourcePrevBtn) sourcePrevBtn.disabled = currentPage === 1;
     if (sourceNextBtn) sourceNextBtn.disabled = currentPage === totalPages;
 
     // 显示或隐藏分页控件
-    const paginationContainer = document.getElementById("paginationContainer");
+    const paginationContainer = DOMCache.get("paginationContainer");
     __devLog(
       `分页信息: 总项数=${totalItems}, 每页项数=${itemsPerPage}, 是否显示=${
         totalItems > itemsPerPage
@@ -144,14 +138,14 @@ function updatePaginationUI(
       }
     }
   } catch (error) {
-    console.error("更新分页UI时出错:", error);
+    (loggers.app || console).error("更新分页UI时出错:", error);
   }
 }
 
 // 处理搜索输入（只搜索文件，不影响翻译列表）
 function handleSearchInput() {
   const input =
-    DOMCache.get("searchInput") || document.getElementById("searchInput");
+    DOMCache.get("searchInput");
   if (!input) return;
   const searchQuery = input.value;
 
@@ -186,7 +180,7 @@ function handlePagination(direction) {
 
     updateTranslationLists();
   } catch (error) {
-    console.error("处理分页导航时出错:", error);
+    (loggers.app || console).error("处理分页导航时出错:", error);
     showNotification("error", "分页错误", "切换页面时发生错误");
   }
 }

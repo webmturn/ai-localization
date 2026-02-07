@@ -19,7 +19,7 @@ const EventManager = {
    */
   add(target, event, handler, options) {
     if (!target || !event || !handler) {
-      console.warn("EventManager.add: 参数不完整", { target, event, handler });
+      (loggers.app || console).warn("EventManager.add: 参数不完整", { target, event, handler });
       return null;
     }
 

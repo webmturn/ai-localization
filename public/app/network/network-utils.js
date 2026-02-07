@@ -39,7 +39,9 @@ class NetworkUtils {
         if (cached.data && typeof cached.data.clone === "function") {
           return cached.data.clone();
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.services || console).debug("networkUtils cache clone:", _);
+      }
       return cached.data;
     }
     this.requestCache.delete(key);
@@ -78,7 +80,9 @@ class NetworkUtils {
           mirrorWindow: false,
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.services || console).debug("networkUtils ArchDebug flag:", _);
+    }
   }
 
   // 带超时和取消支持的fetch
@@ -92,7 +96,7 @@ class NetworkUtils {
     const timeoutId = setTimeout(() => {
       didTimeout = true;
       controller.abort();
-      console.log("请求超时:", url);
+      (loggers.services || console).warn("请求超时:", url);
     }, timeout);
 
     // 记录请求
@@ -132,7 +136,7 @@ class NetworkUtils {
 
   // 取消所有活动请求
   cancelAll() {
-    console.log("取消所有活动请求:", this.activeRequests.size);
+    (loggers.services || console).debug("取消所有活动请求:", this.activeRequests.size);
     this.activeRequests.forEach((controller) => {
       controller.abort();
     });

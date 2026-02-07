@@ -71,24 +71,26 @@ function __updateQualityChartsImpl() {
             try {
               __updateQualityChartsImpl();
             } catch (e) {
-              console.error("updateQualityCharts (after load) failed:", e);
+              (loggers.app || console).error("updateQualityCharts (after load) failed:", e);
             }
           })
           .catch(function (e) {
-            console.error("Failed to lazy-load Chart.js:", e);
+            (loggers.app || console).error("Failed to lazy-load Chart.js:", e);
           });
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("Chart.js lazy-load check:", _);
+    }
     return;
   }
 
-  const accuracyEl = document.getElementById("accuracyChart");
+  const accuracyEl = DOMCache.get("accuracyChart");
   if (!accuracyEl || typeof accuracyEl.getContext !== "function") return;
   const accuracyCtx = accuracyEl.getContext("2d");
   if (!accuracyCtx) return;
   if (accuracyLabels.length === 0) {
     if (qualityCheckCharts.accuracy) {
-      try { qualityCheckCharts.accuracy.destroy(); } catch (_) {}
+      try { qualityCheckCharts.accuracy.destroy(); } catch (_) { (loggers.app || console).debug("chart.accuracy.destroy:", _); }
       qualityCheckCharts.accuracy = null;
     }
   } else {
@@ -167,7 +169,7 @@ function __updateQualityChartsImpl() {
       }
       chart.update("none");
     } catch (e) {
-      console.error("Failed to update accuracy chart:", e);
+      (loggers.app || console).error("Failed to update accuracy chart:", e);
     }
   }
   }
@@ -180,13 +182,13 @@ function __updateQualityChartsImpl() {
   const consistencyLabels = consistencyDef.map(function (d) { return d.label; });
   const consistencyData = consistencyDef.map(function (d) { return d.data; });
 
-  const consistencyEl = document.getElementById("consistencyChart");
+  const consistencyEl = DOMCache.get("consistencyChart");
   if (!consistencyEl || typeof consistencyEl.getContext !== "function") return;
   const consistencyCtx = consistencyEl.getContext("2d");
   if (!consistencyCtx) return;
   if (consistencyLabels.length === 0) {
     if (qualityCheckCharts.consistency) {
-      try { qualityCheckCharts.consistency.destroy(); } catch (_) {}
+      try { qualityCheckCharts.consistency.destroy(); } catch (_) { (loggers.app || console).debug("chart.consistency.destroy:", _); }
       qualityCheckCharts.consistency = null;
     }
   } else if (!qualityCheckCharts.consistency) {
@@ -261,7 +263,7 @@ function __updateQualityChartsImpl() {
       }
       chart.update("none");
     } catch (e) {
-      console.error("Failed to update consistency chart:", e);
+      (loggers.app || console).error("Failed to update consistency chart:", e);
     }
   }
 }

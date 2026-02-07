@@ -543,7 +543,7 @@ class ErrorManager {
       try {
         return strategy();
       } catch (recoveryError) {
-        console.warn('错误恢复失败:', recoveryError);
+        (loggers.errors || console).warn('错误恢复失败:', recoveryError);
         return false;
       }
     }
@@ -557,6 +557,7 @@ class ErrorManager {
   _bindGlobalErrorHandlers() {
     // 捕获未处理的Promise拒绝
     window.addEventListener('unhandledrejection', (event) => {
+      event.__errorManagerHandled = true;
       const error = this.handleError(event.reason, { 
         type: 'unhandledPromiseRejection',
         promise: event.promise 
@@ -570,6 +571,7 @@ class ErrorManager {
     
     // 捕获全局JavaScript错误
     window.addEventListener('error', (event) => {
+      event.__errorManagerHandled = true;
       this.handleError(event.error || event.message, {
         type: 'globalError',
         filename: event.filename,
@@ -677,7 +679,7 @@ class ErrorManager {
         if (i === maxRetries - 1) {
           throw error;
         }
-        console.log(`重试 ${i + 1}/${maxRetries} 失败，${delay * 2}ms后再次尝试...`);
+        (loggers.errors || console).debug(`重试 ${i + 1}/${maxRetries} 失败，${delay * 2}ms后再次尝试...`);
       }
     }
     throw new Error('所有重试均失败');
@@ -740,7 +742,7 @@ function initializeErrorManager() {
     window.handleError = (error, context) => errorManager.handleError(error, context);
     window.createError = (code, message, details) => errorManager.createError(code, message, details);
     
-    console.log('✅ 错误管理器初始化完成');
+    (loggers.errors || console).info('错误管理器初始化完成');
   }
   
   return errorManager;

@@ -127,7 +127,7 @@ class TranslationBusinessLogic {
     // 获取翻译引擎设置
     let engine = 'deepseek';
     try {
-      const settings = JSON.parse(localStorage.getItem('translatorSettings') || '{}');
+      const settings = SettingsCache.get();
       engine = settings.translationEngine || settings.defaultEngine || 'deepseek';
     } catch (error) {
       // 使用默认引擎
@@ -253,7 +253,7 @@ class TranslationBusinessLogic {
         recoverable: true
       });
     } else {
-      console.error('翻译业务逻辑错误:', error);
+      (loggers.translation || console).error('翻译业务逻辑错误:', error);
     }
   }
   

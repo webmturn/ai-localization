@@ -1,5 +1,15 @@
+// 跟踪快捷键编辑状态，确保 keydown 监听器可被清理
+let __shortcutEditPendingKeyHandler = null;
+
+function __cleanupShortcutEditKeyHandler() {
+  if (__shortcutEditPendingKeyHandler) {
+    document.removeEventListener("keydown", __shortcutEditPendingKeyHandler, true);
+    __shortcutEditPendingKeyHandler = null;
+  }
+}
+
 function refreshShortcutsList() {
-  const list = document.getElementById("shortcutsList");
+  const list = DOMCache.get("shortcutsList");
   if (
     !list ||
     typeof window.KEYBOARD_SHORTCUT_DEFINITIONS === "undefined" ||
@@ -11,6 +21,10 @@ function refreshShortcutsList() {
   ) {
     return;
   }
+
+  // 清理上一次可能残留的 keydown 监听器
+  __cleanupShortcutEditKeyHandler();
+
   const definitions = window.KEYBOARD_SHORTCUT_DEFINITIONS;
   const effectiveKeys = window.getEffectiveShortcutKeys();
   const rows = list.querySelectorAll("[data-shortcut-id]");
@@ -33,71 +47,98 @@ function refreshShortcutsList() {
     editBtn.className =
       "shortcut-edit-btn px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600";
     editBtn.textContent = "修改";
+    editBtn.dataset.shortcutAction = "edit";
+    editBtn.dataset.shortcutId = id;
     resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className =
       "shortcut-reset-btn px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600";
     resetBtn.textContent = "恢复默认";
-    editBtn.addEventListener("click", () => {
-      const hint = "请按下新快捷键";
-      editBtn.textContent = hint;
-      const onKey = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.removeEventListener("keydown", onKey, true);
-        const keyString = window.eventToKeyString(e);
-        if (keyString) {
-          window.saveShortcutOverride(id, keyString);
-          refreshShortcutsList();
-        } else {
-          editBtn.textContent = "修改";
-        }
-      };
-      document.addEventListener("keydown", onKey, true);
-      setTimeout(() => {
-        document.removeEventListener("keydown", onKey, true);
-        if (editBtn.textContent === hint) editBtn.textContent = "修改";
-      }, 5000);
-    });
-    resetBtn.addEventListener("click", () => {
-      window.resetShortcutToDefault(id);
-      refreshShortcutsList();
-    });
+    resetBtn.dataset.shortcutAction = "reset";
+    resetBtn.dataset.shortcutId = id;
     container.appendChild(editBtn);
     container.appendChild(resetBtn);
   });
+
+  // 事件委托：一次性绑定在列表容器上
+  if (!list.__shortcutDelegateAttached) {
+    list.__shortcutDelegateAttached = true;
+    EventManager.add(list, "click", (e) => {
+      const btn = e.target.closest("[data-shortcut-action]");
+      if (!btn) return;
+      const action = btn.dataset.shortcutAction;
+      const shortcutId = btn.dataset.shortcutId;
+      if (!shortcutId) return;
+
+      if (action === "reset") {
+        window.resetShortcutToDefault(shortcutId);
+        refreshShortcutsList();
+        return;
+      }
+
+      if (action === "edit") {
+        __cleanupShortcutEditKeyHandler();
+        const hint = "请按下新快捷键";
+        btn.textContent = hint;
+        const onKey = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          __cleanupShortcutEditKeyHandler();
+          const keyString = window.eventToKeyString(ev);
+          if (keyString) {
+            window.saveShortcutOverride(shortcutId, keyString);
+            refreshShortcutsList();
+          } else {
+            btn.textContent = "修改";
+          }
+        };
+        __shortcutEditPendingKeyHandler = onKey;
+        document.addEventListener("keydown", onKey, true);
+        setTimeout(() => {
+          if (__shortcutEditPendingKeyHandler === onKey) {
+            __cleanupShortcutEditKeyHandler();
+            if (btn.textContent === hint) btn.textContent = "修改";
+          }
+        }, 5000);
+      }
+    }, { tag: "settings", scope: "settingsModal", label: "shortcutsList:clickDelegate" });
+  }
 }
 
 function registerEventListenersSettings(ctx) {
-  // 设置标签页切换
-  document.querySelectorAll(".settings-tab-btn").forEach((btn) => {
+  // 设置标签页切换（事件委托 + 缓存引用）
+  const settingsNav = DOMCache.query("#settingsModal nav, #settingsModal .settings-nav");
+  const tabBtns = Array.from(DOMCache.queryAll(".settings-tab-btn"));
+  const tabContents = Array.from(DOMCache.queryAll(".settings-tab-content"));
+
+  if (settingsNav && tabBtns.length > 0) {
     EventManager.add(
-      btn,
+      settingsNav,
       "click",
-      function () {
-        const targetTab = this.dataset.tab;
+      function (e) {
+        const btn = e.target.closest(".settings-tab-btn");
+        if (!btn) return;
+        const targetTab = btn.dataset.tab;
 
         // 移除所有按钮的激活状态
-        document.querySelectorAll(".settings-tab-btn").forEach((b) => {
-          b.classList.remove("active");
-        });
+        for (let i = 0; i < tabBtns.length; i++) {
+          tabBtns[i].classList.remove("active");
+        }
 
         // 激活当前按钮
-        this.classList.add("active");
+        btn.classList.add("active");
 
         // 隐藏所有内容
-        document
-          .querySelectorAll(".settings-tab-content")
-          .forEach((content) => {
-            content.classList.add("hidden");
-          });
+        for (let i = 0; i < tabContents.length; i++) {
+          tabContents[i].classList.add("hidden");
+        }
 
         // 显示对应内容
-        const targetContent = document.querySelector(
-          `.settings-tab-content[data-tab="${targetTab}"]`,
-        );
-        if (targetContent) {
-          targetContent.classList.remove("hidden");
+        for (let i = 0; i < tabContents.length; i++) {
+          if (tabContents[i].dataset.tab === targetTab) {
+            tabContents[i].classList.remove("hidden");
+            break;
+          }
         }
         if (targetTab === "shortcuts" && typeof refreshShortcutsList === "function") {
           refreshShortcutsList();
@@ -108,7 +149,9 @@ function registerEventListenersSettings(ctx) {
         ) {
           try {
             window.loadProjectPromptTemplatesToUI();
-          } catch (_) {}
+          } catch (_) {
+            (loggers.app || console).debug("settings loadPromptTemplates:", _);
+          }
         }
         if (
           targetTab === "data" &&
@@ -120,10 +163,10 @@ function registerEventListenersSettings(ctx) {
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "settingsTabBtn:click",
+        label: "settingsNav:clickDelegate",
       },
     );
-  });
+  }
 
   // Prompt 模板管理已拆分到 settings-prompt-templates.js
   if (typeof registerEventListenersSettingsPromptTemplates === "function") {
@@ -131,25 +174,25 @@ function registerEventListenersSettings(ctx) {
   }
 
   // 保存设置按钮
-  const saveSettingsBtn = document.getElementById("saveSettings");
+  const saveSettingsBtn = DOMCache.get("saveSettings");
   if (saveSettingsBtn) {
     EventManager.add(
       saveSettingsBtn,
       "click",
       async () => {
         const rawAutosaveSeconds = parseInt(
-          document.getElementById("autosaveIntervalSeconds")?.value,
+          DOMCache.get("autosaveIntervalSeconds")?.value,
         );
         const autosaveIntervalSeconds = Number.isFinite(rawAutosaveSeconds)
           ? Math.max(5, Math.min(600, rawAutosaveSeconds))
           : 10;
 
-        const autosaveInput = document.getElementById(
+        const autosaveInput = DOMCache.get(
           "autosaveIntervalSeconds",
         );
         if (autosaveInput) autosaveInput.value = autosaveIntervalSeconds;
 
-        const deepseekPrimingSampleCountInput = document.getElementById(
+        const deepseekPrimingSampleCountInput = DOMCache.get(
           "deepseekPrimingSampleCount",
         );
         const rawDeepseekPrimingSampleCount = parseInt(
@@ -163,7 +206,7 @@ function registerEventListenersSettings(ctx) {
         if (deepseekPrimingSampleCountInput)
           deepseekPrimingSampleCountInput.value = deepseekPrimingSampleCount;
 
-        const apiTimeoutInput = document.getElementById("apiTimeout");
+        const apiTimeoutInput = DOMCache.get("apiTimeout");
         const rawApiTimeout = parseInt(apiTimeoutInput?.value);
         const apiTimeout = Number.isFinite(rawApiTimeout)
           ? Math.max(5, Math.min(120, rawApiTimeout))
@@ -171,22 +214,24 @@ function registerEventListenersSettings(ctx) {
         if (apiTimeoutInput) apiTimeoutInput.value = apiTimeout;
 
         const translationRequestCacheEnabled =
-          document.getElementById("translationRequestCacheEnabled")?.checked ??
+          DOMCache.get("translationRequestCacheEnabled")?.checked ??
           false;
         const rawCacheTtl = parseInt(
-          document.getElementById("translationRequestCacheTTLSeconds")?.value,
+          DOMCache.get("translationRequestCacheTTLSeconds")?.value,
         );
         const translationRequestCacheTTLSeconds = Number.isFinite(rawCacheTtl)
           ? Math.max(1, Math.min(600, rawCacheTtl))
           : 5;
         try {
-          const el = document.getElementById("translationRequestCacheTTLSeconds");
+          const el = DOMCache.get("translationRequestCacheTTLSeconds");
           if (el) el.value = translationRequestCacheTTLSeconds;
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("settings cacheTTL sync:", _);
+        }
 
         // 保存设置到 localStorage
         const rawDefaultEngine =
-          document.getElementById("defaultEngine")?.value || "deepseek";
+          DOMCache.get("defaultEngine")?.value || "deepseek";
         const defaultEngine = ["deepseek", "openai", "google"].includes(
           String(rawDefaultEngine),
         )
@@ -194,7 +239,7 @@ function registerEventListenersSettings(ctx) {
           : "deepseek";
 
         const rawModel =
-          document.getElementById("translationModel")?.value || "deepseek-chat";
+          DOMCache.get("translationModel")?.value || "deepseek-chat";
         let normalizedModel = String(rawModel);
         if (defaultEngine === "deepseek") {
           if (!/^deepseek-/.test(normalizedModel)) {
@@ -208,17 +253,17 @@ function registerEventListenersSettings(ctx) {
 
         const settings = {
           // 外观设置
-          themeMode: document.getElementById("themeMode")?.value || "auto",
-          fontSize: document.getElementById("fontSize")?.value || "medium",
+          themeMode: DOMCache.get("themeMode")?.value || "auto",
+          fontSize: DOMCache.get("fontSize")?.value || "medium",
           itemsPerPage:
-            parseInt(document.getElementById("itemsPerPage")?.value) || 20,
+            parseInt(DOMCache.get("itemsPerPage")?.value) || 20,
           autoScrollEnabled:
-            document.getElementById("autoScrollEnabled")?.checked ?? true,
+            DOMCache.get("autoScrollEnabled")?.checked ?? true,
           sourceSelectionIndicatorEnabled:
-            document.getElementById("sourceSelectionIndicatorEnabled")
+            DOMCache.get("sourceSelectionIndicatorEnabled")
               ?.checked ?? true,
           sourceSelectionIndicatorUnselectedStyle:
-            document.getElementById("sourceSelectionIndicatorUnselectedStyle")
+            DOMCache.get("sourceSelectionIndicatorUnselectedStyle")
               ?.value || "gray",
           autosaveIntervalSeconds,
 
@@ -229,76 +274,76 @@ function registerEventListenersSettings(ctx) {
           model: normalizedModel,
           apiTimeout,
           concurrentLimit:
-            parseInt(document.getElementById("concurrentLimit")?.value) || 5,
+            parseInt(DOMCache.get("concurrentLimit")?.value) || 5,
           retryCount:
-            parseInt(document.getElementById("retryCount")?.value) || 2,
+            parseInt(DOMCache.get("retryCount")?.value) || 2,
 
           translationRequestCacheEnabled,
           translationRequestCacheTTLSeconds,
 
           deepseekUseKeyContext:
-            document.getElementById("deepseekUseKeyContext")?.checked || false,
+            DOMCache.get("deepseekUseKeyContext")?.checked || false,
           deepseekPrimingEnabled:
-            document.getElementById("deepseekPrimingEnabled")?.checked || false,
+            DOMCache.get("deepseekPrimingEnabled")?.checked || false,
           deepseekPrimingSampleCount,
           deepseekPrimingSampleIds: safeJsonParse(
-            document.getElementById("deepseekPrimingSampleIds")?.value,
+            DOMCache.get("deepseekPrimingSampleIds")?.value,
             [],
           ),
           deepseekConversationEnabled:
-            document.getElementById("deepseekConversationEnabled")?.checked ||
+            DOMCache.get("deepseekConversationEnabled")?.checked ||
             false,
           deepseekConversationScope:
-            document.getElementById("deepseekConversationScope")?.value ||
+            DOMCache.get("deepseekConversationScope")?.value ||
             "project",
           deepseekBatchMaxItems:
-            parseInt(document.getElementById("deepseekBatchMaxItems")?.value) || 40,
+            parseInt(DOMCache.get("deepseekBatchMaxItems")?.value) || 40,
           deepseekBatchMaxChars:
-            parseInt(document.getElementById("deepseekBatchMaxChars")?.value) || 6000,
+            parseInt(DOMCache.get("deepseekBatchMaxChars")?.value) || 6000,
 
           // 质量检查设置（开关：未勾选为 false，须原样保存）
           checkTerminology:
-            document.getElementById("checkTerminology")?.checked ?? true,
+            DOMCache.get("checkTerminology")?.checked ?? true,
           checkPlaceholders:
-            document.getElementById("checkPlaceholders")?.checked ?? true,
+            DOMCache.get("checkPlaceholders")?.checked ?? true,
           checkPunctuation:
-            document.getElementById("checkPunctuation")?.checked ?? true,
+            DOMCache.get("checkPunctuation")?.checked ?? true,
           checkLength:
-            document.getElementById("checkLength")?.checked ?? false,
+            DOMCache.get("checkLength")?.checked ?? false,
           checkNumbers:
-            document.getElementById("checkNumbers")?.checked ?? true,
+            DOMCache.get("checkNumbers")?.checked ?? true,
           qualityThreshold:
-            parseInt(document.getElementById("qualityThreshold")?.value) || 70,
+            parseInt(DOMCache.get("qualityThreshold")?.value) || 70,
           qualityCheckScope:
-            document.getElementById("qualityCheckScope")?.value || "project",
+            DOMCache.get("qualityCheckScope")?.value || "project",
 
           // 术语库设置
           autoApplyTerms:
-            document.getElementById("autoApplyTerms")?.checked || true,
+            DOMCache.get("autoApplyTerms")?.checked || true,
           termMatchMode:
-            document.getElementById("termMatchMode")?.value || "exact",
+            DOMCache.get("termMatchMode")?.value || "exact",
           highlightTerms:
-            document.getElementById("highlightTerms")?.checked || true,
+            DOMCache.get("highlightTerms")?.checked || true,
           duplicateHandling:
-            document.getElementById("duplicateHandling")?.value || "overwrite",
+            DOMCache.get("duplicateHandling")?.value || "overwrite",
 
           // 文件处理设置
           maxFileSize:
-            parseInt(document.getElementById("maxFileSize")?.value) || 10,
-          formatXML: document.getElementById("formatXML")?.checked || true,
-          formatXLIFF: document.getElementById("formatXLIFF")?.checked || true,
-          formatJSON: document.getElementById("formatJSON")?.checked || true,
-          formatPO: document.getElementById("formatPO")?.checked || true,
-          formatRESX: document.getElementById("formatRESX")?.checked || true,
+            parseInt(DOMCache.get("maxFileSize")?.value) || 10,
+          formatXML: DOMCache.get("formatXML")?.checked || true,
+          formatXLIFF: DOMCache.get("formatXLIFF")?.checked || true,
+          formatJSON: DOMCache.get("formatJSON")?.checked || true,
+          formatPO: DOMCache.get("formatPO")?.checked || true,
+          formatRESX: DOMCache.get("formatRESX")?.checked || true,
           formatIOSStrings:
-            document.getElementById("formatIOSStrings")?.checked || true,
-          formatQtTS: document.getElementById("formatQtTS")?.checked || true,
+            DOMCache.get("formatIOSStrings")?.checked || true,
+          formatQtTS: DOMCache.get("formatQtTS")?.checked || true,
           formatTextFallback:
-            document.getElementById("formatTextFallback")?.checked || true,
+            DOMCache.get("formatTextFallback")?.checked || true,
           autoDetectEncoding:
-            document.getElementById("autoDetectEncoding")?.checked || true,
+            DOMCache.get("autoDetectEncoding")?.checked || true,
           autoTranslateOnImport:
-            document.getElementById("autoTranslateOnImport")?.checked || false,
+            DOMCache.get("autoTranslateOnImport")?.checked || false,
 
           // 加密保存 API 密钥
           deepseekApiKey: "",
@@ -307,9 +352,9 @@ function registerEventListenersSettings(ctx) {
         };
 
         // 加密API密钥
-        const deepseekKey = document.getElementById("deepseekApiKey")?.value;
-        const openaiKey = document.getElementById("openaiApiKey")?.value;
-        const googleKey = document.getElementById("googleApiKey")?.value;
+        const deepseekKey = DOMCache.get("deepseekApiKey")?.value;
+        const openaiKey = DOMCache.get("openaiApiKey")?.value;
+        const googleKey = DOMCache.get("googleApiKey")?.value;
 
         if (deepseekKey) {
           settings.deepseekApiKey = await securityUtils.encrypt(deepseekKey);
@@ -322,9 +367,8 @@ function registerEventListenersSettings(ctx) {
         }
 
         try {
-          const existingRaw = localStorage.getItem("translatorSettings");
-          if (existingRaw) {
-            const existing = JSON.parse(existingRaw);
+          const existing = SettingsCache.get();
+          if (existing) {
             if (existing?.preferredStorageBackend) {
               settings.preferredStorageBackend =
                 existing.preferredStorageBackend;
@@ -333,16 +377,18 @@ function registerEventListenersSettings(ctx) {
               settings.keyboardShortcuts = existing.keyboardShortcuts;
             }
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("settings merge shortcuts:", _);
+        }
 
-        localStorage.setItem("translatorSettings", JSON.stringify(settings));
+        SettingsCache.save(settings);
 
         // 应用设置
         applySettings(settings);
 
         try {
-          const toolbarEngine = document.getElementById("translationEngine");
-          const sidebarEngine = document.getElementById(
+          const toolbarEngine = DOMCache.get("translationEngine");
+          const sidebarEngine = DOMCache.get(
             "sidebarTranslationEngine",
           );
           if (toolbarEngine && toolbarEngine.value !== defaultEngine) {
@@ -353,16 +399,18 @@ function registerEventListenersSettings(ctx) {
             sidebarEngine.value = defaultEngine;
             sidebarEngine.dispatchEvent(new Event("change"));
           }
-          const modelInput = document.getElementById("translationModel");
+          const modelInput = DOMCache.get("translationModel");
           if (modelInput && modelInput.value !== normalizedModel) {
             modelInput.value = normalizedModel;
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("settings model sync:", _);
+        }
 
         try {
           await __saveProjectPromptTemplatesFromUI();
         } catch (e) {
-          console.error("保存项目 Prompt 模板失败:", e);
+          (loggers.app || console).error("保存项目 Prompt 模板失败:", e);
         }
 
         showNotification(

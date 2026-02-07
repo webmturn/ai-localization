@@ -9,7 +9,7 @@ function updateSelectionStyles() {
     if (!el) return;
 
     const container =
-      document.getElementById("translationScrollWrapper") ||
+      DOMCache.get("translationScrollWrapper") ||
       el.closest(".translation-scroll-wrapper");
     if (!container) {
       el.scrollIntoView({ behavior, block: "center" });
@@ -166,7 +166,7 @@ function updateSelectionStyles() {
     });
   }
 
-  const scrollContainer = document.getElementById("translationScrollWrapper");
+  const scrollContainer = DOMCache.get("translationScrollWrapper");
   const prevScrollTop =
     scrollContainer && !shouldScroll ? scrollContainer.scrollTop : null;
 
@@ -326,8 +326,8 @@ function updateTranslationItem(index, targetText) {
 
 // 更新单个项的状态标签（不重渲染整个列表）
 function updateStatusBadge(index, newStatus) {
-  const sourceList = document.getElementById("sourceList");
-  const mobileCombinedList = document.getElementById("mobileCombinedList");
+  const sourceList = DOMCache.get("sourceList");
+  const mobileCombinedList = DOMCache.get("mobileCombinedList");
   if (!sourceList && !mobileCombinedList) return;
 
   if (sourceList) {
@@ -381,8 +381,8 @@ function updateCounters() {
       item.status === "approved"
   ).length;
 
-  const sourceCountEl = document.getElementById("sourceCount");
-  const targetCountEl = document.getElementById("targetCount");
+  const sourceCountEl = DOMCache.get("sourceCount");
+  const targetCountEl = DOMCache.get("targetCount");
   if (sourceCountEl) sourceCountEl.textContent = `${total} 项`;
   if (targetCountEl) targetCountEl.textContent = `${translated}/${total} 项`;
 }

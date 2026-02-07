@@ -26,12 +26,12 @@ class AutoSaveManager {
     if (this.timerId) return;
 
     this.timerId = setInterval(() => {
-      if (this.isDirty && AppState.project) {
+      if (this.isDirty && AppState.project && !this.isSaving && !this.isPaused) {
         this.saveProject();
       }
     }, this.saveInterval);
 
-    console.log("自动保存已启动，间隔:", this.saveInterval / 1000, "秒");
+    console.log("💾 自动保存已启动，间隔:", this.saveInterval / 1000, "秒");
   }
 
   setSaveInterval(saveIntervalMs) {
@@ -64,7 +64,7 @@ class AutoSaveManager {
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
-      console.log("自动保存已停止");
+      (loggers.storage || console).info("自动保存已停止");
     }
     if (this.quickSaveTimerId) {
       clearTimeout(this.quickSaveTimerId);
@@ -75,13 +75,13 @@ class AutoSaveManager {
   // 暂停自动保存（不清除定时器，只是暂停保存行为）
   pause() {
     this.isPaused = true;
-    console.log("自动保存已暂停");
+    (loggers.storage || console).debug("自动保存已暂停");
   }
 
   // 恢复自动保存
   resume() {
     this.isPaused = false;
-    console.log("自动保存已恢复");
+    (loggers.storage || console).debug("自动保存已恢复");
     // 如果有未保存的更改，立即请求保存
     if (this.isDirty && AppState.project) {
       this.requestQuickSave();
@@ -127,7 +127,7 @@ class AutoSaveManager {
     
     // 防止并发保存
     if (this.isSaving) {
-      console.log("正在保存中，跳过本次保存请求");
+      (loggers.storage || console).debug("正在保存中，跳过本次保存请求");
       return;
     }
 
@@ -147,10 +147,12 @@ class AutoSaveManager {
           try {
             await idbPutFileContent(key, cloned.originalContent);
           } catch (e) {
-            console.error("IndexedDB写入originalContent失败:", e);
+            (loggers.storage || console).error("IndexedDB写入originalContent失败:", e);
             try {
               notifyIndexedDbFileContentErrorOnce(e, "保存原始内容");
-            } catch (_) {}
+            } catch (_) {
+              (loggers.storage || console).debug("autoSave idb error notify:", _);
+            }
             shouldKeepOriginalContent = true;
           }
         }
@@ -178,7 +180,7 @@ class AutoSaveManager {
       this.saveCount++;
       this.isSaving = false;
 
-      console.log("自动保存成功:", new Date().toLocaleTimeString(), `(第${this.saveCount}次)`);
+      (loggers.storage || console).debug("自动保存成功:", new Date().toLocaleTimeString(), `(第${this.saveCount}次)`);
 
       scheduleIdbGarbageCollection();
 
@@ -218,11 +220,11 @@ class AutoSaveManager {
 
           this.isDirty = false;
           this.lastSaveTime = Date.now();
-          console.warn(
+          (loggers.storage || console).warn(
             "自动保存降级：由于 localStorage 空间不足，已跳过保存原始文件内容"
           );
         } catch (fallbackError) {
-          console.error("自动保存失败（降级后仍失败）:", fallbackError);
+          (loggers.storage || console).error("自动保存失败（降级后仍失败）:", fallbackError);
           if (typeof showNotification === "function") {
             showNotification(
               "error",
@@ -234,7 +236,7 @@ class AutoSaveManager {
         return;
       }
 
-      console.error("自动保存失败:", error);
+      (loggers.storage || console).error("自动保存失败:", error);
       if (typeof showNotification === "function") {
         showNotification(
           "error",
@@ -266,11 +268,11 @@ class AutoSaveManager {
     try {
       const project = await storageManager.loadCurrentProject();
       if (project) {
-        console.log("从自动保存恢复项目:", project.name);
+        console.log("📂 从自动保存恢复项目:", project.name);
         return project;
       }
     } catch (error) {
-      console.error("恢复项目失败:", error);
+      (loggers.storage || console).error("恢复项目失败:", error);
     }
     return null;
   }
@@ -334,6 +336,6 @@ if (typeof window.diContainer !== 'undefined') {
   try {
     window.diContainer.registerFactory('autoSaveManager', () => autoSaveManager);
   } catch (error) {
-    console.warn('AutoSaveManager DI注册失败:', error.message);
+    (loggers.storage || console).warn('AutoSaveManager DI注册失败:', error.message);
   }
 }

@@ -30,7 +30,7 @@ class TranslationUIController {
     
     this.bindEventListeners();
     this.isInitialized = true;
-    console.log('📱 翻译UI控制器已初始化');
+    (loggers.app || console).debug('翻译UI控制器已初始化');
   }
   
   /**
@@ -52,7 +52,7 @@ class TranslationUIController {
    */
   bindTranslationControls() {
     // 翻译选中项
-    const translateSelectedBtn = document.getElementById('translateSelected');
+    const translateSelectedBtn = DOMCache.get('translateSelected');
     if (translateSelectedBtn && this.eventManager) {
       this.eventManager.add(translateSelectedBtn, 'click', () => {
         this.handleTranslateSelected();
@@ -60,7 +60,7 @@ class TranslationUIController {
     }
     
     // 翻译全部
-    const translateAllBtn = document.getElementById('translateAll');
+    const translateAllBtn = DOMCache.get('translateAll');
     if (translateAllBtn && this.eventManager) {
       this.eventManager.add(translateAllBtn, 'click', () => {
         this.handleTranslateAll();
@@ -68,7 +68,7 @@ class TranslationUIController {
     }
     
     // 取消翻译
-    const cancelBtn = document.getElementById('cancelTranslation');
+    const cancelBtn = DOMCache.get('cancelTranslation');
     if (cancelBtn && this.eventManager) {
       this.eventManager.add(cancelBtn, 'click', () => {
         this.handleCancelTranslation();
@@ -76,7 +76,7 @@ class TranslationUIController {
     }
     
     // 暂停翻译
-    const pauseBtn = document.getElementById('pauseTranslation');
+    const pauseBtn = DOMCache.get('pauseTranslation');
     if (pauseBtn && this.eventManager) {
       this.eventManager.add(pauseBtn, 'click', () => {
         this.handlePauseTranslation();
@@ -89,12 +89,20 @@ class TranslationUIController {
    */
   bindStateChanges() {
     // 监听翻译状态变化
-    if (typeof window.addEventListener === 'function') {
+    const em = this.eventManager || (typeof EventManager !== 'undefined' ? EventManager : null);
+    if (em) {
+      em.add(window, 'translationStateChanged', (event) => {
+        this.handleStateChange(event.detail);
+      }, { tag: 'translation', label: 'window:translationStateChanged' });
+      
+      // 监听翻译进度变化
+      em.add(window, 'translationProgressChanged', (event) => {
+        this.handleProgressChange(event.detail);
+      }, { tag: 'translation', label: 'window:translationProgressChanged' });
+    } else if (typeof window.addEventListener === 'function') {
       window.addEventListener('translationStateChanged', (event) => {
         this.handleStateChange(event.detail);
       });
-      
-      // 监听翻译进度变化
       window.addEventListener('translationProgressChanged', (event) => {
         this.handleProgressChange(event.detail);
       });
@@ -310,10 +318,10 @@ class TranslationUIController {
     }
     
     // 直接更新按钮状态
-    const translateBtn = document.getElementById('translateSelected');
-    const translateAllBtn = document.getElementById('translateAll');
-    const cancelBtn = document.getElementById('cancelTranslation');
-    const pauseBtn = document.getElementById('pauseTranslation');
+    const translateBtn = DOMCache.get('translateSelected');
+    const translateAllBtn = DOMCache.get('translateAll');
+    const cancelBtn = DOMCache.get('cancelTranslation');
+    const pauseBtn = DOMCache.get('pauseTranslation');
     
     if (translateBtn) translateBtn.disabled = isInProgress;
     if (translateAllBtn) translateAllBtn.disabled = isInProgress;
@@ -349,7 +357,7 @@ class TranslationUIController {
    */
   handleProgressChange(progress) {
     // 可以在这里添加额外的进度UI更新逻辑
-    console.log('翻译进度更新:', progress);
+    (loggers.app || console).debug('翻译进度更新:', progress);
   }
   
   /**
@@ -357,7 +365,7 @@ class TranslationUIController {
    */
   refreshTranslationStatus() {
     const stats = this.businessLogic.getTranslationStats();
-    console.log('翻译统计:', stats);
+    (loggers.app || console).debug('翻译统计:', stats);
     
     // 可以在这里更新状态显示
   }
@@ -374,7 +382,7 @@ class TranslationUIController {
     } else if (typeof showNotification === 'function') {
       showNotification(type, title, message);
     } else {
-      console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+      (loggers.app || console).info(`${type.toUpperCase()}: ${title} - ${message}`);
     }
   }
   
@@ -384,7 +392,7 @@ class TranslationUIController {
    * @param {string} context - 上下文
    */
   handleError(error, context) {
-    console.error(`翻译UI错误 (${context}):`, error);
+    (loggers.app || console).error(`翻译UI错误 (${context}):`, error);
     
     const message = error.userMessage || error.message || "未知错误";
     this.showNotification("error", `${context}失败`, message);
@@ -429,7 +437,7 @@ class TranslationUIController {
     this.currentTranslation = null;
     this.isInitialized = false;
     
-    console.log('🧹 翻译UI控制器已清理');
+    (loggers.app || console).debug('翻译UI控制器已清理');
   }
 }
 

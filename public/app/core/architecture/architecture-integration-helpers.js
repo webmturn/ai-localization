@@ -74,7 +74,7 @@ class ArchitectureIntegrationHelpers {
     } catch (error) {
       report.overall = 'error';
       report.issues.push(`健康检查执行失败: ${error.message}`);
-      console.error('架构健康检查失败:', error);
+      (loggers.architecture || console).error('架构健康检查失败:', error);
     }
 
     return report;
@@ -583,7 +583,7 @@ class ArchitectureIntegrationHelpers {
       this.errorLog.shift();
     }
 
-    console.error('架构集成错误:', errorEntry);
+    (loggers.architecture || console).error('架构集成错误:', errorEntry);
   }
 
   /**
@@ -660,12 +660,12 @@ function showArchitectureStatus() {
   console.group('🏗️ 架构系统状态');
   
   const health = checkArchHealth();
-  console.log('整体状态:', health.overall);
-  console.log('组件状态:', health.components);
+  (loggers.architecture || console).info('整体状态:', health.overall);
+  (loggers.architecture || console).info('组件状态:', health.components);
   
   if (health.issues.length > 0) {
     console.group('⚠️ 发现问题');
-    health.issues.forEach(issue => console.warn(issue));
+    health.issues.forEach(issue => (loggers.architecture || console).warn(issue));
     console.groupEnd();
   }
   
@@ -676,7 +676,7 @@ function showArchitectureStatus() {
   }
   
   const validation = validateArchIntegration();
-  console.log('集成验证:', validation.summary);
+  (loggers.architecture || console).info('集成验证:', validation.summary);
   
   console.groupEnd();
   
@@ -710,9 +710,9 @@ if (typeof module !== 'undefined' && module.exports) {
       namespaceManager.addToNamespace('App.debug', 'checkArchHealth', checkArchHealth);
       namespaceManager.addToNamespace('App.debug', 'showArchitectureStatus', showArchitectureStatus);
     } catch (error) {
-      console.warn('架构集成助手命名空间注册失败:', error.message);
+      (loggers.architecture || console).warn('架构集成助手命名空间注册失败:', error.message);
     }
   }
 }
 
-console.log('🔧 架构集成助手已加载');
+(loggers.architecture || console).debug('架构集成助手已加载');

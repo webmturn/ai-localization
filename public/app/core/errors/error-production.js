@@ -23,7 +23,7 @@ class ProductionErrorMonitor {
     this.maxReports = config.maxReports || 10;
     this.reportInterval = config.reportInterval || 60000; // 1分钟
     
-    console.log('🔍 生产环境错误监控已启用');
+    (loggers.errors || console).debug('生产环境错误监控已启用');
   }
   
   /**
@@ -31,7 +31,7 @@ class ProductionErrorMonitor {
    */
   disable() {
     this.isEnabled = false;
-    console.log('🔍 生产环境错误监控已禁用');
+    (loggers.errors || console).debug('生产环境错误监控已禁用');
   }
   
   /**
@@ -104,7 +104,7 @@ class ProductionErrorMonitor {
       url: window.location.href
     };
     
-    console.log('📊 生产环境错误报告:', report);
+    (loggers.errors || console).info('生产环境错误报告:', report);
     
     // 如果配置了报告端点，发送报告
     if (this.isEnabled && this.reportEndpoint) {
@@ -126,9 +126,9 @@ class ProductionErrorMonitor {
         },
         body: JSON.stringify(report)
       });
-      console.log('📤 错误报告已发送');
+      (loggers.errors || console).debug('错误报告已发送');
     } catch (error) {
-      console.warn('📤 错误报告发送失败:', error.message);
+      (loggers.errors || console).warn('错误报告发送失败:', error.message);
     }
   }
 }
@@ -166,7 +166,7 @@ class EmergencyErrorHandler {
     if (typeof showNotification === 'function') {
       showNotification('error', '系统错误', '发生了意外错误，请刷新页面重试');
     } else {
-      console.error('系统错误:', errorInfo);
+      (loggers.errors || console).error('系统错误:', errorInfo);
     }
     
     return errorInfo;
@@ -261,6 +261,8 @@ window.ProductionErrorUtils = ProductionErrorUtils;
 if (typeof isDevelopment === 'undefined' || !isDevelopment) {
   // 捕获未处理的Promise拒绝
   window.addEventListener('unhandledrejection', (event) => {
+    // 跳过已被 ErrorManager._bindGlobalErrorHandlers 处理的事件，避免重复
+    if (event.__errorManagerHandled) return;
     if (ProductionErrorUtils.isErrorSystemHealthy()) {
       errorManager.handleError(event.reason, { 
         type: 'unhandledPromiseRejection',
@@ -276,6 +278,8 @@ if (typeof isDevelopment === 'undefined' || !isDevelopment) {
   
   // 捕获全局JavaScript错误
   window.addEventListener('error', (event) => {
+    // 跳过已被 ErrorManager._bindGlobalErrorHandlers 处理的事件，避免重复
+    if (event.__errorManagerHandled) return;
     if (ProductionErrorUtils.isErrorSystemHealthy()) {
       errorManager.handleError(event.error || event.message, {
         type: 'globalError',
@@ -294,5 +298,5 @@ if (typeof isDevelopment === 'undefined' || !isDevelopment) {
     }
   });
   
-  console.log('🛡️ 生产环境错误处理已启用');
+  (loggers.errors || console).debug('生产环境错误处理已启用');
 }

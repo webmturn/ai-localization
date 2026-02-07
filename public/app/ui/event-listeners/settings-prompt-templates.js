@@ -11,7 +11,9 @@ function __getDefaultProjectPromptTemplate(engineKey) {
     ) {
       return translationService.getDefaultProjectPromptTemplate(engineKey);
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("getDefaultPromptTemplate service:", _);
+  }
 
   try {
     const dict = window.ArchDebug
@@ -20,16 +22,18 @@ function __getDefaultProjectPromptTemplate(engineKey) {
         })
       : window.__DEFAULT_PROJECT_PROMPT_TEMPLATES;
     if (dict && dict[engineKey]) return String(dict[engineKey]);
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("getDefaultPromptTemplate fallback:", _);
+  }
 
   return "";
 }
 
 function __loadProjectPromptTemplatesToUI() {
-  const generalEl = document.getElementById("projectPromptTemplateGeneral");
-  const openaiEl = document.getElementById("projectPromptTemplateOpenAI");
-  const deepseekEl = document.getElementById("projectPromptTemplateDeepSeek");
-  const deepseekBatchEl = document.getElementById(
+  const generalEl = DOMCache.get("projectPromptTemplateGeneral");
+  const openaiEl = DOMCache.get("projectPromptTemplateOpenAI");
+  const deepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
+  const deepseekBatchEl = DOMCache.get(
     "projectPromptTemplateDeepSeekBatch",
   );
 
@@ -104,10 +108,10 @@ async function __saveProjectPromptTemplatesFromUI() {
   const project = AppState?.project;
   if (!project) return;
 
-  const generalEl = document.getElementById("projectPromptTemplateGeneral");
-  const openaiEl = document.getElementById("projectPromptTemplateOpenAI");
-  const deepseekEl = document.getElementById("projectPromptTemplateDeepSeek");
-  const deepseekBatchEl = document.getElementById(
+  const generalEl = DOMCache.get("projectPromptTemplateGeneral");
+  const openaiEl = DOMCache.get("projectPromptTemplateOpenAI");
+  const deepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
+  const deepseekBatchEl = DOMCache.get(
     "projectPromptTemplateDeepSeekBatch",
   );
 
@@ -217,9 +221,11 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     if (typeof window !== "undefined") {
       window.loadProjectPromptTemplatesToUI = __loadProjectPromptTemplatesToUI;
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("promptTemplates module init:", _);
+  }
 
-  const resetProjectPromptTemplateGeneral = document.getElementById(
+  const resetProjectPromptTemplateGeneral = DOMCache.get(
     "resetProjectPromptTemplateGeneral",
   );
   if (resetProjectPromptTemplateGeneral) {
@@ -227,7 +233,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
       resetProjectPromptTemplateGeneral,
       "click",
       () => {
-        const el = document.getElementById("projectPromptTemplateGeneral");
+        const el = DOMCache.get("projectPromptTemplateGeneral");
         if (el) el.value = __getDefaultProjectPromptTemplate("general");
       },
       {
@@ -238,7 +244,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     );
   }
 
-  const resetProjectPromptTemplateOpenAI = document.getElementById(
+  const resetProjectPromptTemplateOpenAI = DOMCache.get(
     "resetProjectPromptTemplateOpenAI",
   );
   if (resetProjectPromptTemplateOpenAI) {
@@ -246,7 +252,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
       resetProjectPromptTemplateOpenAI,
       "click",
       () => {
-        const el = document.getElementById("projectPromptTemplateOpenAI");
+        const el = DOMCache.get("projectPromptTemplateOpenAI");
         if (el) el.value = "";
       },
       {
@@ -257,7 +263,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     );
   }
 
-  const resetProjectPromptTemplateDeepSeek = document.getElementById(
+  const resetProjectPromptTemplateDeepSeek = DOMCache.get(
     "resetProjectPromptTemplateDeepSeek",
   );
   if (resetProjectPromptTemplateDeepSeek) {
@@ -265,7 +271,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
       resetProjectPromptTemplateDeepSeek,
       "click",
       () => {
-        const el = document.getElementById("projectPromptTemplateDeepSeek");
+        const el = DOMCache.get("projectPromptTemplateDeepSeek");
         if (el) el.value = "";
       },
       {
@@ -276,7 +282,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     );
   }
 
-  const resetProjectPromptTemplateDeepSeekBatch = document.getElementById(
+  const resetProjectPromptTemplateDeepSeekBatch = DOMCache.get(
     "resetProjectPromptTemplateDeepSeekBatch",
   );
   if (resetProjectPromptTemplateDeepSeekBatch) {
@@ -284,7 +290,7 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
       resetProjectPromptTemplateDeepSeekBatch,
       "click",
       () => {
-        const el = document.getElementById(
+        const el = DOMCache.get(
           "projectPromptTemplateDeepSeekBatch",
         );
         if (el) el.value = "";

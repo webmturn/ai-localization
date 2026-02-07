@@ -199,7 +199,7 @@ function generateQtTsFromOriginal(items, fileName) {
     const serialized = serializer.serializeToString(xmlDoc);
     return __withXmlDeclarationAndDoctypeTs(serialized, originalContent);
   } catch (e) {
-    console.error("更新Qt TS失败:", e);
+    (loggers.app || console).error("更新Qt TS失败:", e);
     return generateNewQtTsFromItems(items);
   }
 }
@@ -207,7 +207,7 @@ function generateQtTsFromOriginal(items, fileName) {
 function generateNewQtTsFromItems(items) {
   const targetLang =
     AppState.project?.targetLanguage ||
-    document.getElementById("targetLanguage")?.value ||
+    DOMCache.get("targetLanguage")?.value ||
     "zh";
 
   const byContext = new Map();
@@ -289,7 +289,7 @@ function generateJSONFromOriginal(items, fileName) {
 
     return JSON.stringify(json, null, 2);
   } catch (e) {
-    console.error("更新JSON失败:", e);
+    (loggers.app || console).error("更新JSON失败:", e);
     return generateJSON(items, true);
   }
 }
@@ -329,7 +329,7 @@ function generateRESXFromOriginal(items, fileName) {
     const serializer = new XMLSerializer();
     return serializer.serializeToString(xmlDoc);
   } catch (e) {
-    console.error("更新RESX失败:", e);
+    (loggers.app || console).error("更新RESX失败:", e);
     return generateXML(items, true);
   }
 }
@@ -361,7 +361,7 @@ function generatePOFromOriginal(items, fileName) {
 
     return result;
   } catch (e) {
-    console.error("更新PO失败:", e);
+    (loggers.app || console).error("更新PO失败:", e);
     return generateCSV(items, true);
   }
 }
@@ -396,7 +396,7 @@ function generateIOSStringsFromOriginal(items, fileName) {
 
     return updated.join("\n");
   } catch (e) {
-    console.error("更新iOS Strings失败:", e);
+    (loggers.app || console).error("更新iOS Strings失败:", e);
     return generateCSV(items, true);
   }
 }

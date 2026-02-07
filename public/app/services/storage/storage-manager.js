@@ -352,7 +352,9 @@ class StorageManager {
           this.__metaActiveProjectIdKey
         );
         if (typeof val === "string" && val) return val;
-      } catch (_) {}
+      } catch (_) {
+        (loggers.storage || console).debug("getActiveProjectId fallback:", backend?.backendId, _);
+      }
     }
     return null;
   }
@@ -383,7 +385,9 @@ class StorageManager {
           this.__metaProjectsIndexKey
         );
         if (Array.isArray(idx)) return idx;
-      } catch (_) {}
+      } catch (_) {
+        (loggers.storage || console).debug("loadProjectsIndex fallback:", backend?.backendId, _);
+      }
     }
     return [];
   }
@@ -417,7 +421,9 @@ class StorageManager {
     try {
       const project = await this.__loadJsonFromBackend(preferred, key);
       if (project) return project;
-    } catch (_) {}
+    } catch (_) {
+      (loggers.storage || console).debug("loadProjectById preferred failed:", preferred?.backendId, _);
+    }
 
     for (const backend of fallbacks) {
       try {
@@ -425,10 +431,14 @@ class StorageManager {
         if (project) {
           try {
             await this.__saveJsonToBackend(preferred, key, project);
-          } catch (_) {}
+          } catch (_) {
+            (loggers.storage || console).debug("loadProjectById cross-save failed:", _);
+          }
           return project;
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.storage || console).debug("loadProjectById fallback:", backend?.backendId, _);
+      }
     }
     return null;
   }
@@ -477,7 +487,9 @@ class StorageManager {
           await this.__saveJsonToBackend(durableFallback, this.__legacyCurrentProjectKey, normalized);
           await this.__saveJsonToBackend(durableFallback, this.__metaActiveProjectIdKey, normalized.id);
           await this.__saveJsonToBackend(durableFallback, this.__metaProjectsIndexKey, next);
-        } catch (_) {}
+        } catch (_) {
+          (loggers.storage || console).debug("saveProject durable fallback sync failed:", _);
+        }
       }
     }
 
@@ -622,7 +634,7 @@ class StorageManager {
     if (ok && wasUnavailable && this.preferredBackendId === "localStorage") {
       this.preferredBackendId = "indexeddb";
       this.__persistPreferredBackend("indexeddb");
-      (loggers.storage || console).log("IndexedDB 已恢复可用，已自动切回 indexeddb");
+      (loggers.storage || console).info("IndexedDB 已恢复可用，已自动切回 indexeddb");
     }
     return ok;
   }
@@ -694,10 +706,7 @@ class StorageManager {
   loadPreferredBackendFromSettings() {
     // 预留：后续从设置中读取 preferredStorageBackend
     try {
-      const settings = safeJsonParse(
-        localStorage.getItem("translatorSettings"),
-        null
-      );
+      const settings = SettingsCache.get();
       const preferred = settings?.preferredStorageBackend;
       if (preferred && this.backends[preferred]) {
         if (preferred === "filesystem") {
@@ -748,14 +757,9 @@ class StorageManager {
 
   __persistPreferredBackend(backendId) {
     try {
-      const raw = localStorage.getItem("translatorSettings");
-      const settings = typeof safeJsonParse === "function"
-        ? safeJsonParse(raw, {})
-        : JSON.parse(raw || "{}");
-      if (settings && typeof settings === "object") {
-        settings.preferredStorageBackend = backendId;
-        localStorage.setItem("translatorSettings", JSON.stringify(settings));
-      }
+      SettingsCache.update(function (s) {
+        s.preferredStorageBackend = backendId;
+      });
     } catch (e) {
       (loggers.storage || console).warn("持久化 preferredStorageBackend 失败:", e);
     }
@@ -787,13 +791,17 @@ class StorageManager {
         if (Array.isArray(idx) && idx.length > projectsIndex.length) {
           projectsIndex = idx;
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.storage || console).debug("migrateToBackend loadIndex:", srcId, _);
+      }
 
       if (!activeProjectId) {
         try {
           const aid = await this.__loadJsonFromBackend(src, this.__metaActiveProjectIdKey);
           if (typeof aid === "string" && aid) activeProjectId = aid;
-        } catch (_) {}
+        } catch (_) {
+          (loggers.storage || console).debug("migrateToBackend loadActiveId:", srcId, _);
+        }
       }
     }
 
@@ -816,7 +824,9 @@ class StorageManager {
         try {
           const data = await this.__loadJsonFromBackend(src, key);
           if (data) { projectData = data; break; }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.storage || console).debug("migrateToBackend loadProject:", srcId, projectId, _);
+        }
       }
 
       if (!projectData) continue;
@@ -854,11 +864,15 @@ class StorageManager {
             await this.__saveJsonToBackend(targetBackend, this.__legacyCurrentProjectKey, legacy);
             break;
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.storage || console).debug("migrateToBackend legacy read:", srcId, _);
+        }
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.storage || console).debug("migrateToBackend legacy outer:", _);
+    }
 
-    (loggers.storage || console).log(
+    (loggers.storage || console).info(
       `存储迁移完成: ${migratedProjects.length}个项目迁移到${targetBackendId}` +
       (errors.length > 0 ? `，${errors.length}个错误` : "")
     );
@@ -877,13 +891,14 @@ class StorageManager {
       this.preferredBackendId = "filesystem";
       this.__fsFallbackPending = false;
       this.__persistPreferredBackend("filesystem");
-      (loggers.storage || console).log("File System Access 权限已恢复，已切回 filesystem 后端");
+      (loggers.storage || console).info("File System Access 权限已恢复，已切回 filesystem 后端");
 
       if (typeof window.updateStorageBackendStatus === "function") {
         window.updateStorageBackendStatus();
       }
       return true;
     } catch (_) {
+      (loggers.storage || console).debug("tryReconnectFilesystem failed:", _);
       return false;
     }
   }
@@ -913,7 +928,7 @@ class StorageManager {
       window.updateStorageBackendStatus();
     }
 
-    (loggers.storage || console).log("已停用文件夹存储，切回 IndexedDB");
+    (loggers.storage || console).info("已停用文件夹存储，切回 IndexedDB");
     return true;
   }
 
@@ -1152,9 +1167,13 @@ class StorageManager {
           }
           try {
             await this.__removeFromBackend(backend, key);
-          } catch (_) {}
+          } catch (_) {
+            (loggers.storage || console).debug("clearAllData removeProject:", backend?.backendId, _);
+          }
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.storage || console).debug("clearAllData cleanup:", id, _);
+      }
     }
 
     await this.ensureBackendAvailable();

@@ -47,8 +47,8 @@ TranslationService.prototype.translateWithOpenAI = async function (
   const sourceLanguage = langNames[sourceLang] || sourceLang;
   const targetLanguage = langNames[targetLang] || targetLang;
 
-  // 清理输入
-  const cleanText = securityUtils.sanitizeInput(text);
+  // 清理输入（不转义HTML实体，保留原始字符供翻译引擎处理）
+  const cleanText = securityUtils.sanitizeForApi(text);
 
   // 构建增强型提示词
   let systemPrompt = "";
@@ -61,7 +61,9 @@ TranslationService.prototype.translateWithOpenAI = async function (
         targetLang,
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.translation || console).debug("openai getPromptTemplate:", _);
+  }
   if (!systemPrompt || !systemPrompt.trim()) {
     systemPrompt = `你是一位专业的软件本地化翻译专家，精通${sourceLanguage}到${targetLanguage}的翻译。
 
@@ -147,7 +149,7 @@ TranslationService.prototype.translateWithOpenAI = async function (
     const data = await response.json();
     return data.choices[0].message.content.trim();
   } catch (error) {
-    console.error("OpenAI翻译失败:", error);
+    (loggers.translation || console).error("OpenAI翻译失败:", error);
     throw error;
   }
 };

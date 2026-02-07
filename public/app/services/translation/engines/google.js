@@ -28,8 +28,8 @@ TranslationService.prototype.translateWithGoogle = async function (
     throw err;
   }
 
-  // 清理输入
-  const cleanText = securityUtils.sanitizeInput(text);
+  // 清理输入（不转义HTML实体，保留原始字符供翻译引擎处理）
+  const cleanText = securityUtils.sanitizeForApi(text);
 
   try {
     const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
@@ -76,7 +76,7 @@ TranslationService.prototype.translateWithGoogle = async function (
     const data = await response.json();
     return data.data.translations[0].translatedText;
   } catch (error) {
-    console.error("Google翻译失败:", error);
+    (loggers.translation || console).error("Google翻译失败:", error);
     throw error;
   }
 };

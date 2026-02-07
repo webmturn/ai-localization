@@ -3,8 +3,11 @@
 function __devLog() {
   if (typeof isDevelopment !== "undefined" && isDevelopment) {
     try {
-      console.log.apply(console, arguments);
-    } catch (_) {}
+      var logger = (typeof loggers !== "undefined" && loggers.app) || console;
+      (logger.debug || logger.log).apply(logger, arguments);
+    } catch (_) {
+      // dev-only console.log wrapper - safe to ignore
+    }
   }
 }
 
@@ -23,7 +26,9 @@ function __waitForTranslationsRendered(minVersion, timeoutMs = 800) {
     const timer = setTimeout(() => {
       try {
         document.removeEventListener("translations:rendered", onRendered);
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("render removeEventListener:", _);
+      }
       finish();
     }, timeoutMs);
 
@@ -41,14 +46,14 @@ function __waitForTranslationsRendered(minVersion, timeoutMs = 800) {
 }
 
 // 获取状态样式类
+var __statusClassMap = {
+  pending: "text-gray-500 dark:text-gray-400",
+  translated: "text-green-600 dark:text-emerald-400",
+  edited: "text-blue-600 dark:text-blue-400",
+  approved: "text-purple-600 dark:text-purple-400",
+};
 function getStatusClass(status) {
-  const statusMap = {
-    pending: "text-gray-500 dark:text-gray-400",
-    translated: "text-green-600 dark:text-emerald-400",
-    edited: "text-blue-600 dark:text-blue-400",
-    approved: "text-purple-600 dark:text-purple-400",
-  };
-  return statusMap[status] || "text-gray-500 dark:text-gray-400";
+  return __statusClassMap[status] || "text-gray-500 dark:text-gray-400";
 }
 
 // 创建翻译项 DOM 元素（使用事件委托，不再单独绑定）
@@ -311,12 +316,12 @@ function updateTranslationLists() {
 
     if (isMobile) {
       if (!mobileCombinedList) {
-        console.error("移动端合并列表元素未找到");
+        (loggers.app || console).error("移动端合并列表元素未找到");
         return;
       }
     } else {
       if (!sourceList || !targetList) {
-        console.error("源列表或目标列表元素未找到");
+        (loggers.app || console).error("源列表或目标列表元素未找到");
         return;
       }
     }
@@ -453,7 +458,7 @@ function updateTranslationLists() {
       );
       if (selectedEl) {
         const container =
-          document.getElementById("translationScrollWrapper") ||
+          DOMCache.get("translationScrollWrapper") ||
           selectedEl.closest(".translation-scroll-wrapper");
         if (!container) {
           selectedEl.scrollIntoView({ block: "nearest" });
@@ -527,7 +532,7 @@ function updateTranslationLists() {
 
     __devLog("翻译列表更新完成");
   } catch (error) {
-    console.error("更新翻译列表时出错:", error);
+    (loggers.app || console).error("更新翻译列表时出错:", error);
     const sourceList = DOMCache.get("sourceList");
     const targetList = DOMCache.get("targetList");
     const errorText = `错误: ${
@@ -637,7 +642,7 @@ function findFirstMatchingItem(searchQuery) {
     __devLog("未找到匹配项");
     return -1;
   } catch (error) {
-    console.error("查找匹配项时出错:", error);
+    (loggers.app || console).error("查找匹配项时出错:", error);
     return -1;
   }
 }
@@ -646,10 +651,10 @@ function findFirstMatchingItem(searchQuery) {
 // 显示文件搜索结果（只搜索文件名）
 function showFileSearchResults(searchQuery) {
   try {
-    const searchResultsPanel = document.getElementById("searchResultsPanel");
-    const searchResultsList = document.getElementById("searchResultsList");
-    const searchResultsFooter = document.getElementById("searchResultsFooter");
-    const searchResultsCount = document.getElementById("searchResultsCount");
+    const searchResultsPanel = DOMCache.get("searchResultsPanel");
+    const searchResultsList = DOMCache.get("searchResultsList");
+    const searchResultsFooter = DOMCache.get("searchResultsFooter");
+    const searchResultsCount = DOMCache.get("searchResultsCount");
 
     if (!searchResultsPanel || !searchResultsList) return;
 
@@ -740,7 +745,7 @@ function showFileSearchResults(searchQuery) {
       searchResultsFooter.classList.remove("hidden");
     }
   } catch (error) {
-    console.error("显示文件搜索结果时出错:", error);
+    (loggers.app || console).error("显示文件搜索结果时出错:", error);
   }
 }
 
@@ -750,7 +755,7 @@ function navigateToSearchResult(index) {
     __devLog("跳转到搜索结果索引:", index);
 
     // 隐藏搜索结果面板
-    const searchResultsPanel = document.getElementById("searchResultsPanel");
+    const searchResultsPanel = DOMCache.get("searchResultsPanel");
     searchResultsPanel.classList.add("hidden");
 
     // 选择对应的翻译项
@@ -766,7 +771,7 @@ function navigateToSearchResult(index) {
       );
     }
   } catch (error) {
-    console.error("跳转到搜索结果时出错:", error);
+    (loggers.app || console).error("跳转到搜索结果时出错:", error);
     showNotification("error", "跳转失败", "无法跳转到指定的翻译项");
   }
 }
@@ -776,7 +781,7 @@ function handleSearchEnter() {
   try {
     __devLog("=== 开始处理搜索回车 ===");
 
-    const searchInput = document.getElementById("searchInput");
+    const searchInput = DOMCache.get("searchInput");
     const searchQuery = searchInput
       ? searchInput.value.trim().toLowerCase()
       : "";
@@ -824,8 +829,7 @@ function handleSearchEnter() {
       );
     }
   } catch (error) {
-    console.error("处理搜索回车时出错:", error);
-    console.error("错误堆栈:", error.stack);
+    (loggers.app || console).error("处理搜索回车时出错:", error);
     showNotification(
       "error",
       "搜索错误",
@@ -840,7 +844,7 @@ async function scrollToItem(index) {
     const smartScrollToComfortZone = (el, behavior = "smooth") => {
       if (!el) return;
       const container =
-        document.getElementById("translationScrollWrapper") ||
+        DOMCache.get("translationScrollWrapper") ||
         el.closest(".translation-scroll-wrapper");
       if (!container) {
         el.scrollIntoView({ behavior, block: "nearest" });
@@ -891,9 +895,9 @@ async function scrollToItem(index) {
       // 移动端：滚动合并列表
       if (window.innerWidth < 768) {
         const mobileCombinedList =
-          document.getElementById("mobileCombinedList");
+          DOMCache.get("mobileCombinedList");
         if (!mobileCombinedList) {
-          console.error("移动端滚动目标元素未找到");
+          (loggers.app || console).error("移动端滚动目标元素未找到");
           return true;
         }
 
@@ -908,11 +912,11 @@ async function scrollToItem(index) {
         return false;
       }
 
-      const sourceList = document.getElementById("sourceList");
-      const targetList = document.getElementById("targetList");
+      const sourceList = DOMCache.get("sourceList");
+      const targetList = DOMCache.get("targetList");
 
       if (!sourceList || !targetList) {
-        console.error("滚动目标元素未找到");
+        (loggers.app || console).error("滚动目标元素未找到");
         return true;
       }
 
@@ -935,7 +939,7 @@ async function scrollToItem(index) {
     await __waitForTranslationsRendered(beforeVersion + 1, 800);
     tryScroll();
   } catch (error) {
-    console.error("滚动到翻译项时出错:", error);
+    (loggers.app || console).error("滚动到翻译项时出错:", error);
   }
 }
 

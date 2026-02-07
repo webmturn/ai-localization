@@ -20,8 +20,7 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   }
 
   // 验证API密钥
-  if (!securityUtils.validateApiKey(apiKey, "openai")) {
-    // DeepSeek使用与OpenAI类似的格式
+  if (!securityUtils.validateApiKey(apiKey, "deepseek")) {
     throw new Error("DeepSeek API密钥格式不正确");
   }
 
@@ -38,8 +37,8 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   const sourceLanguage = langNames[sourceLang] || sourceLang;
   const targetLanguage = langNames[targetLang] || targetLang;
 
-  // 清理输入
-  const cleanText = securityUtils.sanitizeInput(text);
+  // 清理输入（不转义HTML实体，保留原始字符供翻译引擎处理）
+  const cleanText = securityUtils.sanitizeForApi(text);
 
   // 构建增强型提示词
   let systemPrompt = "";
@@ -52,7 +51,9 @@ TranslationService.prototype.translateWithDeepSeek = async function (
         targetLang,
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.translation || console).debug("deepseek getPromptTemplate:", _);
+  }
   if (!systemPrompt || !systemPrompt.trim()) {
     systemPrompt = `你是一位专业的软件本地化翻译专家，精通${sourceLanguage}到${targetLanguage}的翻译。
 
@@ -91,7 +92,9 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   try {
     try {
       await this.checkRateLimit("deepseek");
-    } catch (_) {}
+    } catch (_) {
+      (loggers.translation || console).debug("deepseek rateLimit:", _);
+    }
 
     const response = await networkUtils.fetchWithDedupe(
       "https://api.deepseek.com/v1/chat/completions",
@@ -145,7 +148,7 @@ TranslationService.prototype.translateWithDeepSeek = async function (
     const data = await response.json();
     return data.choices[0].message.content.trim();
   } catch (error) {
-    console.error("DeepSeek翻译失败:", error);
+    (loggers.translation || console).error("DeepSeek翻译失败:", error);
     throw error;
   }
 };
@@ -274,7 +277,7 @@ function __deepseekCreateCancelWatcher(partialOutputs) {
         intervalId = null;
         reject(__deepseekMakeCancelError(partialOutputs));
       }
-    }, 50);
+    }, 300);
   });
 
   return {
@@ -309,7 +312,7 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
   if (!apiKey) {
     throw new Error("DeepSeek API密钥未配置");
   }
-  if (!securityUtils.validateApiKey(apiKey, "openai")) {
+  if (!securityUtils.validateApiKey(apiKey, "deepseek")) {
     throw new Error("DeepSeek API密钥格式不正确");
   }
 
@@ -344,7 +347,9 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
         targetLang,
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.translation || console).debug("deepseek batch getPromptTemplate:", _);
+  }
   if (!baseSystemPrompt || !baseSystemPrompt.trim()) {
     baseSystemPrompt = `你是一位专业的软件本地化翻译专家，精通${sourceLanguage}到${targetLanguage}的翻译。
 
@@ -410,10 +415,12 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
 
     try {
       await this.checkRateLimit("deepseek");
-    } catch (_) {}
+    } catch (_) {
+      (loggers.translation || console).debug("deepseek batch rateLimit:", _);
+    }
 
     const reqItems = chunk.map((it) => {
-      const cleanText = securityUtils.sanitizeInput(it.sourceText || "");
+      const cleanText = securityUtils.sanitizeForApi(it.sourceText || "");
       return {
         key: useKeyContext ? __deepseekGetItemKey(it) : "",
         source: cleanText,

@@ -44,10 +44,12 @@ class ArchitectureInitializer {
         this.initialized = true;
         return this.getInitializationReport();
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.architecture || console).debug("architecture init guard check:", _);
+    }
 
     if (this.initialized) {
-      console.warn('架构已经初始化');
+      (loggers.architecture || console).warn('架构已经初始化');
       return this.getInitializationReport();
     }
     
@@ -62,12 +64,12 @@ class ArchitectureInitializer {
     } = options;
     
     try {
-      console.log('🏗️ 开始架构初始化...');
+      (loggers.architecture || console).info('开始架构初始化...');
       
       // 执行初始化步骤
       for (const stepName of this.initializationOrder) {
         if (skipSteps.includes(stepName)) {
-          console.log(`⏭️ 跳过步骤: ${stepName}`);
+          (loggers.architecture || console).debug(`跳过步骤: ${stepName}`);
           this.stepStatus.set(stepName, { status: 'skipped', duration: 0 });
           continue;
         }
@@ -77,7 +79,7 @@ class ArchitectureInitializer {
         try {
           // 只在开发模式下显示详细步骤日志
           if (typeof isDevelopment !== 'undefined' && isDevelopment) {
-            console.log(`🔧 执行步骤: ${stepName}`);
+            (loggers.architecture || console).info(`🔧 执行步骤: ${stepName}`);
           }
           
           // 执行自定义步骤或默认步骤
@@ -95,7 +97,7 @@ class ArchitectureInitializer {
           
           // 只在开发模式下显示详细步骤完成日志
           if (typeof isDevelopment !== 'undefined' && isDevelopment) {
-            console.log(`✅ 步骤完成: ${stepName} (${stepDuration.toFixed(2)}ms)`);
+            (loggers.architecture || console).info(`✅ 步骤完成: ${stepName} (${stepDuration.toFixed(2)}ms)`);
           }
           
         } catch (error) {
@@ -106,14 +108,14 @@ class ArchitectureInitializer {
             error: error.message 
           });
           
-          console.error(`❌ 步骤失败: ${stepName}`, error);
+          (loggers.architecture || console).error(`步骤失败: ${stepName}`, error);
           
           // 对于非关键步骤，允许继续初始化
           const criticalSteps = ['namespace', 'dependencyInjection'];
           if (criticalSteps.includes(stepName)) {
             throw new Error(`架构初始化在关键步骤 ${stepName} 失败: ${error.message}`);
           } else {
-            console.warn(`⚠️ 非关键步骤 ${stepName} 失败，继续初始化其他步骤`);
+            (loggers.architecture || console).warn(`非关键步骤 ${stepName} 失败，继续初始化其他步骤`);
           }
         }
       }
@@ -136,10 +138,12 @@ class ArchitectureInitializer {
             mirrorWindow: false,
           });
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.architecture || console).debug("ArchDebug setFlag architectureInitialized:", _);
+      }
       
       const totalDuration = this.endTime - this.startTime;
-      console.log(`🎉 架构初始化完成 (总耗时: ${totalDuration.toFixed(2)}ms)`);
+      (loggers.architecture || console).info(`架构初始化完成 (总耗时: ${totalDuration.toFixed(2)}ms)`);
       
       // 显示初始化报告
       if (enableLogging) {
@@ -160,7 +164,7 @@ class ArchitectureInitializer {
       
     } catch (error) {
       this.endTime = performance.now();
-      console.error('❌ 架构初始化失败:', error);
+      (loggers.architecture || console).error('架构初始化失败:', error);
       throw error;
     }
   }
@@ -289,7 +293,9 @@ class ArchitectureInitializer {
             mirrorWindow: false,
           });
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", _);
+      }
       return;
     }
     
@@ -306,7 +312,9 @@ class ArchitectureInitializer {
           mirrorWindow: false,
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", _);
+    }
   }
 
   async initializeCoreServices(options) {
@@ -314,7 +322,7 @@ class ArchitectureInitializer {
 
     for (const serviceName of coreServices) {
       if (!window.diContainer.has(serviceName)) {
-        console.warn(`核心服务 ${serviceName} 未注册`);
+        (loggers.architecture || console).warn(`核心服务 ${serviceName} 未注册`);
       } else {
         window.diContainer.resolve(serviceName);
       }
@@ -338,7 +346,7 @@ class ArchitectureInitializer {
     if (window.StorageErrorHandler?.checkStorageHealth) {
       const health = await window.StorageErrorHandler.checkStorageHealth();
       if (health.issues.length > 0) {
-        console.warn('存储系统健康检查发现问题:', health.issues);
+        (loggers.architecture || console).warn('存储系统健康检查发现问题:', health.issues);
       }
     }
   }
@@ -368,7 +376,7 @@ class ArchitectureInitializer {
         issues[0].includes('file://');
 
       if (issues.length > 0 && !isOnlyFileProtocolSkip) {
-        console.warn('网络连接检查发现问题:', issues);
+        (loggers.architecture || console).warn('网络连接检查发现问题:', issues);
       } else if (isOnlyFileProtocolSkip) {
         try {
           const alreadyNotified = window.ArchDebug
@@ -383,14 +391,16 @@ class ArchitectureInitializer {
             }
 
             if (typeof isDevelopment !== 'undefined' && isDevelopment) {
-              console.info('网络连接检查:', issues[0]);
+              (loggers.architecture || console).info('网络连接检查:', issues[0]);
             }
 
             if (typeof showNotification === 'function') {
               showNotification('info', '本地文件模式', '已跳过网络连接测试');
             }
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.architecture || console).debug("network services init:", _);
+        }
       }
     }
   }
@@ -415,7 +425,7 @@ class ArchitectureInitializer {
   async initializeUIServices(options) {
     // 注册UI相关服务
     window.diContainer.registerSingleton('uiManager', () => ({
-      showNotification: window.showNotification || console.log,
+      showNotification: window.showNotification || ((t,ti,m) => (loggers.app || console).info(`${t}: ${ti} - ${m}`)),
       updateProgress: window.updateProgress || (() => {}),
       showDialog: window.showDialog || window.alert,
       showConfirm: window.showConfirm || window.confirm
@@ -545,9 +555,9 @@ class ArchitectureInitializer {
     const failures = results.filter(r => r.status === 'rejected');
     
     if (failures.length > 0) {
-      console.warn('架构验证发现问题:', failures);
+      (loggers.architecture || console).warn('架构验证发现问题:', failures);
     } else {
-      console.log('✅ 架构验证通过');
+      (loggers.architecture || console).info('架构验证通过');
     }
   }
   
@@ -626,7 +636,7 @@ class ArchitectureInitializer {
       const duration = performance.now() - start;
       
       if (duration > 100) {
-        console.warn(`模块 ${name} 加载耗时过长: ${duration.toFixed(2)}ms`);
+        (loggers.architecture || console).warn(`模块 ${name} 加载耗时过长: ${duration.toFixed(2)}ms`);
       }
       
       return result;
@@ -640,7 +650,7 @@ class ArchitectureInitializer {
       const duration = performance.now() - start;
       
       if (duration > 50) {
-        console.warn(`服务 ${name} 解析耗时过长: ${duration.toFixed(2)}ms`);
+        (loggers.architecture || console).warn(`服务 ${name} 解析耗时过长: ${duration.toFixed(2)}ms`);
       }
       
       return result;
@@ -651,16 +661,19 @@ class ArchitectureInitializer {
    * 启用错误报告
    */
   enableErrorReporting() {
-    // 监听架构相关错误
-    window.addEventListener('error', (event) => {
-      if (event.filename?.includes('/app/core/')) {
-        console.error('架构核心模块错误:', event);
-      }
-    });
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('架构相关Promise拒绝:', event.reason);
-    });
+    // 仅在开发模式下注册架构专用错误监听
+    // 生产模式由 ErrorManager + error-production.js 统一处理，避免重复捕获
+    if (typeof isDevelopment !== 'undefined' && isDevelopment) {
+      window.addEventListener('error', (event) => {
+        if (event.filename?.includes('/app/core/')) {
+          (loggers.architecture || console).error('架构核心模块错误:', event);
+        }
+      });
+      
+      window.addEventListener('unhandledrejection', (event) => {
+        (loggers.architecture || console).error('架构相关Promise拒绝:', event.reason);
+      });
+    }
   }
   
   /**
@@ -699,24 +712,22 @@ class ArchitectureInitializer {
     const report = this.getInitializationReport();
     
     // 简化的初始化报告
-    console.log(`🎉 架构初始化完成 (${report.totalDuration?.toFixed(2)}ms)`);
+    (loggers.architecture || console).info(`架构初始化完成 (${report.totalDuration?.toFixed(2)}ms)`);
     
-    // 只在开发模式下显示详细报告
-    if (typeof isDevelopment !== 'undefined' && isDevelopment) {
-      console.group('📊 架构初始化报告');
-      console.log('总耗时:', `${report.totalDuration?.toFixed(2)}ms`);
-      console.log('初始化状态:', report.initialized ? '✅ 成功' : '❌ 失败');
+    // 只在开发模式且日志级别允许时显示详细报告
+    if (typeof isDevelopment !== 'undefined' && isDevelopment &&
+        typeof loggerConfig !== 'undefined' && loggerConfig.shouldLog(LOG_LEVELS.INFO, 'architecture')) {
+      (loggers.architecture || console).info('📊 架构初始化报告');
+      (loggers.architecture || console).info('总耗时:', `${report.totalDuration?.toFixed(2)}ms`);
+      (loggers.architecture || console).info('初始化状态:', report.initialized ? '✅ 成功' : '❌ 失败');
       
-      console.group('步骤详情:');
+      (loggers.architecture || console).info('步骤详情:');
       Object.entries(report.steps).forEach(([step, info]) => {
         const status = info.status === 'completed' ? '✅' : 
                       info.status === 'failed' ? '❌' : 
                       info.status === 'skipped' ? '⏭️' : '❓';
-        console.log(`${status} ${step}: ${info.duration?.toFixed(2)}ms`);
+        (loggers.architecture || console).info(`${status} ${step}: ${info.duration?.toFixed(2)}ms`);
       });
-      console.groupEnd();
-      
-      console.groupEnd();
     }
   }
 }

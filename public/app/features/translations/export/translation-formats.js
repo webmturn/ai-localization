@@ -1,32 +1,32 @@
 // 生成XML格式
 function generateXML(items, includeOriginal) {
-  console.log("=== 开始生成XML ===");
-  console.log("翻译项数量:", items.length);
+  (loggers.app || console).debug("=== 开始生成XML ===");
+  (loggers.app || console).debug("翻译项数量:", items.length);
 
   // 尝试查找原始文件内容
   const firstItem = items[0];
   const fileName = firstItem?.metadata?.file;
 
-  console.log("文件名:", fileName);
+  (loggers.app || console).debug("文件名:", fileName);
 
   // 打印前几个翻译项的示例
   if (items.length > 0) {
-    console.log("翻译项示例 (前3个):");
+    (loggers.app || console).debug("翻译项示例 (前3个):");
     items.slice(0, 3).forEach((item, i) => {
-      console.log(`  [${i}] 原文: "${item.sourceText?.substring(0, 50)}..."`);
-      console.log(`      译文: "${item.targetText?.substring(0, 50)}..."`);
-      console.log(`      ID: ${item.id}, 状态: ${item.status}`);
+      (loggers.app || console).debug(`  [${i}] 原文: "${item.sourceText?.substring(0, 50)}..."`);
+      (loggers.app || console).debug(`      译文: "${item.targetText?.substring(0, 50)}..."`);
+      (loggers.app || console).debug(`      ID: ${item.id}, 状态: ${item.status}`);
     });
   }
 
   // 如果有原始文件内容，就在原文件基础上替换翻译
   if (fileName && AppState.fileMetadata[fileName]?.originalContent) {
-    console.log("找到原始文件内容，使用替换模式");
+    (loggers.app || console).debug("找到原始文件内容，使用替换模式");
     const originalContent = AppState.fileMetadata[fileName].originalContent;
     const extension = AppState.fileMetadata[fileName].extension;
 
-    console.log("文件扩展名:", extension);
-    console.log("原始内容长度:", originalContent.length);
+    (loggers.app || console).debug("文件扩展名:", extension);
+    (loggers.app || console).debug("原始内容长度:", originalContent.length);
 
     // 根据不同格式处理
     if (extension === "xml") {
@@ -34,26 +34,26 @@ function generateXML(items, includeOriginal) {
         originalContent.includes("<resources") &&
         originalContent.includes("<string name=")
       ) {
-        console.log("检测到Android strings.xml格式");
+        (loggers.app || console).debug("检测到Android strings.xml格式");
         return generateAndroidStringsXML(items, originalContent);
       }
     }
 
     // 通用XML替换
-    console.log("使用通用XML替换");
+    (loggers.app || console).debug("使用通用XML替换");
     return replaceXMLContent(items, originalContent);
   }
 
   // 如果没有原始文件，但看起来是Android strings.xml，则生成resources格式
   if (looksLikeAndroidStringsItems(items)) {
-    console.log(
+    (loggers.app || console).debug(
       "未找到原始文件内容，但检测到Android strings.xml项目，使用生成resources模式"
     );
     return generateAndroidStringsXMLFromItems(items, includeOriginal);
   }
 
   // 如果没有原始文件，生成通用格式
-  console.log("没有原始文件，生成通用XML格式");
+  (loggers.app || console).debug("没有原始文件，生成通用XML格式");
   return generateGenericXML(items, includeOriginal);
 }
 
@@ -107,7 +107,7 @@ function generateGenericXML(items, includeOriginal) {
 
 // 替换XML内容（通用方法）
 function replaceXMLContent(items, originalContent) {
-  console.log("开始替换XML内容, 翻译项数量:", items.length);
+  (loggers.app || console).debug("开始替换XML内容, 翻译项数量:", items.length);
 
   // 使用DOM解析更准确地替换
   try {
@@ -117,7 +117,7 @@ function replaceXMLContent(items, originalContent) {
     // 检查解析错误
     const parserError = xmlDoc.querySelector("parsererror");
     if (parserError) {
-      console.warn("XML解析失败，使用文本替换");
+      (loggers.app || console).warn("XML解析失败，使用文本替换");
       return replaceXMLContentByText(items, originalContent);
     }
 
@@ -146,7 +146,7 @@ function replaceXMLContent(items, originalContent) {
       }
     }
 
-    console.log(`找到 ${replacements.length} 个匹配的文本节点`);
+    (loggers.app || console).debug(`找到 ${replacements.length} 个匹配的文本节点`);
 
     // 执行替换
     replacements.forEach(
@@ -155,7 +155,7 @@ function replaceXMLContent(items, originalContent) {
         const leadingSpace = originalContent.match(/^\s*/)[0];
         const trailingSpace = originalContent.match(/\s*$/)[0];
         node.textContent = leadingSpace + targetText + trailingSpace;
-        console.log(`替换: "${sourceText}" -> "${targetText}"`);
+        (loggers.app || console).debug(`替换: "${sourceText}" -> "${targetText}"`);
       }
     );
 
@@ -163,17 +163,17 @@ function replaceXMLContent(items, originalContent) {
     const serializer = new XMLSerializer();
     const result = serializer.serializeToString(xmlDoc);
 
-    console.log("替换完成");
+    (loggers.app || console).debug("替换完成");
     return result;
   } catch (error) {
-    console.error("DOM替换失败:", error);
+    (loggers.app || console).error("DOM替换失败:", error);
     return replaceXMLContentByText(items, originalContent);
   }
 }
 
 // 文本替换方式（备用）
 function replaceXMLContentByText(items, originalContent) {
-  console.log("使用文本替换方式, 翻译项数量:", items.length);
+  (loggers.app || console).debug("使用文本替换方式, 翻译项数量:", items.length);
   let result = originalContent;
   let replacedCount = 0;
 
@@ -196,7 +196,7 @@ function replaceXMLContentByText(items, originalContent) {
 
       result = result.replace(regex, (match, p1) => {
         if (p1.trim() === item.sourceText.trim()) {
-          console.log(
+          (loggers.app || console).debug(
             `文本替换: "${item.sourceText.substring(
               0,
               50
@@ -210,7 +210,7 @@ function replaceXMLContentByText(items, originalContent) {
     }
   });
 
-  console.log(`文本替换完成, 共替换 ${replacedCount} 个项`);
+  (loggers.app || console).debug(`文本替换完成, 共替换 ${replacedCount} 个项`);
   return result;
 }
 
@@ -240,7 +240,7 @@ function generateAndroidStringsXMLFromItems(items, includeOriginal) {
 
 // 生成Android strings.xml格式
 function generateAndroidStringsXML(items, originalContent) {
-  console.log("处理Android strings.xml, 翻译项数量:", items.length);
+  (loggers.app || console).debug("处理Android strings.xml, 翻译项数量:", items.length);
   let result = originalContent;
   let replacedCount = 0;
 
@@ -249,7 +249,7 @@ function generateAndroidStringsXML(items, originalContent) {
       // 获取原始的resourceId（name属性值）
       const resourceId = item.metadata?.resourceId;
       if (!resourceId) {
-        console.warn(`跳过无resourceId的项: ${item.id}`);
+        (loggers.app || console).warn(`跳过无resourceId的项: ${item.id}`);
         return;
       }
 
@@ -264,7 +264,7 @@ function generateAndroidStringsXML(items, originalContent) {
 
       const before = result;
       result = result.replace(regex, (match, opening, content, closing) => {
-        console.log(
+        (loggers.app || console).debug(
           `✓ 替换Android资源: name="${resourceId}" -> "${item.targetText.substring(
             0,
             30
@@ -275,12 +275,12 @@ function generateAndroidStringsXML(items, originalContent) {
       });
 
       if (result === before) {
-        console.warn(`✗ 未找到匹配: name="${resourceId}"`);
+        (loggers.app || console).warn(`✗ 未找到匹配: name="${resourceId}"`);
       }
     }
   });
 
-  console.log(`Android strings.xml 替换完成, 共替换 ${replacedCount} 个项`);
+  (loggers.app || console).debug(`Android strings.xml 替换完成, 共替换 ${replacedCount} 个项`);
   return result;
 }
 
@@ -422,7 +422,7 @@ function updateXLIFFContent(items, originalContent) {
     const serializer = new XMLSerializer();
     return serializer.serializeToString(xmlDoc);
   } catch (error) {
-    console.error("更新XLIFF失败:", error);
+    (loggers.app || console).error("更新XLIFF失败:", error);
     return generateNewXLIFF(items);
   }
 }
@@ -431,11 +431,11 @@ function updateXLIFFContent(items, originalContent) {
 function generateNewXLIFF(items) {
   const sourceLang =
     AppState.project?.sourceLanguage ||
-    document.getElementById("sourceLanguage")?.value ||
+    DOMCache.get("sourceLanguage")?.value ||
     "en";
   const targetLang =
     AppState.project?.targetLanguage ||
-    document.getElementById("targetLanguage")?.value ||
+    DOMCache.get("targetLanguage")?.value ||
     "zh";
 
   let xliff = '<?xml version="1.0" encoding="UTF-8"?>\n';

@@ -1,8 +1,8 @@
 // 创建新项目
 function createNewProject() {
-  const name = document.getElementById("projectName").value.trim();
-  const sourceLang = document.getElementById("projectSourceLang").value;
-  const targetLang = document.getElementById("projectTargetLang").value;
+  const name = DOMCache.get("projectName").value.trim();
+  const sourceLang = DOMCache.get("projectSourceLang").value;
+  const targetLang = DOMCache.get("projectTargetLang").value;
 
   if (!name) {
     showNotification("warning", "缺少项目名称", "请输入项目名称");
@@ -44,11 +44,11 @@ function createNewProject() {
   updateCounters();
 
   // 更新语言选择
-  document.getElementById("sourceLanguage").value = sourceLang;
-  document.getElementById("targetLanguage").value = targetLang;
+  DOMCache.get("sourceLanguage").value = sourceLang;
+  DOMCache.get("targetLanguage").value = targetLang;
 
   // 清空输入框
-  document.getElementById("projectName").value = "";
+  DOMCache.get("projectName").value = "";
 
   // 隐藏模态框
   closeModal();
@@ -60,7 +60,7 @@ function createNewProject() {
   autoSaveManager.saveProject();
 
   try {
-    const settingsModal = document.getElementById("settingsModal");
+    const settingsModal = DOMCache.get("settingsModal");
     if (
       settingsModal &&
       !settingsModal.classList.contains("hidden") &&
@@ -68,7 +68,9 @@ function createNewProject() {
     ) {
       window.loadProjectPromptTemplatesToUI();
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("project loadPromptTemplates:", _);
+  }
 }
 
 // 打开项目
@@ -90,7 +92,7 @@ function openProject() {
         try {
           projectData = JSON.parse(raw);
         } catch (e) {
-          console.error("打开项目失败:", e);
+          (loggers.app || console).error("打开项目失败:", e);
           showNotification("error", "打开失败", "无法解析项目文件");
           return;
         }
@@ -147,9 +149,9 @@ function openProject() {
         AppState.translations.searchQuery = "";
 
         // 更新UI
-        document.getElementById("sourceLanguage").value =
+        DOMCache.get("sourceLanguage").value =
           projectData.sourceLanguage;
-        document.getElementById("targetLanguage").value =
+        DOMCache.get("targetLanguage").value =
           projectData.targetLanguage;
         updateFileTree();
         updateTranslationLists();
@@ -163,7 +165,7 @@ function openProject() {
         );
 
         try {
-          const settingsModal = document.getElementById("settingsModal");
+          const settingsModal = DOMCache.get("settingsModal");
           if (
             settingsModal &&
             !settingsModal.classList.contains("hidden") &&
@@ -171,10 +173,12 @@ function openProject() {
           ) {
             window.loadProjectPromptTemplatesToUI();
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("project import loadPromptTemplates:", _);
+        }
       })
       .catch((e) => {
-        console.error("读取项目文件失败:", e);
+        (loggers.app || console).error("读取项目文件失败:", e);
         showNotification("error", "读取失败", "无法读取项目文件");
       });
   };
@@ -226,7 +230,7 @@ async function saveProject() {
     await storageManager.saveCurrentProject(projectData);
   } catch (e) {
     persistedOk = false;
-    console.error("手动保存时持久化 currentProject 失败:", e);
+    (loggers.storage || console).error("手动保存时持久化 currentProject 失败:", e);
   }
 
   // 转换为JSON字符串

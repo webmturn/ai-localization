@@ -131,7 +131,7 @@ class LoggerConfig {
     
     this.initialized = true;
     
-    // 显示当前日志配置
+    // 显示当前日志配置（始终显示，方便诊断）
     const levelName = Object.keys(LOG_LEVELS)[Object.values(LOG_LEVELS).indexOf(this.currentLevel)];
     console.log(`📋 日志级别: ${levelName} (${this.currentLevel})`);
   }

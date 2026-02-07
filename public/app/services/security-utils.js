@@ -51,7 +51,7 @@ class SecurityUtils {
 
       return btoa(String.fromCharCode(...combined));
     } catch (error) {
-      console.error("加密失败:", error);
+      (loggers.services || console).error("加密失败:", error);
       return text; // 加密失败时返回原文（降级处理）
     }
   }
@@ -78,7 +78,7 @@ class SecurityUtils {
       const dec = new TextDecoder();
       return dec.decode(decrypted);
     } catch (error) {
-      console.error("解密失败:", error);
+      (loggers.services || console).error("解密失败:", error);
       return encryptedText; // 解密失败时返回原文（兼容旧数据）
     }
   }
@@ -103,6 +103,17 @@ class SecurityUtils {
       .substring(0, 10000); // 限制最大长度
   }
 
+  // API请求体清理（不转义HTML实体，保留原始字符如 < > " ' 等）
+  sanitizeForApi(input) {
+    if (typeof input !== "string") return "";
+
+    // 仅去除不可见控制字符（保留换行/制表符），限制长度
+    return input
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+      .trim()
+      .substring(0, 10000);
+  }
+
   // 验证API密钥格式
   validateApiKey(key, type = "generic") {
     if (!key || typeof key !== "string") return false;
@@ -113,6 +124,9 @@ class SecurityUtils {
       case "openai":
         // OpenAI: 以sk-开头
         return key.startsWith("sk-") && key.length > 20;
+      case "deepseek":
+        // DeepSeek: 以sk-开头或其他格式，长度至少20
+        return key.length >= 20;
       case "google":
         // Google: 长度通常39字符
         return key.length >= 20 && key.length <= 100;

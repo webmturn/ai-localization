@@ -12,18 +12,18 @@ async function exportTranslation() {
     return;
   }
 
-  const format = document.getElementById("exportFormat").value;
+  const format = DOMCache.get("exportFormat").value;
   // 使用单选按钮，检查哪个选项被选中
-  const onlyTranslated = document.getElementById(
+  const onlyTranslated = DOMCache.get(
     "exportOnlyTranslated"
   ).checked;
-  const includeOriginal = document.getElementById(
+  const includeOriginal = DOMCache.get(
     "exportIncludeOriginal"
   ).checked;
 
-  console.log("导出前总翻译项数量:", AppState.translations.items.length);
-  console.log("仅导出已翻译项选项:", onlyTranslated);
-  console.log("包含原文选项:", includeOriginal);
+  (loggers.app || console).debug("导出前总翻译项数量:", AppState.translations.items.length);
+  (loggers.app || console).debug("仅导出已翻译项选项:", onlyTranslated);
+  (loggers.app || console).debug("包含原文选项:", includeOriginal);
 
   // 过滤翻译项
   let itemsToExport = [...AppState.translations.items];
@@ -32,13 +32,13 @@ async function exportTranslation() {
   if (onlyTranslated) {
     const beforeFilter = itemsToExport.length;
 
-    console.log("=== 开始过滤，仅导出已翻译项 ===");
-    console.log("过滤前项数:", beforeFilter);
+    (loggers.app || console).debug("=== 开始过滤，仅导出已翻译项 ===");
+    (loggers.app || console).debug("过滤前项数:", beforeFilter);
 
     // 打印前5个项的状态
-    console.log("前5个项的状态:");
+    (loggers.app || console).debug("前5个项的状态:");
     itemsToExport.slice(0, 5).forEach((item, idx) => {
-      console.log(
+      (loggers.app || console).debug(
         `  [${idx}] status="${item.status}", hasTarget=${!!(
           item.targetText && item.targetText.trim()
         )}, text="${item.sourceText?.substring(0, 30)}..."`
@@ -55,7 +55,7 @@ async function exportTranslation() {
 
       // 记录被过滤掉的项（仅前3个）
       if (!pass && itemsToExport.indexOf(item) < 3) {
-        console.log(
+        (loggers.app || console).debug(
           `  ✗ 过滤掉: status="${
             item.status
           }", hasTranslation=${hasTranslation}, text="${item.sourceText?.substring(
@@ -68,8 +68,8 @@ async function exportTranslation() {
       return pass;
     });
 
-    console.log(`过滤后: ${beforeFilter} -> ${itemsToExport.length} 项`);
-    console.log("=== 过滤完成 ===");
+    (loggers.app || console).debug(`过滤后: ${beforeFilter} -> ${itemsToExport.length} 项`);
+    (loggers.app || console).debug("=== 过滤完成 ===");
   }
 
   if (itemsToExport.length === 0) {
@@ -155,7 +155,7 @@ async function exportTranslation() {
         );
       }
     } catch (error) {
-      console.error("导出错误:", error);
+      (loggers.app || console).error("导出错误:", error);
       showNotification(
         "error",
         "导出失败",
@@ -214,7 +214,7 @@ async function exportTranslation() {
       } 项翻译为 ${format.toUpperCase()} 格式（${optionText}）`
     );
   } catch (error) {
-    console.error("导出错误:", error);
+    (loggers.app || console).error("导出错误:", error);
     showNotification(
       "error",
       "导出失败",

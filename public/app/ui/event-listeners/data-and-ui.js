@@ -5,13 +5,13 @@ function registerEventListenersDataAndUi(ctx) {
   }
 
   // 密码显示/隐藏切换
-  document.querySelectorAll(".toggle-password").forEach((btn) => {
+  DOMCache.queryAll(".toggle-password").forEach((btn) => {
     EventManager.add(
       btn,
       "click",
       function () {
         const targetId = this.getAttribute("data-target");
-        const input = document.getElementById(targetId);
+        const input = DOMCache.get(targetId);
         const icon = this.querySelector("i");
 
         if (input && icon) {
@@ -31,8 +31,8 @@ function registerEventListenersDataAndUi(ctx) {
   });
 
   // 主题和字体大小实时预览
-  const themeMode = document.getElementById("themeMode");
-  const fontSize = document.getElementById("fontSize");
+  const themeMode = DOMCache.get("themeMode");
+  const fontSize = DOMCache.get("fontSize");
 
   if (themeMode) {
     EventManager.add(
@@ -56,10 +56,10 @@ function registerEventListenersDataAndUi(ctx) {
     );
   }
 
-  const sourceSelectionIndicatorEnabled = document.getElementById(
+  const sourceSelectionIndicatorEnabled = DOMCache.get(
     "sourceSelectionIndicatorEnabled"
   );
-  const sourceSelectionIndicatorUnselectedStyle = document.getElementById(
+  const sourceSelectionIndicatorUnselectedStyle = DOMCache.get(
     "sourceSelectionIndicatorUnselectedStyle"
   );
 
@@ -94,7 +94,7 @@ function registerEventListenersDataAndUi(ctx) {
   }
 
   // 关闭模态框
-  document.querySelectorAll(".close-modal").forEach((btn) => {
+  DOMCache.queryAll(".close-modal").forEach((btn) => {
     EventManager.add(btn, "click", closeModal, {
       tag: "ui",
       scope: "modal",
@@ -103,7 +103,7 @@ function registerEventListenersDataAndUi(ctx) {
   });
 
   // 关闭通知
-  const closeNotificationBtn = document.getElementById("closeNotification");
+  const closeNotificationBtn = DOMCache.get("closeNotification");
   if (closeNotificationBtn)
     EventManager.add(closeNotificationBtn, "click", closeNotification, {
       tag: "ui",
@@ -112,7 +112,7 @@ function registerEventListenersDataAndUi(ctx) {
     });
 
   // 标签页切换（仅右侧面板的 .sidebar-tab，避免影响“浏览文件”“导出翻译”等按钮）
-  const tabs = document.querySelectorAll(".sidebar-tab");
+  const tabs = DOMCache.queryAll(".sidebar-tab");
   tabs.forEach((tab) => {
     EventManager.add(
       tab,
@@ -140,9 +140,8 @@ function registerEventListenersDataAndUi(ctx) {
 
         // 根据标签页切换内容
         if (tab.textContent.trim() === "术语库") {
-          document
-            .getElementById("terminologyModal")
-            .classList.remove("hidden");
+          const terminologyModal = DOMCache.get("terminologyModal");
+          if (terminologyModal) terminologyModal.classList.remove("hidden");
           // 刷新术语库列表
           if (typeof window.updateTerminologyList === "function") {
             window.updateTerminologyList();
@@ -151,9 +150,8 @@ function registerEventListenersDataAndUi(ctx) {
             window.updateTerminologyPagination();
           }
         } else if (tab.textContent.trim() === "质量检查") {
-          document
-            .getElementById("qualityReportModal")
-            .classList.remove("hidden");
+          const qualityReportModal = DOMCache.get("qualityReportModal");
+          if (qualityReportModal) qualityReportModal.classList.remove("hidden");
           if (typeof window.syncQualityRuleCards === "function") window.syncQualityRuleCards();
         }
       },
@@ -162,10 +160,10 @@ function registerEventListenersDataAndUi(ctx) {
   });
 
   // 移动端侧边栏切换
-  const toggleLeftSidebar = document.getElementById("toggleLeftSidebar");
-  const toggleRightSidebar = document.getElementById("toggleRightSidebar");
-  const leftSidebar = document.getElementById("leftSidebar");
-  const rightSidebar = document.getElementById("rightSidebar");
+  const toggleLeftSidebar = DOMCache.get("toggleLeftSidebar");
+  const toggleRightSidebar = DOMCache.get("toggleRightSidebar");
+  const leftSidebar = DOMCache.get("leftSidebar");
+  const rightSidebar = DOMCache.get("rightSidebar");
 
   const isDesktopLayout = () =>
     window.matchMedia && window.matchMedia("(min-width: 768px)").matches;
@@ -259,7 +257,8 @@ function registerEventListenersDataAndUi(ctx) {
   }
 
   // ==================== 按钮点击旋转效果（可复用） ====================
-  document.body.addEventListener(
+  EventManager.add(
+    document.body,
     "click",
     (e) => {
       const btn = e.target.closest(".btn-click-spin-trigger");
@@ -270,17 +269,21 @@ function registerEventListenersDataAndUi(ctx) {
       target.classList.add(spinClass);
       const onAnimationEnd = () => {
         target.classList.remove(spinClass);
-        target.removeEventListener("animationend", onAnimationEnd);
       };
       target.addEventListener("animationend", onAnimationEnd, { once: true });
     },
-    true
+    {
+      tag: "ui",
+      scope: "animation",
+      label: "body:clickSpinEffect",
+      listenerOptions: true,
+    }
   );
 
   // ==================== 语言交换按钮 ====================
-  const swapLanguagesBtn = document.getElementById("swapLanguagesBtn");
-  const sourceLanguage = document.getElementById("sourceLanguage");
-  const targetLanguage = document.getElementById("targetLanguage");
+  const swapLanguagesBtn = DOMCache.get("swapLanguagesBtn");
+  const sourceLanguage = DOMCache.get("sourceLanguage");
+  const targetLanguage = DOMCache.get("targetLanguage");
 
   if (swapLanguagesBtn && sourceLanguage && targetLanguage) {
     EventManager.add(
@@ -300,7 +303,7 @@ function registerEventListenersDataAndUi(ctx) {
   }
 
   // ==================== 侧边栏拖拽调整宽度 ====================
-  const sidebarResizers = document.querySelectorAll(".sidebar-resizer");
+  const sidebarResizers = DOMCache.queryAll(".sidebar-resizer");
   
   sidebarResizers.forEach((resizer) => {
     let isResizing = false;
@@ -378,7 +381,7 @@ function registerEventListenersDataAndUi(ctx) {
   });
 
   // ==================== 右侧面板标签页增强 ====================
-  const sidebarTabs = document.querySelectorAll(".sidebar-tab");
+  const sidebarTabs = DOMCache.queryAll(".sidebar-tab");
   
   sidebarTabs.forEach((tab) => {
     EventManager.add(
@@ -393,7 +396,7 @@ function registerEventListenersDataAndUi(ctx) {
         
         // 根据标签页打开相应的模态框或面板
         if (tabName === "terminology") {
-          const terminologyModal = document.getElementById("terminologyModal");
+          const terminologyModal = DOMCache.get("terminologyModal");
           if (terminologyModal) terminologyModal.classList.remove("hidden");
           // 刷新术语库列表
           if (typeof window.updateTerminologyList === "function") {
@@ -403,7 +406,7 @@ function registerEventListenersDataAndUi(ctx) {
             window.updateTerminologyPagination();
           }
         } else if (tabName === "quality") {
-          const qualityReportModal = document.getElementById("qualityReportModal");
+          const qualityReportModal = DOMCache.get("qualityReportModal");
           if (qualityReportModal) qualityReportModal.classList.remove("hidden");
           if (typeof window.syncQualityRuleCards === "function") window.syncQualityRuleCards();
         }

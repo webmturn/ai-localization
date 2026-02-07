@@ -22,7 +22,9 @@ async function __onAppDomContentLoaded(bootstrapContext) {
         mirrorWindow: false,
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.startup || console).debug("bootstrap ArchDebug appDomInitialized check:", _);
+  }
 
   if (__appDomInitialized) return;
   __appDomInitialized = true;
@@ -34,7 +36,9 @@ async function __onAppDomContentLoaded(bootstrapContext) {
         mirrorWindow: false,
       });
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.startup || console).debug("bootstrap ArchDebug setFlag appDomInitialized:", _);
+  }
 
   (loggers.startup || console).info('🚀 开始应用DOM初始化...');
 
@@ -77,6 +81,9 @@ async function __onAppDomContentLoaded(bootstrapContext) {
     
     // 初始化核心事件监听器
     initializeCoreEventListeners();
+    
+    // 多标签页检测
+    setupMultiTabDetection();
     
     // 初始化应用状态
     initializeApplicationState();
@@ -352,7 +359,7 @@ function registerAllServices() {
     return;
   }
   
-  const logger = window.loggers?.bootstrap || console;
+  const logger = window.loggers?.startup || console;
   logger.debug?.('📦 开始注册所有服务...');
 
   try {
@@ -417,9 +424,6 @@ function registerAllServices() {
     // 注册翻译业务逻辑
     if (!window.diContainer.has('translationBusinessLogic')) {
       window.diContainer.registerSingleton('translationBusinessLogic', () => {
-        if (typeof getTranslationBusinessLogic === 'function') {
-          return getTranslationBusinessLogic();
-        }
         return window.translationBusinessLogic;
       }, {
         dependencies: ['appState', 'translationService', 'errorManager'],
@@ -430,9 +434,6 @@ function registerAllServices() {
     // 注册翻译UI控制器
     if (!window.diContainer.has('translationUIController')) {
       window.diContainer.registerSingleton('translationUIController', () => {
-        if (typeof getTranslationUIController === 'function') {
-          return getTranslationUIController();
-        }
         return window.translationUIController;
       }, {
         dependencies: ['appState', 'translationBusinessLogic'],
@@ -668,8 +669,8 @@ async function initializeProjectData() {
       AppState.translations.searchQuery = "";
 
       // 设置语言选择器
-      const sourceLanguageEl = document.getElementById("sourceLanguage");
-      const targetLanguageEl = document.getElementById("targetLanguage");
+      const sourceLanguageEl = DOMCache.get("sourceLanguage");
+      const targetLanguageEl = DOMCache.get("targetLanguage");
       if (sourceLanguageEl) {
         sourceLanguageEl.value = restoredProject.sourceLanguage || "en";
       }
@@ -736,6 +737,17 @@ function cleanupApplicationResources() {
       autoSaveManager.stop();
     }
 
+    // 关闭多标签页检测频道
+    if (window.__multiTabChannel) {
+      try { window.__multiTabChannel.close(); } catch (_) { /* channel close - safe to ignore */ }
+      window.__multiTabChannel = null;
+    }
+
+    // 清理命名空间管理器（停止全局变量监控定时器）
+    if (window.namespaceManager && typeof window.namespaceManager.cleanup === 'function') {
+      window.namespaceManager.cleanup();
+    }
+
     // 清理模块系统
     if (window.moduleManager && typeof window.moduleManager.cleanup === 'function') {
       window.moduleManager.cleanup();
@@ -750,6 +762,47 @@ function cleanupApplicationResources() {
     
   } catch (error) {
     (loggers.startup || console).error('❌ 清理应用资源失败:', error);
+  }
+}
+
+/**
+ * 多标签页检测（防止 FileSystem 存储竞态）
+ */
+function setupMultiTabDetection() {
+  try {
+    if (typeof BroadcastChannel === 'undefined') return;
+
+    const channel = new BroadcastChannel('xml-translator-tab-sync');
+    let otherTabWarned = false;
+
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'tab-ping') {
+        // 收到其他标签页的探测，回复确认
+        channel.postMessage({ type: 'tab-pong' });
+      }
+      if (event.data?.type === 'tab-pong' && !otherTabWarned) {
+        otherTabWarned = true;
+        if (typeof showNotification === 'function') {
+          showNotification(
+            'warning',
+            '多标签页提醒',
+            '检测到其他标签页正在使用本应用，同时编辑可能导致数据不同步。建议仅在一个标签页中操作。'
+          );
+        }
+      }
+    };
+
+    // 发送探测消息
+    channel.postMessage({ type: 'tab-ping' });
+
+    // 页面卸载时关闭频道
+    window.addEventListener('beforeunload', () => {
+      channel.close();
+    });
+
+    window.__multiTabChannel = channel;
+  } catch (error) {
+    (loggers.startup || console).debug('多标签页检测初始化失败:', error);
   }
 }
 

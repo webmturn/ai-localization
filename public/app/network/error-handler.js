@@ -258,7 +258,7 @@ class NetworkUtilsV2 extends NetworkUtils {
       // 达到阈值，开启熔断器
       if (breaker.failureCount >= breaker.threshold) {
         breaker.state = 'open';
-        console.warn(`熔断器开启: ${url} (失败次数: ${breaker.failureCount})`);
+        (loggers.services || console).warn(`熔断器开启: ${url} (失败次数: ${breaker.failureCount})`);
       }
     } else if (breaker.state === 'half-open') {
       // 半开状态下成功，关闭熔断器
@@ -388,7 +388,7 @@ class RequestInterceptor {
       try {
         processedOptions = await interceptor(url, processedOptions) || processedOptions;
       } catch (error) {
-        console.warn('请求拦截器执行失败:', error);
+        (loggers.services || console).warn('请求拦截器执行失败:', error);
       }
     }
     

@@ -18,12 +18,16 @@ function registerEventListenersFilePanels(ctx) {
         debugLogsFlag === true ||
         (typeof localStorage !== "undefined" &&
           localStorage.getItem("debugLogs") === "1");
-    } catch (_) {}
+    } catch (_) {
+      // debugLogs flag check - safe to ignore
+    }
 
     if (isDev && enabled) {
       try {
         console.log(...args);
-      } catch (_) {}
+      } catch (_) {
+        // dev-only console.log wrapper - safe to ignore
+      }
     }
   };
 
@@ -111,16 +115,16 @@ function registerEventListenersFilePanels(ctx) {
   ];
 
   elementsToCheck.forEach((id) => {
-    const element = document.getElementById(id);
+    const element = DOMCache.get(id);
     if (!element) {
-      console.warn(`[file-panels] 缺少关键元素: #${id}`);
+      (loggers.app || console).warn(`[file-panels] 缺少关键元素: #${id}`);
     }
   });
 
   // 文件上传相关
-  const fileDropArea = document.getElementById("fileDropArea");
-  const fileInput = document.getElementById("fileInput");
-  const browseFilesBtn = document.getElementById("browseFilesBtn");
+  const fileDropArea = DOMCache.get("fileDropArea");
+  const fileInput = DOMCache.get("fileInput");
+  const browseFilesBtn = DOMCache.get("browseFilesBtn");
 
   if (fileDropArea && fileInput) {
     EventManager.add(fileDropArea, "dragover", handleDragOver, {
@@ -163,7 +167,7 @@ function registerEventListenersFilePanels(ctx) {
     });
 
   // 搜索功能
-  const searchInput = document.getElementById("searchInput");
+  const searchInput = DOMCache.get("searchInput");
   __devLog("初始化搜索功能，searchInput元素:", searchInput);
 
   if (searchInput) {
@@ -196,12 +200,12 @@ function registerEventListenersFilePanels(ctx) {
     );
     __devLog("已添加keypress事件监听器");
   } else {
-    console.error("未找到searchInput元素");
+    (loggers.app || console).error("未找到searchInput元素");
   }
 
   // 分页功能
-  const sourcePrevBtn = document.getElementById("sourcePrevBtn");
-  const sourceNextBtn = document.getElementById("sourceNextBtn");
+  const sourcePrevBtn = DOMCache.get("sourcePrevBtn");
+  const sourceNextBtn = DOMCache.get("sourceNextBtn");
 
   if (sourcePrevBtn)
     EventManager.add(sourcePrevBtn, "click", () => handlePagination("prev"), {
@@ -217,16 +221,16 @@ function registerEventListenersFilePanels(ctx) {
     });
 
   // 翻译相关按钮
-  const translateSelectedBtn = document.getElementById("translateSelectedBtn");
-  const translateAllBtn = document.getElementById("translateAllBtn");
-  const openFindReplaceBtn = document.getElementById("openFindReplaceBtn");
-  const clearSelectedTargetBtn = document.getElementById(
+  const translateSelectedBtn = DOMCache.get("translateSelectedBtn");
+  const translateAllBtn = DOMCache.get("translateAllBtn");
+  const openFindReplaceBtn = DOMCache.get("openFindReplaceBtn");
+  const clearSelectedTargetBtn = DOMCache.get(
     "clearSelectedTargetBtn"
   );
-  const cancelTranslationBtn = document.getElementById("cancelTranslationBtn");
-  const pauseTranslationBtn = document.getElementById("pauseTranslationBtn");
-  const resumeTranslationBtn = document.getElementById("resumeTranslationBtn");
-  const retryFailedTranslationBtn = document.getElementById(
+  const cancelTranslationBtn = DOMCache.get("cancelTranslationBtn");
+  const pauseTranslationBtn = DOMCache.get("pauseTranslationBtn");
+  const resumeTranslationBtn = DOMCache.get("resumeTranslationBtn");
+  const retryFailedTranslationBtn = DOMCache.get(
     "retryFailedTranslationBtn"
   );
 
@@ -249,12 +253,12 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       () => {
         openModal("findReplaceModal");
-        const findEl = document.getElementById("findReplaceFind");
-        const replaceEl = document.getElementById("findReplaceReplace");
-        const scopeEl = document.getElementById("findReplaceScope");
-        const regexEl = document.getElementById("findReplaceUseRegex");
-        const caseEl = document.getElementById("findReplaceCaseSensitive");
-        const previewEl = document.getElementById("findReplacePreviewCount");
+        const findEl = DOMCache.get("findReplaceFind");
+        const replaceEl = DOMCache.get("findReplaceReplace");
+        const scopeEl = DOMCache.get("findReplaceScope");
+        const regexEl = DOMCache.get("findReplaceUseRegex");
+        const caseEl = DOMCache.get("findReplaceCaseSensitive");
+        const previewEl = DOMCache.get("findReplacePreviewCount");
         if (findEl) findEl.value = "";
         if (replaceEl) replaceEl.value = "";
         if (regexEl) regexEl.checked = false;
@@ -266,7 +270,9 @@ function registerEventListenersFilePanels(ctx) {
         }
         try {
           findEl?.focus();
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("file-panels focus findEl:", _);
+        }
       },
       {
         tag: "translations",
@@ -275,13 +281,13 @@ function registerEventListenersFilePanels(ctx) {
       }
     );
 
-  const findReplacePreviewBtn = document.getElementById("findReplacePreviewBtn");
-  const findReplaceApplyBtn = document.getElementById("findReplaceApplyBtn");
-  const findReplaceFind = document.getElementById("findReplaceFind");
-  const findReplaceReplace = document.getElementById("findReplaceReplace");
-  const findReplaceScope = document.getElementById("findReplaceScope");
-  const findReplaceUseRegex = document.getElementById("findReplaceUseRegex");
-  const findReplaceCaseSensitive = document.getElementById(
+  const findReplacePreviewBtn = DOMCache.get("findReplacePreviewBtn");
+  const findReplaceApplyBtn = DOMCache.get("findReplaceApplyBtn");
+  const findReplaceFind = DOMCache.get("findReplaceFind");
+  const findReplaceReplace = DOMCache.get("findReplaceReplace");
+  const findReplaceScope = DOMCache.get("findReplaceScope");
+  const findReplaceUseRegex = DOMCache.get("findReplaceUseRegex");
+  const findReplaceCaseSensitive = DOMCache.get(
     "findReplaceCaseSensitive"
   );
 
@@ -396,15 +402,15 @@ function registerEventListenersFilePanels(ctx) {
     });
 
   // 导出相关
-  const exportBtn = document.getElementById("exportBtn");
-  const confirmExportBtn = document.getElementById("confirmExportBtn");
+  const exportBtn = DOMCache.get("exportBtn");
+  const confirmExportBtn = DOMCache.get("confirmExportBtn");
 
   if (exportBtn) {
     EventManager.add(
       exportBtn,
       "click",
       () => {
-        const exportModal = document.getElementById("exportModal");
+        const exportModal = DOMCache.get("exportModal");
         if (exportModal) exportModal.classList.remove("hidden");
       },
       { tag: "export", scope: "exportModal", label: "exportBtn:clickOpenModal" }
@@ -428,7 +434,7 @@ function registerEventListenersFilePanels(ctx) {
                   throw new Error("exportTranslation is not available after load");
                 }
               } catch (e) {
-                console.error("exportTranslation failed:", e);
+                (loggers.app || console).error("exportTranslation failed:", e);
                 showNotification(
                   "error",
                   "导出失败",
@@ -437,7 +443,7 @@ function registerEventListenersFilePanels(ctx) {
               }
             })
             .catch(function (e) {
-              console.error("Failed to lazy-load export module:", e);
+              (loggers.app || console).error("Failed to lazy-load export module:", e);
               showNotification(
                 "error",
                 "导出失败",
@@ -450,7 +456,7 @@ function registerEventListenersFilePanels(ctx) {
         try {
           exportTranslation();
         } catch (e) {
-          console.error("exportTranslation failed:", e);
+          (loggers.app || console).error("exportTranslation failed:", e);
           showNotification(
             "error",
             "导出失败",
@@ -466,17 +472,17 @@ function registerEventListenersFilePanels(ctx) {
     );
 
   // 项目相关
-  const newProjectBtn = document.getElementById("newProjectBtn");
-  const createProjectBtn = document.getElementById("createProjectBtn");
-  const openProjectBtn = document.getElementById("openProjectBtn");
-  const saveProjectBtn = document.getElementById("saveProjectBtn");
+  const newProjectBtn = DOMCache.get("newProjectBtn");
+  const createProjectBtn = DOMCache.get("createProjectBtn");
+  const openProjectBtn = DOMCache.get("openProjectBtn");
+  const saveProjectBtn = DOMCache.get("saveProjectBtn");
 
   if (newProjectBtn) {
     EventManager.add(
       newProjectBtn,
       "click",
       () => {
-        const newProjectModal = document.getElementById("newProjectModal");
+        const newProjectModal = DOMCache.get("newProjectModal");
         if (newProjectModal) newProjectModal.classList.remove("hidden");
       },
       {
@@ -508,7 +514,7 @@ function registerEventListenersFilePanels(ctx) {
   // 术语库相关
 
   // 用户菜单
-  const userMenuBtn = document.getElementById("userMenuBtn");
+  const userMenuBtn = DOMCache.get("userMenuBtn");
   if (userMenuBtn)
     EventManager.add(userMenuBtn, "click", toggleUserMenu, {
       tag: "user",
@@ -517,9 +523,9 @@ function registerEventListenersFilePanels(ctx) {
     });
 
   // 用户菜单项点击事件
-  const openSettingsMenu = document.getElementById("openSettingsMenu");
-  const openHelpMenu = document.getElementById("openHelpMenu");
-  const openAboutMenu = document.getElementById("openAboutMenu");
+  const openSettingsMenu = DOMCache.get("openSettingsMenu");
+  const openHelpMenu = DOMCache.get("openHelpMenu");
+  const openAboutMenu = DOMCache.get("openAboutMenu");
 
   if (openSettingsMenu) {
     EventManager.add(
@@ -527,7 +533,7 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       (e) => {
         e.preventDefault();
-        document.getElementById("userMenu")?.classList.add("hidden");
+        DOMCache.get("userMenu")?.classList.add("hidden");
         openModal("settingsModal");
       },
       { tag: "settings", scope: "userMenu", label: "openSettingsMenu:click" }
@@ -540,7 +546,7 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       (e) => {
         e.preventDefault();
-        document.getElementById("userMenu")?.classList.add("hidden");
+        DOMCache.get("userMenu")?.classList.add("hidden");
         openModal("helpModal");
       },
       { tag: "help", scope: "userMenu", label: "openHelpMenu:click" }
@@ -553,7 +559,7 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       (e) => {
         e.preventDefault();
-        document.getElementById("userMenu")?.classList.add("hidden");
+        DOMCache.get("userMenu")?.classList.add("hidden");
         openModal("aboutModal");
       },
       { tag: "about", scope: "userMenu", label: "openAboutMenu:click" }

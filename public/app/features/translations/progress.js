@@ -3,26 +3,25 @@
 
 // 显示翻译进度模态框
 function showTranslationProgress() {
-  document
-    .getElementById("translationProgressModal")
+  DOMCache.get("translationProgressModal")
     .classList.remove("hidden");
-  document.getElementById("progressBar").style.width = "0%";
-  document.getElementById("progressPercentage").textContent = "0%";
-  document.getElementById("progressStatus").textContent = "准备翻译...";
-  const log = document.getElementById("progressLog");
+  DOMCache.get("progressBar").style.width = "0%";
+  DOMCache.get("progressPercentage").textContent = "0%";
+  DOMCache.get("progressStatus").textContent = "准备翻译...";
+  const log = DOMCache.get("progressLog");
   if (log) log.replaceChildren();
   updateTranslationControlState();
 }
 
 // 隐藏翻译进度模态框
 function hideTranslationProgress() {
-  document.getElementById("translationProgressModal").classList.add("hidden");
+  DOMCache.get("translationProgressModal").classList.add("hidden");
 }
 
 function updateTranslationControlState() {
-  const pauseBtn = document.getElementById("pauseTranslationBtn");
-  const resumeBtn = document.getElementById("resumeTranslationBtn");
-  const retryBtn = document.getElementById("retryFailedTranslationBtn");
+  const pauseBtn = DOMCache.get("pauseTranslationBtn");
+  const resumeBtn = DOMCache.get("resumeTranslationBtn");
+  const retryBtn = DOMCache.get("retryFailedTranslationBtn");
   const isInProgress = !!AppState.translations.isInProgress;
   const isPaused = !!AppState.translations.isPaused;
   const hasFailed =
@@ -51,15 +50,15 @@ function updateProgress(current, total, status) {
     status: status || "",
   };
   const percentage = safeTotal > 0 ? Math.floor((safeCurrent / safeTotal) * 100) : 0;
-  document.getElementById("progressBar").style.width = `${percentage}%`;
-  document.getElementById("progressPercentage").textContent = `${percentage}%`;
-  document.getElementById("progressStatus").textContent = status;
+  DOMCache.get("progressBar").style.width = `${percentage}%`;
+  DOMCache.get("progressPercentage").textContent = `${percentage}%`;
+  DOMCache.get("progressStatus").textContent = status;
   updateTranslationControlState();
 }
 
 // 添加进度日志
 function addProgressLog(message) {
-  const log = document.getElementById("progressLog");
+  const log = DOMCache.get("progressLog");
   if (!log) return;
 
   const now = new Date();

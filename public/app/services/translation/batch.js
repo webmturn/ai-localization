@@ -24,7 +24,7 @@ TranslationService.prototype.translateBatch = async function (
     return true;
   };
 
-  console.log(`开始批量翻译: ${total} 项`);
+  (loggers.translation || console).info(`开始批量翻译: ${total} 项`);
 
   const normalizedEngine = (engine || "").toString().toLowerCase();
 
@@ -64,12 +64,12 @@ TranslationService.prototype.translateBatch = async function (
   if (normalizedEngine === "deepseek") {
     try {
       if (!AppState.translations.isInProgress) {
-        console.log("翻译已被取消 (尚未开始)");
+        (loggers.translation || console).debug("翻译已被取消 (尚未开始)");
         return { results, errors };
       }
 
       if (!(await waitWhilePaused())) {
-        console.log("翻译已被取消 (暂停等待)");
+        (loggers.translation || console).debug("翻译已被取消 (暂停等待)");
         return { results, errors };
       }
 
@@ -112,7 +112,7 @@ TranslationService.prototype.translateBatch = async function (
             error: "用户取消",
             item: items[i],
           });
-          console.log("翻译已被取消");
+          (loggers.translation || console).debug("翻译已被取消");
           break;
         }
         if (!AppState.translations.isInProgress) {
@@ -123,7 +123,7 @@ TranslationService.prototype.translateBatch = async function (
             error: "用户取消",
             item: items[i],
           });
-          console.log(`翻译已被取消`);
+          (loggers.translation || console).debug(`翻译已被取消`);
           break;
         }
 
@@ -171,7 +171,7 @@ TranslationService.prototype.translateBatch = async function (
 
       flushLogs();
 
-      console.log(
+      (loggers.translation || console).info(
         `批量翻译结束: 成功 ${results.length}, 失败 ${errors.length}`
       );
       return { results, errors };
@@ -278,7 +278,7 @@ TranslationService.prototype.translateBatch = async function (
           message: `DeepSeek 批量翻译失败: ${msg || error}`,
         });
       }
-      console.warn(
+      (loggers.translation || console).warn(
         "DeepSeek 批量翻译失败，将回退为逐项翻译:",
         msg || error
       );
@@ -444,16 +444,16 @@ TranslationService.prototype.translateBatch = async function (
   if (concurrentLimit <= 1) {
     for (let i = 0; i < items.length; i++) {
       if (!(await waitWhilePaused())) {
-        console.log(`翻译已被取消 (已完成 ${completed}/${total})`);
+        (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
       if (!AppState.translations.isInProgress) {
-        console.log(`翻译已被取消 (已完成 ${completed}/${total})`);
+        (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
       await processOne(i);
       if (!AppState.translations.isInProgress) {
-        console.log("翻译已被取消");
+        (loggers.translation || console).debug("翻译已被取消");
         break;
       }
     }
@@ -474,6 +474,6 @@ TranslationService.prototype.translateBatch = async function (
     await Promise.all(workers);
   }
 
-  console.log(`批量翻译结束: 成功 ${results.length}, 失败 ${errors.length}`);
+  (loggers.translation || console).info(`批量翻译结束: 成功 ${results.length}, 失败 ${errors.length}`);
   return { results, errors };
 };

@@ -137,7 +137,9 @@ class UniversalValidators {
    * @throws {Error} 引擎配置无效时抛出错误
    */
   validateEngineConfig(engine) {
-    const settings = this.appState?.settings?.translation;
+    // 从 SettingsCache（localStorage）读取，而非 AppState.settings.translation
+    const settings = (typeof SettingsCache !== 'undefined' && SettingsCache.get())
+      || this.appState?.settings?.translation;
     if (!settings) {
       throw this.createValidationError(
         'NO_TRANSLATION_SETTINGS',
@@ -302,7 +304,7 @@ class UniversalValidators {
         this.handleValidationError(error, context);
       } else {
         // 处理其他错误
-        console.error('验证过程中发生未知错误:', error);
+        (loggers.app || console).error('验证过程中发生未知错误:', error);
         if (this.errorManager) {
           this.errorManager.handleError(error, context);
         }
@@ -331,7 +333,7 @@ class UniversalValidators {
     }
 
     // 控制台输出详细信息（开发模式）
-    console.warn(`验证失败 [${error.code}]:`, error.message, context);
+    (loggers.app || console).warn(`验证失败 [${error.code}]:`, error.message, context);
   }
 }
 
@@ -552,9 +554,9 @@ if (typeof module !== 'undefined' && module.exports) {
       namespaceManager.addToNamespace('App.validators', 'StorageValidators', StorageValidators);
       namespaceManager.addToNamespace('App.validators', 'FileValidators', FileValidators);
     } catch (error) {
-      console.warn('验证器命名空间注册失败:', error.message);
+      (loggers.app || console).warn('验证器命名空间注册失败:', error.message);
     }
   }
 }
 
-console.log('🔧 通用验证器 V2 已加载');
+(loggers.app || console).debug('通用验证器 V2 已加载');

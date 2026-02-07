@@ -42,7 +42,7 @@ class ModuleManager {
     
     // 只在开发模式下显示详细日志
     if (typeof isDevelopment !== 'undefined' && isDevelopment) {
-      console.log(`📦 已注册模块: ${name}`);
+      (loggers.modules || console).debug(`已注册模块: ${name}`);
     }
     return this;
   }
@@ -96,9 +96,7 @@ class ModuleManager {
     }
     
     this.loadOrder = order;
-    // 使用日志系统
-    const logger = window.loggers?.modules || console;
-    logger.debug?.('模块加载顺序:', order) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log('📋 模块加载顺序:', order));
+    (loggers.modules || console).debug('模块加载顺序:', order);
     return order;
   }
   
@@ -107,14 +105,12 @@ class ModuleManager {
    */
   async initialize() {
     if (this.initialized) {
-      console.warn('模块系统已经初始化');
+      (loggers.modules || console).warn('模块系统已经初始化');
       return;
     }
     
     try {
-      // 使用日志系统
-      const logger = window.loggers?.modules || console;
-      logger.info?.('初始化模块系统...') || console.log('🚀 初始化模块系统...');
+      (loggers.modules || console).info('初始化模块系统...');
       
       // 解析依赖
       this.resolveDependencies();
@@ -128,10 +124,10 @@ class ModuleManager {
       this.setupGlobalExports();
       
       this.initialized = true;
-      logger.info?.('模块系统初始化完成') || console.log('✅ 模块系统初始化完成');
+      (loggers.modules || console).info('模块系统初始化完成');
       
     } catch (error) {
-      console.error('❌ 模块系统初始化失败:', error);
+      (loggers.modules || console).error('模块系统初始化失败:', error);
       throw error;
     }
   }
@@ -157,9 +153,7 @@ class ModuleManager {
     this.loadingModules.add(name);
     
     try {
-      // 使用日志系统
-      const logger = window.loggers?.modules || console;
-      logger.debug?.(`加载模块: ${name}`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`📥 加载模块: ${name}`));
+      (loggers.modules || console).debug(`加载模块: ${name}`);
       
       // 加载依赖
       const dependencies = {};
@@ -186,13 +180,12 @@ class ModuleManager {
       this.loadingModules.delete(name);
       config.initialized = true;
       
-      // 使用日志系统
-      logger.debug?.(`模块加载完成: ${name}`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`✅ 模块加载完成: ${name}`));
+      (loggers.modules || console).debug(`模块加载完成: ${name}`);
       return instance;
       
     } catch (error) {
       this.loadingModules.delete(name);
-      console.error(`❌ 模块加载失败: ${name}`, error);
+      (loggers.modules || console).error(`模块加载失败: ${name}`, error);
       throw error;
     }
   }
@@ -227,7 +220,7 @@ class ModuleManager {
           if (instance[exportName] !== undefined) {
             window[exportName] = instance[exportName];
             this.globalExports.set(exportName, { module: name, value: instance[exportName] });
-            console.log(`🌐 全局导出: ${exportName} (来自 ${name})`);
+            (loggers.modules || console).debug(`全局导出: ${exportName} (来自 ${name})`);
           }
         });
       }
@@ -236,9 +229,7 @@ class ModuleManager {
       const namespace = this.getNamespaceForModule(name);
       if (namespace) {
         this.setNestedProperty(window.App, namespace, instance);
-        // 使用日志系统
-        const logger = window.loggers?.modules || console;
-        logger.debug?.(`命名空间导出: App.${namespace} (${name})`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`📁 命名空间导出: App.${namespace} (${name})`));
+        (loggers.modules || console).debug(`命名空间导出: App.${namespace} (${name})`);
       }
     });
   }
@@ -377,7 +368,7 @@ class ModuleManager {
     config.initialized = false;
     config.instance = null;
     
-    console.log(`🗑️ 模块已卸载: ${name}`);
+    (loggers.modules || console).debug(`模块已卸载: ${name}`);
   }
   
   /**
@@ -401,7 +392,7 @@ class ModuleManager {
       config.instance = null;
     });
     
-    console.log('🧹 模块系统已清理');
+    (loggers.modules || console).debug('模块系统已清理');
   }
 }
 

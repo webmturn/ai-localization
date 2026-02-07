@@ -11,17 +11,17 @@ let engineModelSyncInitialized = false;
 function initEngineModelSync() {
   if (engineModelSyncInitialized) return;
   engineModelSyncInitialized = true;
-  const engineSelect = document.getElementById("translationEngine");
-  const sidebarEngineSelect = document.getElementById(
+  const engineSelect = DOMCache.get("translationEngine");
+  const sidebarEngineSelect = DOMCache.get(
     "sidebarTranslationEngine",
   );
-  const modelDiv = document.getElementById("openaiModelDiv");
-  const temperatureDiv = document.getElementById("temperatureDiv");
-  const temperatureInput = document.getElementById("temperature");
-  const temperatureValue = document.getElementById("temperatureValue");
+  const modelDiv = DOMCache.get("openaiModelDiv");
+  const temperatureDiv = DOMCache.get("temperatureDiv");
+  const temperatureInput = DOMCache.get("temperature");
+  const temperatureValue = DOMCache.get("temperatureValue");
 
-  const settingsEngineSelect = document.getElementById("defaultEngine");
-  const settingsModelSelect = document.getElementById("translationModel");
+  const settingsEngineSelect = DOMCache.get("defaultEngine");
+  const settingsModelSelect = DOMCache.get("translationModel");
   const settingsModelContainer = settingsModelSelect
     ? settingsModelSelect.closest("div")
     : null;
@@ -30,7 +30,7 @@ function initEngineModelSync() {
 
   // 更新UI显示的函数
   function updateEngineUI(selectedEngine) {
-    const modelSelect = document.getElementById("modelSelect");
+    const modelSelect = DOMCache.get("modelSelect");
 
     // 根据引擎显示/隐藏对应选项
     if (selectedEngine === "openai" || selectedEngine === "deepseek") {
@@ -65,10 +65,7 @@ function initEngineModelSync() {
         });
 
         // 尝试恢复保存的模型选择
-        const savedSettings = safeJsonParse(
-          localStorage.getItem("translatorSettings"),
-          {},
-        );
+        const savedSettings = SettingsCache.get();
         const savedModel =
           savedSettings.model || savedSettings.translationModel;
         if (
@@ -80,13 +77,10 @@ function initEngineModelSync() {
           modelSelect.value = savedModel;
         }
 
-        const settings = safeJsonParse(
-          localStorage.getItem("translatorSettings"),
-          {},
-        );
-        settings.model = modelSelect.value;
-        settings.translationModel = modelSelect.value;
-        localStorage.setItem("translatorSettings", JSON.stringify(settings));
+        SettingsCache.update(function (s) {
+          s.model = modelSelect.value;
+          s.translationModel = modelSelect.value;
+        });
       }
     } else {
       modelDiv?.classList.add("hidden");
@@ -94,13 +88,10 @@ function initEngineModelSync() {
     }
 
     // 保存选择
-    const settings = safeJsonParse(
-      localStorage.getItem("translatorSettings"),
-      {},
-    );
-    settings.translationEngine = selectedEngine;
-    settings.defaultEngine = selectedEngine;
-    localStorage.setItem("translatorSettings", JSON.stringify(settings));
+    SettingsCache.update(function (s) {
+      s.translationEngine = selectedEngine;
+      s.defaultEngine = selectedEngine;
+    });
   }
 
   function updateSettingsEngineUI(selectedEngine) {
@@ -211,19 +202,16 @@ function initEngineModelSync() {
   }
 
   // 模型选择器变更事件
-  const modelSelect = document.getElementById("modelSelect");
+  const modelSelect = DOMCache.get("modelSelect");
   if (modelSelect) {
     EventManager.add(
       modelSelect,
       "change",
       function () {
-        const settings = safeJsonParse(
-          localStorage.getItem("translatorSettings"),
-          {},
-        );
-        settings.model = this.value;
-        settings.translationModel = this.value;
-        localStorage.setItem("translatorSettings", JSON.stringify(settings));
+        SettingsCache.update(function (s) {
+          s.model = modelSelect.value;
+          s.translationModel = modelSelect.value;
+        });
       },
       { tag: "engine", scope: "engineModel", label: "modelSelect:change" },
     );
@@ -238,24 +226,20 @@ function initEngineModelSync() {
         const v = this.value;
         temperatureValue.textContent = v;
         try {
-          const settings = safeJsonParse(
-            localStorage.getItem("translatorSettings"),
-            {},
-          );
           const num = parseFloat(v);
-          settings.temperature = Number.isFinite(num) ? num : 0.3;
-          localStorage.setItem("translatorSettings", JSON.stringify(settings));
-        } catch (_) {}
+          SettingsCache.update(function (s) {
+            s.temperature = Number.isFinite(num) ? num : 0.3;
+          });
+        } catch (_) {
+          (loggers.app || console).debug("engineModelSync saveTemperature:", _);
+        }
       },
       { tag: "engine", scope: "engineModel", label: "temperature:input" },
     );
   }
 
   // 加载保存的设置
-  const savedSettings = safeJsonParse(
-    localStorage.getItem("translatorSettings"),
-    {},
-  );
+  const savedSettings = SettingsCache.get();
   const rawInitialEngine =
     savedSettings.translationEngine ||
     savedSettings.defaultEngine ||
@@ -267,7 +251,7 @@ function initEngineModelSync() {
   if (initialEngine !== rawInitialEngine) {
     savedSettings.translationEngine = initialEngine;
     savedSettings.defaultEngine = initialEngine;
-    localStorage.setItem("translatorSettings", JSON.stringify(savedSettings));
+    SettingsCache.save(savedSettings);
   }
   engineSelect.value = initialEngine;
   sidebarEngineSelect.value = initialEngine;
@@ -289,7 +273,9 @@ function initEngineModelSync() {
       );
       updateSettingsEngineUI(settingsEngine);
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("engineModelSync init:", _);
+  }
 }
 
 // 暴露到全局并在 DOM 加载后自动初始化

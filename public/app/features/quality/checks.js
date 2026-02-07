@@ -2,8 +2,7 @@ const __qualityCheckCache = new Map();
 
 function __getQualityCheckOptions() {
   try {
-    const raw = localStorage.getItem("translatorSettings");
-    const s = raw ? (typeof safeJsonParse === "function" ? safeJsonParse(raw, {}) : JSON.parse(raw)) : {};
+    const s = SettingsCache.get();
     return {
       checkTerminology: s.checkTerminology !== false,
       checkPlaceholders: s.checkPlaceholders !== false,

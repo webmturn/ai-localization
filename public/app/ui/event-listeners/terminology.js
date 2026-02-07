@@ -28,7 +28,7 @@ function registerEventListenersTerminology(ctx) {
   }
 
   // 术语库标签页切换
-  const terminologyListTab = document.getElementById("terminologyListTab");
+  const terminologyListTab = DOMCache.get("terminologyListTab");
   if (terminologyListTab)
     EventManager.add(
       terminologyListTab,
@@ -40,7 +40,7 @@ function registerEventListenersTerminology(ctx) {
         label: "terminologyListTab:click",
       }
     );
-  const terminologyImportExportTab = document.getElementById(
+  const terminologyImportExportTab = DOMCache.get(
     "terminologyImportExportTab"
   );
   if (terminologyImportExportTab)
@@ -56,8 +56,8 @@ function registerEventListenersTerminology(ctx) {
     );
 
   // 术语库导入相关事件
-  const importDropArea = document.getElementById("importDropArea");
-  const importTerminologyBtn = document.getElementById("importTerminologyBtn");
+  const importDropArea = DOMCache.get("importDropArea");
+  const importTerminologyBtn = DOMCache.get("importTerminologyBtn");
 
   if (importDropArea) {
     EventManager.add(
@@ -66,7 +66,9 @@ function registerEventListenersTerminology(ctx) {
       function (e) {
         try {
           e.preventDefault();
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("terminology dragover preventDefault:", _);
+        }
 
         const App = window.App;
         const ensure = App?.services?.ensureTerminologyImportExportModule;
@@ -77,7 +79,7 @@ function registerEventListenersTerminology(ctx) {
               if (typeof fn === "function") fn(e);
             })
             .catch(function (err) {
-              console.error("Failed to lazy-load terminology import module:", err);
+              (loggers.app || console).error("Failed to lazy-load terminology import module:", err);
             });
           return;
         }
@@ -104,7 +106,7 @@ function registerEventListenersTerminology(ctx) {
               if (typeof fn === "function") fn(e);
             })
             .catch(function (err) {
-              console.error("Failed to lazy-load terminology import module:", err);
+              (loggers.app || console).error("Failed to lazy-load terminology import module:", err);
             });
           return;
         }
@@ -124,7 +126,9 @@ function registerEventListenersTerminology(ctx) {
       function (e) {
         try {
           e.preventDefault();
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("terminology drop preventDefault:", _);
+        }
 
         const App = window.App;
         const ensure = App?.services?.ensureTerminologyImportExportModule;
@@ -135,7 +139,7 @@ function registerEventListenersTerminology(ctx) {
               if (typeof fn === "function") fn(e);
             })
             .catch(function (err) {
-              console.error("Failed to lazy-load terminology import module:", err);
+              (loggers.app || console).error("Failed to lazy-load terminology import module:", err);
               showNotification(
                 "error",
                 "导入失败",
@@ -157,7 +161,7 @@ function registerEventListenersTerminology(ctx) {
     EventManager.add(
       importDropArea,
       "click",
-      () => document.getElementById("importFileInput")?.click(),
+      () => DOMCache.get("importFileInput")?.click(),
       {
         tag: "terminology",
         scope: "terminology:import",
@@ -181,7 +185,7 @@ function registerEventListenersTerminology(ctx) {
               if (typeof fn === "function") fn({ target });
             })
             .catch(function (err) {
-              console.error(
+              (loggers.app || console).error(
                 "Failed to lazy-load terminology import module:",
                 err
               );
@@ -220,11 +224,11 @@ function registerEventListenersTerminology(ctx) {
               try {
                 importTerminology();
               } catch (e) {
-                console.error("importTerminology failed:", e);
+                (loggers.app || console).error("importTerminology failed:", e);
               }
             })
             .catch(function (e) {
-              console.error("Failed to lazy-load terminology import module:", e);
+              (loggers.app || console).error("Failed to lazy-load terminology import module:", e);
               showNotification(
                 "error",
                 "导入失败",
@@ -245,7 +249,7 @@ function registerEventListenersTerminology(ctx) {
   }
 
   // 术语库导出事件
-  const exportTerminologyBtn = document.getElementById("exportTerminologyBtn");
+  const exportTerminologyBtn = DOMCache.get("exportTerminologyBtn");
   if (exportTerminologyBtn)
     EventManager.add(
       exportTerminologyBtn,
@@ -259,11 +263,11 @@ function registerEventListenersTerminology(ctx) {
               try {
                 exportTerminology();
               } catch (e) {
-                console.error("exportTerminology failed:", e);
+                (loggers.app || console).error("exportTerminology failed:", e);
               }
             })
             .catch(function (e) {
-              console.error("Failed to lazy-load terminology export module:", e);
+              (loggers.app || console).error("Failed to lazy-load terminology export module:", e);
               showNotification(
                 "error",
                 "导出失败",
@@ -283,7 +287,7 @@ function registerEventListenersTerminology(ctx) {
     );
 
   // 术语库搜索和筛选
-  const terminologySearch = document.getElementById("terminologySearch");
+  const terminologySearch = DOMCache.get("terminologySearch");
   if (terminologySearch) {
     const debouncedTerminologySearch = debounce(filterTerminology, 300);
     EventManager.add(terminologySearch, "input", debouncedTerminologySearch, {
@@ -292,7 +296,7 @@ function registerEventListenersTerminology(ctx) {
       label: "terminologySearch:input",
     });
   }
-  const terminologyFilter = document.getElementById("terminologyFilter");
+  const terminologyFilter = DOMCache.get("terminologyFilter");
   if (terminologyFilter)
     EventManager.add(terminologyFilter, "change", filterTerminology, {
       tag: "terminology",
@@ -301,7 +305,7 @@ function registerEventListenersTerminology(ctx) {
     });
 
   // 术语库分页
-  const terminologyPrevBtn = document.getElementById("terminologyPrevBtn");
+  const terminologyPrevBtn = DOMCache.get("terminologyPrevBtn");
   if (terminologyPrevBtn)
     EventManager.add(
       terminologyPrevBtn,
@@ -313,7 +317,7 @@ function registerEventListenersTerminology(ctx) {
         label: "terminologyPrevBtn:click",
       }
     );
-  const terminologyNextBtn = document.getElementById("terminologyNextBtn");
+  const terminologyNextBtn = DOMCache.get("terminologyNextBtn");
   if (terminologyNextBtn)
     EventManager.add(
       terminologyNextBtn,
@@ -327,13 +331,13 @@ function registerEventListenersTerminology(ctx) {
     );
 
   // 添加术语按钮（已存在的）
-  const addTermBtn = document.getElementById("addTermBtn");
+  const addTermBtn = DOMCache.get("addTermBtn");
   if (addTermBtn) {
     EventManager.add(
       addTermBtn,
       "click",
       () => {
-        document.getElementById("addTermModal").classList.remove("hidden");
+        DOMCache.get("addTermModal").classList.remove("hidden");
       },
       {
         tag: "terminology",
@@ -344,7 +348,7 @@ function registerEventListenersTerminology(ctx) {
   }
 
   // 保存术语按钮（已存在的）
-  const saveTermBtn = document.getElementById("saveTermBtn");
+  const saveTermBtn = DOMCache.get("saveTermBtn");
   if (saveTermBtn)
     EventManager.add(saveTermBtn, "click", saveTerm, {
       tag: "terminology",

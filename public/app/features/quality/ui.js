@@ -1,5 +1,5 @@
 function __syncQualityRuleCardsImpl() {
-  const container = document.getElementById("qualityRuleCards");
+  const container = DOMCache.get("qualityRuleCards");
   if (!container) return;
   const opts = typeof __getQualityCheckOptions === "function" ? __getQualityCheckOptions() : {};
   const cardById = {
@@ -38,8 +38,8 @@ function __syncQualityRuleCardsImpl() {
 }
 
 function __resetIssueFilterImpl() {
-  document.getElementById("issueFilterSeverity").value = "all";
-  document.getElementById("issueFilterType").value = "all";
+  DOMCache.get("issueFilterSeverity").value = "all";
+  DOMCache.get("issueFilterType").value = "all";
   filterIssues();
 }
 
@@ -47,14 +47,14 @@ function __updateQualityReportUIImpl() {
   const results = AppState.qualityCheckResults;
 
   if (!results) {
-    console.error("没有质量检查结果");
+    (loggers.app || console).error("没有质量检查结果");
     return;
   }
 
-  document.getElementById(
+  DOMCache.get(
     "overallScore"
   ).textContent = `${results.overallScore}/100`;
-  document.getElementById(
+  DOMCache.get(
     "overallScoreBar"
   ).style.width = `${results.overallScore}%`;
 
@@ -62,14 +62,14 @@ function __updateQualityReportUIImpl() {
     results.totalCount > 0
       ? Math.round((results.translatedCount / results.totalCount) * 100)
       : 0;
-  document.getElementById(
+  DOMCache.get(
     "translatedCount"
   ).textContent = `${results.translatedCount}/${results.totalCount}`;
-  document.getElementById(
+  DOMCache.get(
     "translatedBar"
   ).style.width = `${translatedPercent}%`;
 
-  document.getElementById("issuesCount").textContent = results.issues.length;
+  DOMCache.get("issuesCount").textContent = results.issues.length;
 
   const highIssues = results.issues.filter((i) => i.severity === "high").length;
   const mediumIssues = results.issues.filter(
@@ -77,19 +77,19 @@ function __updateQualityReportUIImpl() {
   ).length;
   const lowIssues = results.issues.filter((i) => i.severity === "low").length;
 
-  document.getElementById("highIssues").textContent = highIssues;
-  document.getElementById("mediumIssues").textContent = mediumIssues;
-  document.getElementById("lowIssues").textContent = lowIssues;
+  DOMCache.get("highIssues").textContent = highIssues;
+  DOMCache.get("mediumIssues").textContent = mediumIssues;
+  DOMCache.get("lowIssues").textContent = lowIssues;
 
   const termConsistency = results.termMatches > 0 ? 100 : 0;
-  document.getElementById(
+  DOMCache.get(
     "termConsistency"
   ).textContent = `${termConsistency}%`;
-  document.getElementById("termMatches").textContent = results.termMatches;
+  DOMCache.get("termMatches").textContent = results.termMatches;
 
   if (results.lastCheckTime) {
     const timeStr = results.lastCheckTime.toLocaleString("zh-CN");
-    document.getElementById("lastCheckTime").textContent = timeStr;
+    DOMCache.get("lastCheckTime").textContent = timeStr;
   }
 
   __syncQualityRuleCardsImpl();
@@ -100,8 +100,8 @@ function __updateQualityReportUIImpl() {
 let __issuesTableDelegateTarget = null;
 
 function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
-  const tbody = document.getElementById("issuesTableBody");
-  const issueCountBadge = document.getElementById("issueCountBadge");
+  const tbody = DOMCache.get("issuesTableBody");
+  const issueCountBadge = DOMCache.get("issueCountBadge");
   const issues = AppState.qualityCheckResults.issues;
 
   if (!tbody) return;
@@ -119,7 +119,7 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
 
         const itemId = btn.dataset.itemId;
         if (typeof isDevelopment !== "undefined" && isDevelopment) {
-          console.log("[quality:view] tbody delegate click", { itemId, btn });
+          (loggers.app || console).info("[quality:view] tbody delegate click", { itemId, btn });
         }
 
         if (itemId == null) return;
@@ -330,7 +330,9 @@ function __waitForTranslationsRendered(minVersion, timeoutMs = 2000) {
     const timer = setTimeout(() => {
       try {
         document.removeEventListener("translations:rendered", onRendered);
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("quality ui removeEventListener:", _);
+      }
       finish();
     }, timeoutMs);
 
@@ -367,13 +369,13 @@ async function __focusTranslationItemImpl(itemId) {
         );
 
   if (index === -1) {
-    console.error("未找到翻译项:", itemId);
+    (loggers.app || console).error("未找到翻译项:", itemId);
     return;
   }
 
   if (typeof isDevelopment !== "undefined" && isDevelopment) {
     try {
-      console.log("[quality:view] focus", {
+      (loggers.app || console).info("[quality:view] focus", {
         itemId,
         normalizedItemId,
         isNumericIndex,
@@ -381,7 +383,9 @@ async function __focusTranslationItemImpl(itemId) {
         currentPage: AppState.translations.currentPage,
         itemsPerPage: AppState.translations.itemsPerPage,
       });
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("quality ui dispatch event:", _);
+    }
   }
 
   const itemsPerPage = AppState.translations.itemsPerPage;
@@ -410,7 +414,7 @@ async function __focusTranslationItemImpl(itemId) {
 
   if (AppState.translations.currentPage !== targetPage) {
     if (typeof isDevelopment !== "undefined" && isDevelopment) {
-      console.log(`切换到第 ${targetPage} 页以显示索引 ${index} 的项`);
+      (loggers.app || console).info(`切换到第 ${targetPage} 页以显示索引 ${index} 的项`);
     }
     AppState.translations.currentPage = targetPage;
     willUpdateList = true;
@@ -458,7 +462,7 @@ async function __focusTranslationItemImpl(itemId) {
   const smartScrollToComfortZone = (el, behavior = "smooth") => {
     if (!el) return;
     const container =
-      document.getElementById("translationScrollWrapper") ||
+      DOMCache.get("translationScrollWrapper") ||
       el.closest(".translation-scroll-wrapper");
     if (!container) {
       el.scrollIntoView({ behavior, block: "nearest" });
@@ -505,7 +509,7 @@ async function __focusTranslationItemImpl(itemId) {
     container.scrollTo({ top: target, behavior });
   };
   if (isMobile) {
-    const mobileCombinedList = document.getElementById("mobileCombinedList");
+    const mobileCombinedList = DOMCache.get("mobileCombinedList");
     const mobileItem = mobileCombinedList
       ? mobileCombinedList.querySelector(selectorById || selectorByIndex)
       : null;
@@ -516,8 +520,8 @@ async function __focusTranslationItemImpl(itemId) {
     }
   }
 
-  const sourceList = document.getElementById("sourceList");
-  const targetList = document.getElementById("targetList");
+  const sourceList = DOMCache.get("sourceList");
+  const targetList = DOMCache.get("targetList");
   const sourceItem = sourceList
     ? sourceList.querySelector(selectorById || selectorByIndex)
     : null;
@@ -532,7 +536,7 @@ async function __focusTranslationItemImpl(itemId) {
     return;
   }
 
-  console.error(
+  (loggers.app || console).error(
     "未找到 DOM 元素:",
     index,
     "当前页:",

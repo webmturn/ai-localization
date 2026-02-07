@@ -1,10 +1,9 @@
 // 获取保存的API设置（带解密）
 TranslationService.prototype.getSettings = async function () {
-  const savedSettings = localStorage.getItem("translatorSettings");
-  if (!savedSettings) return {};
+  const settings = SettingsCache.get();
+  if (!settings || Object.keys(settings).length === 0) return {};
 
   try {
-    const settings = safeJsonParse(savedSettings, {});
 
     // 尝试解密API密钥（如果是加密的）
     if (settings.openaiApiKey && settings.openaiApiKey.length > 50) {
@@ -25,7 +24,7 @@ TranslationService.prototype.getSettings = async function () {
 
     return settings;
   } catch (error) {
-    console.error("读取设置失败:", error);
+    (loggers.translation || console).error("读取设置失败:", error);
     return {};
   }
 };
@@ -75,7 +74,9 @@ try {
       window.__DEFAULT_PROJECT_PROMPT_TEMPLATES = __DEFAULT_PROJECT_PROMPT_TEMPLATES;
     }
   }
-} catch (_) {}
+} catch (_) {
+  (loggers.translation || console).debug("translation settings global register:", _);
+}
 
 __DEFAULT_PROJECT_PROMPT_TEMPLATES.general =
   __DEFAULT_PROJECT_PROMPT_TEMPLATES.openai || "";

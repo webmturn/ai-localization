@@ -5,7 +5,9 @@ function __ensureQualityModuleLoaded() {
     const App = window.App;
     const ensure = App?.services?.ensureQualityModule;
     if (typeof ensure === "function") return ensure();
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("compat quality module loader:", _);
+  }
   return Promise.reject(new Error("Quality module loader not available"));
 }
 
@@ -23,7 +25,7 @@ function resetIssueFilter() {
     try {
       resetIssueFilter();
     } catch (e) {
-      console.error("resetIssueFilter (after load) failed:", e);
+      (loggers.app || console).error("resetIssueFilter (after load) failed:", e);
     }
   });
 }
@@ -92,7 +94,7 @@ function escapeRegex(text) {
     try {
       escapeRegex(text);
     } catch (e) {
-      console.error("escapeRegex (after load) failed:", e);
+      (loggers.app || console).error("escapeRegex (after load) failed:", e);
     }
   });
 }
@@ -111,7 +113,7 @@ function calculateOverallScore() {
     try {
       calculateOverallScore();
     } catch (e) {
-      console.error("calculateOverallScore (after load) failed:", e);
+      (loggers.app || console).error("calculateOverallScore (after load) failed:", e);
     }
   });
 }
@@ -130,7 +132,7 @@ function updateQualityReportUI() {
     try {
       updateQualityReportUI();
     } catch (e) {
-      console.error("updateQualityReportUI (after load) failed:", e);
+      (loggers.app || console).error("updateQualityReportUI (after load) failed:", e);
     }
   });
 }
@@ -149,15 +151,15 @@ function updateIssuesTable(filter = { severity: "all", type: "all" }) {
     try {
       updateIssuesTable(filter);
     } catch (e) {
-      console.error("updateIssuesTable (after load) failed:", e);
+      (loggers.app || console).error("updateIssuesTable (after load) failed:", e);
     }
   });
 }
 
 // 过滤问题（节流版）
 const filterIssuesThrottled = throttle(function () {
-  const severity = document.getElementById("issueFilterSeverity").value;
-  const type = document.getElementById("issueFilterType").value;
+  const severity = DOMCache.get("issueFilterSeverity").value;
+  const type = DOMCache.get("issueFilterType").value;
 
   updateIssuesTable({ severity, type });
 }, 300);
@@ -180,7 +182,7 @@ function focusTranslationItem(itemId) {
     try {
       focusTranslationItem(itemId);
     } catch (e) {
-      console.error("focusTranslationItem (after load) failed:", e);
+      (loggers.app || console).error("focusTranslationItem (after load) failed:", e);
     }
   });
 }
@@ -199,7 +201,7 @@ function updateQualityCharts() {
     try {
       updateQualityCharts();
     } catch (e) {
-      console.error("updateQualityCharts (after load) failed:", e);
+      (loggers.app || console).error("updateQualityCharts (after load) failed:", e);
     }
   });
 }
@@ -218,7 +220,7 @@ function exportQualityReportData() {
     try {
       exportQualityReportData();
     } catch (e) {
-      console.error("exportQualityReportData (after load) failed:", e);
+      (loggers.app || console).error("exportQualityReportData (after load) failed:", e);
     }
   });
 }
@@ -237,7 +239,7 @@ function exportQualityReportPdf() {
     try {
       exportQualityReportPdf();
     } catch (e) {
-      console.error("exportQualityReportPdf (after load) failed:", e);
+      (loggers.app || console).error("exportQualityReportPdf (after load) failed:", e);
     }
   });
 }

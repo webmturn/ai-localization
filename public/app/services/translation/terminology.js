@@ -32,11 +32,11 @@ TranslationService.prototype.findTerminologyMatches = function (text) {
         }
       } catch (e) {
         // 忽略单个术语的错误
-        console.warn("匹配术语失败:", term.source, e);
+        (loggers.translation || console).warn("匹配术语失败:", term.source, e);
       }
     }
   } catch (error) {
-    console.error("术语库匹配失败:", error);
+    (loggers.translation || console).error("术语库匹配失败:", error);
   }
 
   return matches;

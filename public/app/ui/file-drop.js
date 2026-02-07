@@ -1,6 +1,6 @@
 function setDropAreaActive(target, active) {
   const el =
-    typeof target === "string" ? document.getElementById(target) : target;
+    typeof target === "string" ? DOMCache.get(target) : target;
   if (!el) return;
 
   el.dataset.active = active ? "true" : "false";
@@ -31,7 +31,9 @@ if (__devEnabled) {
       if (!window.ArchDebug) {
         window.__setDropAreaActive = setDropAreaActive;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("fileDrop global register:", _);
+    }
   }
 }
 

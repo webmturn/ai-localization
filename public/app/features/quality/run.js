@@ -49,10 +49,11 @@ async function __runQualityCheckImpl() {
   let checkScope = AppState?.quality?.checkScope;
   if (!checkScope) {
     try {
-      const saved = localStorage.getItem("translatorSettings");
-      const s = saved ? safeJsonParse(saved, {}) : {};
+      const s = SettingsCache.get();
       checkScope = s.qualityCheckScope;
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("qualityCheck readScope:", _);
+    }
   }
   if (checkScope !== "file" && checkScope !== "project") {
     checkScope = "project";
@@ -87,12 +88,14 @@ async function __runQualityCheckImpl() {
     if (AppState?.project && Array.isArray(originalProjectItems)) {
       AppState.project.translationItems = items;
     }
-  } catch (_) {}
-  const progressBar = document.getElementById("checkProgressBar");
-  const progressPercent = document.getElementById("checkProgressPercent");
-  const progressStatus = document.getElementById("checkProgressStatus");
-  const progressContainer = document.getElementById("qualityCheckProgress");
-  const runBtn = document.getElementById("runQualityCheckBtn");
+  } catch (_) {
+    (loggers.app || console).debug("qualityCheck restoreItems:", _);
+  }
+  const progressBar = DOMCache.get("checkProgressBar");
+  const progressPercent = DOMCache.get("checkProgressPercent");
+  const progressStatus = DOMCache.get("checkProgressStatus");
+  const progressContainer = DOMCache.get("qualityCheckProgress");
+  const runBtn = DOMCache.get("runQualityCheckBtn");
 
   if (runBtn) {
     runBtn.disabled = true;
@@ -117,10 +120,11 @@ async function __runQualityCheckImpl() {
     let checkConcurrency = AppState?.quality?.checkConcurrency;
     if (!checkConcurrency) {
       try {
-        const saved = localStorage.getItem("translatorSettings");
-        const s = saved ? safeJsonParse(saved, {}) : {};
+        const s = SettingsCache.get();
         checkConcurrency = s.qualityCheckConcurrency;
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("qualityCheck readConcurrency:", _);
+      }
     }
     const concurrency = Math.max(
       1,
@@ -190,7 +194,7 @@ async function __runQualityCheckImpl() {
       );
     }, 300);
   } catch (error) {
-    console.error("质量检查错误:", error);
+    (loggers.app || console).error("质量检查错误:", error);
     showNotification(
       "error",
       "检查失败",
@@ -202,7 +206,9 @@ async function __runQualityCheckImpl() {
       if (AppState?.project && Array.isArray(originalProjectItems)) {
         AppState.project.translationItems = originalProjectItems;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("qualityCheck finalRestore:", _);
+    }
 
     __qualityIsChecking = false;
 

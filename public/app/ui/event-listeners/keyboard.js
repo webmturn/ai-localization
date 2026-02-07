@@ -30,9 +30,7 @@
 
   function getSavedShortcuts() {
     try {
-      const raw = localStorage.getItem("translatorSettings");
-      if (!raw) return {};
-      const s = JSON.parse(raw);
+      const s = SettingsCache.get();
       return s && typeof s.keyboardShortcuts === "object" ? s.keyboardShortcuts : {};
     } catch (_) {
       return {};
@@ -112,24 +110,26 @@
 
   function saveShortcutOverride(id, keyString) {
     try {
-      const raw = localStorage.getItem("translatorSettings");
-      const s = raw ? JSON.parse(raw) : {};
+      const s = SettingsCache.get();
       s.keyboardShortcuts = s.keyboardShortcuts || {};
       s.keyboardShortcuts[id] = keyString;
-      localStorage.setItem("translatorSettings", JSON.stringify(s));
-    } catch (_) {}
+      SettingsCache.save(s);
+    } catch (_) {
+      (loggers.app || console).debug("keyboard saveShortcut:", _);
+    }
   }
 
   function resetShortcutToDefault(id) {
     const def = DEFAULT_SHORTCUTS.find(function (d) { return d.id === id; });
     if (!def) return;
     try {
-      const raw = localStorage.getItem("translatorSettings");
-      const s = raw ? JSON.parse(raw) : {};
+      const s = SettingsCache.get();
       s.keyboardShortcuts = s.keyboardShortcuts || {};
       delete s.keyboardShortcuts[id];
-      localStorage.setItem("translatorSettings", JSON.stringify(s));
-    } catch (_) {}
+      SettingsCache.save(s);
+    } catch (_) {
+      (loggers.app || console).debug("keyboard resetShortcut:", _);
+    }
   }
 
   function runAction(id, e) {
@@ -148,7 +148,7 @@
       if (typeof openModal === "function") {
         openModal("newProjectModal");
       } else {
-        const el = document.getElementById("newProjectModal");
+        const el = DOMCache.get("newProjectModal");
         if (el) el.classList.remove("hidden");
       }
       return;
@@ -166,8 +166,8 @@
       return;
     }
     if (id === "focusSearch") {
-      const desktop = document.getElementById("translationSearchInput");
-      const mobile = document.getElementById("translationSearchInputMobile");
+      const desktop = DOMCache.get("translationSearchInput");
+      const mobile = DOMCache.get("translationSearchInputMobile");
       const searchInput = window.innerWidth < 768 ? (mobile || desktop) : (desktop || mobile);
       if (searchInput) {
         searchInput.focus();
@@ -310,7 +310,7 @@
     try {
       window.diContainer.registerFactory('keyboardService', () => keyboardService);
     } catch (error) {
-      console.warn('KeyboardService DI注册失败:', error.message);
+      (loggers.app || console).warn('KeyboardService DI注册失败:', error.message);
     }
   }
 })();

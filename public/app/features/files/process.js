@@ -6,18 +6,24 @@ async function __processFilesImpl(files) {
     if (isSampleProject) {
       try {
         AppState.project = null;
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("processFiles reset project:", _);
+      }
 
       try {
         AppState.fileMetadata = {};
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("processFiles reset fileMetadata:", _);
+      }
 
       try {
         AppState.translations.items = [];
         AppState.translations.filtered = [];
         AppState.translations.selected = -1;
         AppState.translations.currentPage = 1;
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("processFiles reset translations:", _);
+      }
 
       showNotification(
         "info",
@@ -30,9 +36,9 @@ async function __processFilesImpl(files) {
     if (!hadProject) {
       const importProjectId = `project-${Date.now()}`;
       const sourceLanguage =
-        document.getElementById("sourceLanguage")?.value || "en";
+        DOMCache.get("sourceLanguage")?.value || "en";
       const targetLanguage =
-        document.getElementById("targetLanguage")?.value || "zh";
+        DOMCache.get("targetLanguage")?.value || "zh";
 
       AppState.fileMetadata = {};
       AppState.project = {
@@ -85,14 +91,14 @@ async function __processFilesImpl(files) {
       }
     });
 
-    console.log(
+    (loggers.app || console).info(
       `所有文件处理完成: 成功 ${successCount}/${files.length} 个，解析 ${newItems.length} 个翻译项`
     );
 
     // 完成文件处理
     await __completeFileProcessingImpl(files, newItems, warnings);
   } catch (error) {
-    console.error("处理文件时出错:", error);
+    (loggers.app || console).error("处理文件时出错:", error);
     showNotification(
       "error",
       "处理错误",
@@ -102,7 +108,7 @@ async function __processFilesImpl(files) {
 }
 
 async function __completeFileProcessingImpl(files, newItems, warnings = []) {
-  console.log("completeFileProcessing 被调用", {
+  (loggers.app || console).debug("completeFileProcessing 被调用", {
     filesCount: files.length,
     itemsCount: newItems.length,
   });
@@ -119,7 +125,7 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
   const projectId = AppState.project?.id;
   const projectName = AppState.project?.name || "未命名项目";
   if (!projectId) {
-    console.warn("导入完成时未找到 projectId，将尝试创建/修复 projectId");
+    (loggers.app || console).warn("导入完成时未找到 projectId，将尝试创建/修复 projectId");
   }
 
   const importedFileNames = new Set(
@@ -142,11 +148,15 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
         if (AppState.project?.fileMetadata) {
           try {
             delete AppState.project.fileMetadata["default.xml"];
-          } catch (_) {}
+          } catch (_) {
+            (loggers.app || console).debug("delete default.xml metadata:", _);
+          }
         }
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("processFiles sample cleanup:", _);
+  }
 
   const existingItems =
     AppState.project?.translationItems || AppState.translations.items || [];
@@ -225,7 +235,7 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
     }
   }
 
-  console.log("调用 updateFileTree，项目信息:", AppState.project);
+  (loggers.app || console).debug("调用 updateFileTree，项目信息:", AppState.project);
   // 更新文件树（在创建/更新项目之后）
   updateFileTree();
 
@@ -235,19 +245,21 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
 
   // 更新项目状态
   try {
-    const projectStatusEl = document.getElementById("projectStatus");
+    const projectStatusEl = DOMCache.get("projectStatus");
     if (projectStatusEl) {
       projectStatusEl.textContent = "已更新";
       projectStatusEl.className =
         "text-success dark:text-emerald-400 font-medium";
     }
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("processFiles update projectStatus:", _);
+  }
 
   autoSaveManager.markDirty();
   try {
     await autoSaveManager.saveProject();
   } catch (e) {
-    console.error("导入后持久化失败:", e);
+    (loggers.storage || console).error("导入后持久化失败:", e);
   }
 }
 

@@ -92,7 +92,7 @@ if (isDevelopment) {
     };
   };
 
-  // 开发环境提示
+  // 开发环境提示（始终显示，帮助开发者了解可用工具）
   console.log(
     "%c🛠️ 开发模式已启用",
     "color: #2563eb; font-weight: bold; font-size: 14px;"

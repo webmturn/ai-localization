@@ -67,8 +67,8 @@ class PerformanceMonitor {
       result.warning = true;
       result.warningMessage = `操作 "${metric.operation}" 耗时 ${duration.toFixed(2)}ms，超过阈值 ${threshold}ms`;
       
-      if (typeof console !== 'undefined' && isDevelopment) {
-        console.warn(`⚠️ 性能警告: ${result.warningMessage}`);
+      if (typeof isDevelopment !== 'undefined' && isDevelopment) {
+        (loggers.app || console).warn(`性能警告: ${result.warningMessage}`);
       }
     }
     

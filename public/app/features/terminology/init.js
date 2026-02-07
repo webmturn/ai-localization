@@ -25,7 +25,7 @@ function initTerminology() {
             savedTerminology = JSON.stringify(parsedLegacy);
           }
         } catch (e) {
-          console.error("迁移旧术语库失败:", e);
+          (loggers.app || console).error("迁移旧术语库失败:", e);
         }
       }
     }
@@ -43,24 +43,24 @@ function initTerminology() {
             AppState.project.terminologyList = parsedTerminology;
           }
         } catch (e) {
-          console.error("同步术语到项目状态失败:", e);
+          (loggers.app || console).error("同步术语到项目状态失败:", e);
         }
 
-        console.log(
+        (loggers.app || console).debug(
           `从 localStorage 加载了 ${parsedTerminology.length} 个术语`
         );
       } else {
         // localStorage 中没有有效数据，使用默认示例术语
-        console.log("使用默认示例术语库");
+        (loggers.app || console).debug("使用默认示例术语库");
         // AppState.terminology 已经有示例数据，不需要额外设置
       }
     } else {
       // localStorage 中没有数据，使用默认示例术语
-      console.log("首次使用，加载示例术语库");
+      (loggers.app || console).debug("首次使用，加载示例术语库");
       // AppState.terminology 已经有示例数据，不需要额外设置
     }
   } catch (error) {
-    console.error("加载术语库失败:", error);
+    (loggers.app || console).error("加载术语库失败:", error);
     // 出错时使用默认示例数据
   }
 }

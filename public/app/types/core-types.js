@@ -191,7 +191,7 @@ class TypeChecker {
           return true; // 未知类型默认通过
       }
     } catch (error) {
-      console.warn(`类型检查失败 (${paramName}):`, error);
+      (loggers.app || console).warn(`类型检查失败 (${paramName}):`, error);
       return false;
     }
   }
@@ -205,7 +205,7 @@ class TypeChecker {
    */
   static validateSchema(obj, schema, objName = 'object') {
     if (!obj || typeof obj !== 'object') {
-      console.warn(`${objName} 不是有效对象`);
+      (loggers.app || console).warn(`${objName} 不是有效对象`);
       return false;
     }
 
@@ -215,12 +215,12 @@ class TypeChecker {
       const type = isOptional ? expectedType.slice(0, -1) : expectedType;
 
       if (!isOptional && value === undefined) {
-        console.warn(`${objName}.${key} 是必需的但缺失`);
+        (loggers.app || console).warn(`${objName}.${key} 是必需的但缺失`);
         return false;
       }
 
       if (value !== undefined && !TypeChecker.checkType(value, type, `${objName}.${key}`)) {
-        console.warn(`${objName}.${key} 类型错误，期望 ${type}，实际 ${typeof value}`);
+        (loggers.app || console).warn(`${objName}.${key} 类型错误，期望 ${type}，实际 ${typeof value}`);
         return false;
       }
     }
@@ -258,7 +258,7 @@ class TypeChecker {
 
         // 检查返回值类型
         if (returnType && !TypeChecker.checkType(result, returnType, 'return')) {
-          console.warn(`返回值类型错误：期望 ${returnType}，实际 ${typeof result}`);
+          (loggers.app || console).warn(`返回值类型错误：期望 ${returnType}，实际 ${typeof result}`);
         }
 
         return result;
@@ -368,10 +368,10 @@ if (typeof module !== 'undefined' && module.exports) {
       namespaceManager.addToNamespace('App.types', 'TypeChecker', TypeChecker);
       namespaceManager.addToNamespace('App.types', 'TypeAssert', TypeAssert);
     } catch (error) {
-      console.warn('类型系统命名空间注册失败:', error.message);
+      (loggers.app || console).warn('类型系统命名空间注册失败:', error.message);
     }
   }
 }
 
 // 提示信息
-console.log('💡 类型安全系统已加载，可使用 TypeChecker 和 TypeAssert 进行类型检查');
+(loggers.app || console).debug('类型安全系统已加载');

@@ -73,11 +73,11 @@ TranslationService.prototype.translate = async function (
         /api\s*key[^\n]*invalid/i.test(message);
 
       if (isAuthError) {
-        console.warn("鉴权失败，停止重试:", message);
+        (loggers.translation || console).warn("鉴权失败，停止重试:", message);
         break;
       }
 
-      console.warn(`翻译尝试 ${attempt + 1}/${maxRetries} 失败:`, message);
+      (loggers.translation || console).warn(`翻译尝试 ${attempt + 1}/${maxRetries} 失败:`, message);
 
       // 等待后重试（指数退避）
       if (attempt < maxRetries - 1) {

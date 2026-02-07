@@ -34,8 +34,7 @@ class ErrorSystemIntegrator {
     
     try {
       // 使用日志系统
-      const logger = window.loggers?.errors || console;
-      logger.info?.('初始化错误处理系统...') || console.log('🔧 初始化错误处理系统...');
+      (loggers.errors || console).info('初始化错误处理系统...');
       
       // 1. 设置通知处理器
       this._setupNotificationHandler(notificationHandler);
@@ -68,13 +67,13 @@ class ErrorSystemIntegrator {
       await this._runHealthCheck();
       
       this.initialized = true;
-      logger.info?.('错误处理系统初始化完成') || console.log('✅ 错误处理系统初始化完成');
+      (loggers.errors || console).info('错误处理系统初始化完成');
       
       // 显示初始化成功通知
       this._showNotification('success', '系统就绪', '错误处理系统已成功初始化');
       
     } catch (error) {
-      console.error('❌ 错误处理系统初始化失败:', error);
+      (loggers.errors || console).error('错误处理系统初始化失败:', error);
       throw error;
     }
   }
@@ -103,7 +102,7 @@ class ErrorSystemIntegrator {
       const logLevel = type === 'error' ? 'error' : 
                      type === 'warning' ? 'warn' : 'info';
       
-      console[logLevel](`[${title}] ${message}`);
+      (loggers.errors || console)[logLevel](`[${title}] ${message}`);
       
       // 如果有UI通知系统，可以在这里调用
       if (typeof window.showUINotification === 'function') {
@@ -139,9 +138,9 @@ class ErrorSystemIntegrator {
       if (window.initializeErrorManager && typeof window.initializeErrorManager === 'function') {
         try {
           window.initializeErrorManager();
-          console.log('🔧 错误管理器实例已创建');
+          (loggers.errors || console).debug('错误管理器实例已创建');
         } catch (error) {
-          console.error('❌ 创建错误管理器实例失败:', error);
+          (loggers.errors || console).error('创建错误管理器实例失败:', error);
           throw new Error('ErrorManager实例创建失败');
         }
       } else {
@@ -173,10 +172,9 @@ class ErrorSystemIntegrator {
       if (window[moduleName]) {
         this.modules.set(moduleName, window[moduleName]);
         // 使用日志系统
-        const logger = window.loggers?.errors || console;
-        logger.debug?.(`已注册模块: ${moduleName}`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`✓ 已注册模块: ${moduleName}`));
+        (loggers.errors || console).debug(`已注册模块: ${moduleName}`);
       } else {
-        console.warn(`⚠️ 模块未找到: ${moduleName}`);
+        (loggers.errors || console).warn(`模块未找到: ${moduleName}`);
       }
     });
   }
@@ -187,8 +185,7 @@ class ErrorSystemIntegrator {
   _setupGlobalErrorHandlers() {
     // 这些处理器已经在ErrorManager中设置，这里只是确认
     // 使用日志系统
-    const logger = window.loggers?.errors || console;
-    logger.debug?.('全局错误处理器已激活') || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log('✓ 全局错误处理器已激活'));
+    (loggers.errors || console).debug('全局错误处理器已激活');
   }
   
   /**
@@ -205,15 +202,14 @@ class ErrorSystemIntegrator {
       
       // 如果错误处理耗时过长，记录警告
       if (duration > 100) {
-        console.warn(`错误处理耗时过长: ${duration.toFixed(2)}ms`, { error, context });
+        (loggers.errors || console).warn(`错误处理耗时过长: ${duration.toFixed(2)}ms`, { error, context });
       }
       
       return result;
     };
     
     // 使用日志系统
-    const logger = window.loggers?.errors || console;
-    logger.debug?.('性能监控已启用') || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log('✓ 性能监控已启用'));
+    (loggers.errors || console).debug('性能监控已启用');
   }
   
   /**
@@ -221,8 +217,7 @@ class ErrorSystemIntegrator {
    */
   _configureErrorReporting() {
     // 这里可以配置远程错误报告服务
-    const logger = window.loggers?.errors || console;
-    logger.debug?.('错误报告已配置') || console.log('✓ 错误报告已配置');
+    (loggers.errors || console).debug('错误报告已配置');
   }
   
   /**
@@ -248,10 +243,9 @@ class ErrorSystemIntegrator {
     const failures = results.filter(r => r.status === 'rejected');
     
     if (failures.length > 0) {
-      console.warn('健康检查发现问题:', failures);
+      (loggers.errors || console).warn('健康检查发现问题:', failures);
     } else {
-      const logger = window.loggers?.errors || console;
-      logger.debug?.('所有健康检查通过') || console.log('✅ 所有健康检查通过');
+      (loggers.errors || console).debug('所有健康检查通过');
     }
   }
   
@@ -342,7 +336,7 @@ class ErrorSystemIntegrator {
     }
     
     this.modules.clear();
-    console.log('🔄 错误处理系统已重置');
+    (loggers.errors || console).debug('错误处理系统已重置');
   }
 }
 
@@ -417,10 +411,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         if (window.errorSystemIntegrator?.initialized) return;
         if (window.Architecture?.initializer?.initialized) return;
         window.errorSystemIntegrator.initialize().catch((error) => {
-          console.error('自动初始化错误处理系统失败:', error);
+          (loggers.errors || console).error('自动初始化错误处理系统失败:', error);
         });
       } catch (error) {
-        console.error('自动初始化错误处理系统失败:', error);
+        (loggers.errors || console).error('自动初始化错误处理系统失败:', error);
       }
     }, 5000);
   } else {
@@ -431,7 +425,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       setTimeout(() => {
         if (!window.errorSystemIntegrator.initialized) {
           window.errorSystemIntegrator.initialize().catch(error => {
-            console.error('自动初始化错误处理系统失败:', error);
+            (loggers.errors || console).error('自动初始化错误处理系统失败:', error);
           });
         }
       }, 100);
@@ -441,7 +435,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     setTimeout(() => {
       if (!window.errorSystemIntegrator.initialized) {
         window.errorSystemIntegrator.initialize().catch(error => {
-          console.error('自动初始化错误处理系统失败:', error);
+          (loggers.errors || console).error('自动初始化错误处理系统失败:', error);
         });
       }
     }, 100);

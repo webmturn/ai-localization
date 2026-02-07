@@ -77,7 +77,7 @@ class TranslationResultHandler {
       };
       
     } catch (error) {
-      console.error('处理翻译结果失败:', error);
+      (loggers.translation || console).error('处理翻译结果失败:', error);
       
       if (this.errorManager) {
         this.errorManager.handleError(error, {
@@ -117,7 +117,7 @@ class TranslationResultHandler {
           .filter(Boolean);
       }
     } catch (error) {
-      console.warn('更新失败项列表失败:', error);
+      (loggers.translation || console).warn('更新失败项列表失败:', error);
     }
   }
 
@@ -131,7 +131,7 @@ class TranslationResultHandler {
    */
   showResultNotification(results, actualErrors, cancelledCount, engine, context) {
     if (typeof showNotification !== 'function') {
-      console.warn('showNotification 函数不可用');
+      (loggers.app || console).warn('showNotification 函数不可用');
       return;
     }
 
@@ -204,7 +204,7 @@ class TranslationResultHandler {
         detail: error.detail || `引擎: ${engine}`
       };
     } catch (err) {
-      console.warn('格式化翻译错误失败:', err);
+      (loggers.translation || console).warn('格式化翻译错误失败:', err);
       return {
         type: 'error',
         title: '错误处理失败',
@@ -222,9 +222,9 @@ class TranslationResultHandler {
   logTranslationOperation(operation, stats) {
     try {
       const message = `📊 ${operation} 统计: 成功 ${stats.successCount}, 失败 ${stats.errorCount}, 取消 ${stats.cancelledCount}`;
-      console.log(message);
+      (loggers.translation || console).info(message);
     } catch (error) {
-      console.warn('记录操作日志失败:', error);
+      (loggers.translation || console).warn('记录操作日志失败:', error);
     }
   }
 
@@ -265,10 +265,10 @@ class TranslationResultHandler {
         updateSelectionStyles({ shouldScroll, shouldFocusTextarea });
       }
 
-      console.log(`🔄 UI更新完成 (${reason})`);
+      (loggers.app || console).debug(`UI更新完成 (${reason})`);
 
     } catch (error) {
-      console.error('UI更新失败:', error);
+      (loggers.app || console).error('UI更新失败:', error);
       
       if (this.errorManager) {
         this.errorManager.handleError(error, { 
@@ -305,7 +305,7 @@ class TranslationResultHandler {
       }
 
     } catch (error) {
-      console.error('清理翻译界面失败:', error);
+      (loggers.app || console).error('清理翻译界面失败:', error);
     }
   }
 
@@ -341,7 +341,7 @@ class TranslationResultHandler {
       return stats;
 
     } catch (error) {
-      console.error(`处理${operation}完成失败:`, error);
+      (loggers.translation || console).error(`处理${operation}完成失败:`, error);
       
       if (this.errorManager) {
         this.errorManager.handleError(error, {
@@ -442,9 +442,9 @@ if (typeof module !== 'undefined' && module.exports) {
       namespaceManager.addToNamespace('App.features.translations', 'handleTranslationResults', handleTranslationResults);
       namespaceManager.addToNamespace('App.features.translations', 'updateTranslationUI', updateTranslationUI);
     } catch (error) {
-      console.warn('翻译结果处理器命名空间注册失败:', error.message);
+      (loggers.app || console).warn('翻译结果处理器命名空间注册失败:', error.message);
     }
   }
 }
 
-console.log('🔧 翻译结果处理器 V2 已加载');
+(loggers.app || console).debug('翻译结果处理器 V2 已加载');

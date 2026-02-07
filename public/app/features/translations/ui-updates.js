@@ -27,7 +27,7 @@ function updateTranslationUI(options = {}) {
     const logger = window.loggers?.app || console;
     logger.debug?.(`更新翻译UI: ${reason}`) ||
       (typeof isDevelopment !== 'undefined' && isDevelopment && 
-       console.log(`🔄 更新翻译UI: ${reason}`));
+       void 0);
     
     // 1. 重建过滤后的翻译项列表
     if (typeof rebuildFilteredTranslationItems === 'function') {
@@ -71,12 +71,9 @@ function updateTranslationUI(options = {}) {
     }
     
   } catch (error) {
-    console.error('❌ 更新翻译UI失败:', error);
+    (loggers.app || console).error('更新翻译UI失败:', error);
     
-    // 使用DI获取错误管理器
-    const errorManager = typeof getServiceSafely === 'function' 
-      ? getServiceSafely('errorManager', 'errorManager') 
-      : window.errorManager;
+    const errorManager = getServiceSafely('errorManager', 'errorManager');
     if (errorManager) {
       errorManager.handleError(error, {
         context: 'updateTranslationUI',
@@ -116,7 +113,7 @@ function updateTranslationProgressUI(progressInfo) {
     }
     
   } catch (error) {
-    console.error('❌ 更新翻译进度UI失败:', error);
+    (loggers.app || console).error('更新翻译进度UI失败:', error);
   }
 }
 
@@ -155,7 +152,7 @@ function updateTranslationItemsStatus(items, status, options = {}) {
     });
     
   } catch (error) {
-    console.error('❌ 批量更新翻译项状态失败:', error);
+    (loggers.app || console).error('批量更新翻译项状态失败:', error);
   }
 }
 
@@ -191,7 +188,7 @@ function resetTranslationUI(options = {}) {
     });
     
   } catch (error) {
-    console.error('❌ 重置翻译UI失败:', error);
+    (loggers.app || console).error('重置翻译UI失败:', error);
   }
 }
 
@@ -249,7 +246,7 @@ function smartUpdateTranslationUI(context = {}) {
     }
     
   } catch (error) {
-    console.error('❌ 智能UI更新失败:', error);
+    (loggers.app || console).error('智能UI更新失败:', error);
     // 降级到基本更新
     updateTranslationUI({ reason: "降级更新" });
   }

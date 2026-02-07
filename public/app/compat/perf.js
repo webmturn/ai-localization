@@ -24,7 +24,7 @@ function syncTranslationHeights(afterSync) {
     return __syncTranslationHeightsImpl(afterSync);
   }
   
-  console.warn('syncTranslationHeights: 未找到实现，跳过同步');
+  (loggers.app || console).warn('syncTranslationHeights: 未找到实现，跳过同步');
 }
 
 // 使用通用防抖节流函数，避免与事件绑定管理器混淆

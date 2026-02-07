@@ -1,8 +1,5 @@
 function rebuildFilteredTranslationItems(options = {}) {
-  // 使用DI获取应用状态
-  const appState = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('appState', 'AppState') 
-    : window.AppState;
+  const appState = getServiceSafely('appState', 'AppState');
     
   const all = Array.isArray(appState?.project?.translationItems)
     ? appState.project.translationItems
@@ -188,10 +185,7 @@ function showSplitNotification(type, title, message, detail) {
 // 查找替换功能已拆分到 find-replace.js
 
 function clearSelectedTargets() {
-  // 使用DI获取应用状态
-  const appState = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('appState', 'AppState') 
-    : window.AppState;
+  const appState = getServiceSafely('appState', 'AppState');
     
   if (appState.translations.selected === -1 || !appState.project) {
     // 使用验证器
@@ -199,9 +193,7 @@ function clearSelectedTargets() {
       try {
         TranslationValidators.validateItemSelected();
       } catch (error) {
-        const errorManager = typeof getServiceSafely === 'function' 
-          ? getServiceSafely('errorManager', 'errorManager') 
-          : window.errorManager;
+        const errorManager = getServiceSafely('errorManager', 'errorManager');
         if (errorManager) {
           errorManager.handleError(error, { context: 'clearSelectedTargets' });
         } else {
@@ -231,10 +223,7 @@ function clearSelectedTargets() {
   }
 
   if (cleared > 0) {
-    // 使用DI获取自动保存管理器
-    const autoSave = typeof getServiceSafely === 'function' 
-      ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
-      : window.autoSaveManager;
+    const autoSave = getServiceSafely('autoSaveManager', 'autoSaveManager');
     if (autoSave) {
       autoSave.markDirty();
     }
@@ -274,14 +263,10 @@ async function translateSelectedFallback() {
   try {
     // 使用统一验证器和结果处理器
     const validators =
-      (typeof getServiceSafely === "function"
-        ? getServiceSafely("universalValidators")
-        : null) ||
+      getServiceSafely("universalValidators") ||
       (typeof getUniversalValidators === "function" ? getUniversalValidators() : null);
     const resultHandler =
-      (typeof getServiceSafely === "function"
-        ? getServiceSafely("translationResultHandler")
-        : null) ||
+      getServiceSafely("translationResultHandler") ||
       (typeof getTranslationResultHandler === "function"
         ? getTranslationResultHandler()
         : null);
@@ -334,11 +319,11 @@ async function translateSelectedFallback() {
     // 获取翻译配置
     const sourceLang = appState.project.sourceLanguage || "en";
     const targetLang = appState.project.targetLanguage || "zh";
-    const settings = safeJsonParse(localStorage.getItem("translatorSettings"), {});
+    const settings = SettingsCache.get();
     const engine =
       settings.translationEngine ||
       settings.defaultEngine ||
-      document.getElementById("translationEngine")?.value ||
+      DOMCache.get("translationEngine")?.value ||
       "deepseek";
 
     // 显示进度
@@ -451,14 +436,10 @@ async function translateAllFallback() {
   try {
     // 使用统一验证器和结果处理器
     const validators =
-      (typeof getServiceSafely === "function"
-        ? getServiceSafely("universalValidators")
-        : null) ||
+      getServiceSafely("universalValidators") ||
       (typeof getUniversalValidators === "function" ? getUniversalValidators() : null);
     const resultHandler =
-      (typeof getServiceSafely === "function"
-        ? getServiceSafely("translationResultHandler")
-        : null) ||
+      getServiceSafely("translationResultHandler") ||
       (typeof getTranslationResultHandler === "function"
         ? getTranslationResultHandler()
         : null);
@@ -509,9 +490,9 @@ async function translateAllFallback() {
     // 获取翻译配置
     const sourceLang = appState.project.sourceLanguage || "en";
     const targetLang = appState.project.targetLanguage || "zh";
-    const settings = safeJsonParse(localStorage.getItem("translatorSettings"), {});
+    const settings = SettingsCache.get();
     const engine = settings.translationEngine || settings.defaultEngine || 
-                  document.getElementById("translationEngine")?.value || "deepseek";
+                  DOMCache.get("translationEngine")?.value || "deepseek";
 
     // 显示进度
     showTranslationProgress();
@@ -605,17 +586,28 @@ async function translateAllFallback() {
  * 获取翻译UI控制器
  */
 function getTranslationUIController() {
-  // 优先使用DI系统
-  let controller = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('translationUIController', null) 
-    : null;
-    
-  // 备用：使用全局实例
-  if (!controller && window.translationUIController) {
-    controller = window.translationUIController;
+  // 优先使用已初始化的全局实例
+  if (window.translationUIController && typeof window.translationUIController.handleTranslateSelected === 'function') {
+    return window.translationUIController;
   }
+
+  // 尝试从DI系统获取
+  let controller = getServiceSafely('translationUIController', null);
   
-  return controller;
+  // 验证返回的是实例而非类构造函数
+  if (controller && typeof controller.handleTranslateSelected === 'function') {
+    return controller;
+  }
+
+  // 懒初始化：如果控制器尚未创建，尝试初始化
+  if (typeof initializeTranslationControllers === 'function') {
+    initializeTranslationControllers();
+    if (window.translationUIController && typeof window.translationUIController.handleTranslateSelected === 'function') {
+      return window.translationUIController;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -623,9 +615,7 @@ function getTranslationUIController() {
  */
 function getTranslationBusinessLogic() {
   // 优先使用DI系统
-  let businessLogic = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('translationBusinessLogic', null) 
-    : null;
+  let businessLogic = getServiceSafely('translationBusinessLogic', null);
     
   // 备用：使用全局实例
   if (!businessLogic && window.translationBusinessLogic) {
@@ -647,33 +637,15 @@ function initializeTranslationControllers() {
   try {
     // 获取依赖
     const dependencies = {
-      appState: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('appState', 'AppState') 
-        : window.AppState,
-      validators: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('translationValidators', 'TranslationValidators') 
-        : window.TranslationValidators,
-      translationService: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('translationService', 'translationService') 
-        : window.translationService,
-      errorManager: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('errorManager', 'errorManager') 
-        : window.errorManager,
-      autoSaveManager: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
-        : window.autoSaveManager,
-      resultHandler: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('translationResultHandler', null) 
-        : null,
-      uiUpdater: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('translationUIUpdater', null) 
-        : window.TranslationUIUpdater,
-      notificationService: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('notificationService', null) 
-        : null,
-      eventManager: typeof getServiceSafely === 'function' 
-        ? getServiceSafely('eventManager', 'eventManager') 
-        : window.eventManager
+      appState: getServiceSafely('appState', 'AppState'),
+      validators: getServiceSafely('translationValidators', 'TranslationValidators'),
+      translationService: getServiceSafely('translationService', 'translationService'),
+      errorManager: getServiceSafely('errorManager', 'errorManager'),
+      autoSaveManager: getServiceSafely('autoSaveManager', 'autoSaveManager'),
+      resultHandler: getServiceSafely('translationResultHandler', null),
+      uiUpdater: getServiceSafely('translationUIUpdater', 'TranslationUIUpdater'),
+      notificationService: getServiceSafely('notificationService', null),
+      eventManager: getServiceSafely('eventManager', 'eventManager')
     };
     
     // 创建业务逻辑服务
@@ -708,17 +680,13 @@ function cancelTranslation() {
     controller.handleCancelTranslation();
   } else {
     // 备用逻辑
-    const appState = typeof getServiceSafely === 'function' 
-      ? getServiceSafely('appState', 'AppState') 
-      : window.AppState;
+    const appState = getServiceSafely('appState', 'AppState');
       
     appState.translations.isInProgress = false;
     appState.translations.isPaused = false;
 
     // 取消所有活动的网络请求
-    const networkUtils = typeof getServiceSafely === 'function' 
-      ? getServiceSafely('networkUtils', 'networkUtils') 
-      : window.networkUtils;
+    const networkUtils = getServiceSafely('networkUtils', 'networkUtils');
     if (networkUtils) {
       networkUtils.cancelAll();
     }
@@ -777,7 +745,7 @@ async function retryFailedTranslations() {
   const targetLang = ctx.targetLang || AppState.project?.targetLanguage || "zh";
   const engine =
     ctx.engine ||
-    document.getElementById("translationEngine")?.value ||
+    DOMCache.get("translationEngine")?.value ||
     "deepseek";
   const selectedFile = ctx.selectedFile || AppState?.translations?.selectedFile;
 
@@ -830,9 +798,7 @@ async function retryFailedTranslations() {
     hideTranslationProgress();
 
     // 使用翻译结果处理器（V2 改进版）
-    const resultHandler = typeof getServiceSafely === 'function'
-      ? getServiceSafely('translationResultHandler')
-      : null;
+    const resultHandler = getServiceSafely('translationResultHandler');
 
     if (resultHandler && typeof resultHandler.handleTranslationResults === 'function') {
       // 使用类方法处理结果
@@ -930,14 +896,11 @@ async function translateText(
   let engine = "deepseek";
   try {
     // 获取翻译引擎
-    const settings = safeJsonParse(
-      localStorage.getItem("translatorSettings"),
-      {},
-    );
+    const settings = SettingsCache.get();
     engine = (
       settings.translationEngine ||
       settings.defaultEngine ||
-      document.getElementById("translationEngine")?.value ||
+      DOMCache.get("translationEngine")?.value ||
       "deepseek"
     ).toLowerCase();
 

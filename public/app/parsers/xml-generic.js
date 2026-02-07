@@ -15,7 +15,7 @@ function parseGenericXML(content, fileName) {
     // 检查是否有解析错误
     const parserError = xmlDoc.querySelector("parsererror");
     if (parserError) {
-      console.warn("XML解析出错，尝试使用备用方法:", parserError.textContent);
+      (loggers.app || console).warn("XML解析出错，尝试使用备用方法:", parserError.textContent);
       return parseXMLWithRegex(content, fileName);
     }
 
@@ -87,13 +87,13 @@ function parseGenericXML(content, fileName) {
 
     // 如果没有找到任何文本节点，尝试使用正则表达式
     if (items.length === 0) {
-      console.warn("DOM解析未找到文本节点，尝试使用正则表达式");
+      (loggers.app || console).warn("DOM解析未找到文本节点，尝试使用正则表达式");
       return parseXMLWithRegex(content, fileName);
     }
 
     return items;
   } catch (error) {
-    console.error("解析XML文件时出错:", error);
+    (loggers.app || console).error("解析XML文件时出错:", error);
     return parseXMLWithRegex(content, fileName);
   }
 }
@@ -180,7 +180,7 @@ function parseXMLWithRegex(content, fileName) {
 
     return items;
   } catch (error) {
-    console.error("使用正则表达式解析XML时出错:", error);
+    (loggers.app || console).error("使用正则表达式解析XML时出错:", error);
     // 返回一个包含错误信息的翻译项
     return [
       {

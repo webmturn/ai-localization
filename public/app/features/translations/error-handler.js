@@ -60,7 +60,7 @@ async function handleBatchTranslation(items, engine, translateFn, onProgress = n
   const results = [];
   
   // 验证API密钥
-  const settings = JSON.parse(localStorage.getItem('translatorSettings') || '{}');
+  const settings = SettingsCache.get();
   const apiKeyField = `${engine.toLowerCase()}ApiKey`;
   const apiKey = settings[apiKeyField];
   
@@ -299,7 +299,7 @@ function createRetryStrategy(options = {}) {
           maxDelay
         );
         
-        console.log(`重试第 ${attempt + 1} 次，${delay}ms 后重试...`);
+        (loggers.translation || console).debug(`重试第 ${attempt + 1} 次，${delay}ms 后重试...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

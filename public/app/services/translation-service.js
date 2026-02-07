@@ -9,10 +9,14 @@ try {
   if (typeof window !== "undefined") {
     window.translationService = translationService;
   }
-} catch (_) {}
+} catch (_) {
+  (loggers.translation || console).debug("translationService global register:", _);
+}
 
 try {
   if (typeof window !== "undefined" && window.App && window.App.services) {
     window.App.services.translationService = translationService;
   }
-} catch (_) {}
+} catch (_) {
+  (loggers.translation || console).debug("translationService App.services register:", _);
+}

@@ -3,21 +3,21 @@
 // 包含：存储后端状态、缓存清理、导出/导入数据
 
 function registerEventListenersDataManagement(ctx) {
-  const clearCacheBtn = document.getElementById("clearCacheBtn");
-  const exportAllBtn = document.getElementById("exportAllBtn");
-  const exportSettingsBtn = document.getElementById("exportSettingsBtn");
-  const exportTermsBtn = document.getElementById("exportTermsBtn");
-  const exportProjectBtn = document.getElementById("exportProjectBtn");
-  const importSettingsBtn = document.getElementById("importSettingsBtn");
-  const importSettingsFile = document.getElementById("importSettingsFile");
-  const clearProjectOnlyBtn = document.getElementById("clearProjectOnlyBtn");
-  const clearAllCacheBtn = document.getElementById("clearAllCacheBtn");
-  const cancelClearCacheBtn = document.getElementById("cancelClearCacheBtn");
-  const requestFileSystemAccessBtn = document.getElementById(
+  const clearCacheBtn = DOMCache.get("clearCacheBtn");
+  const exportAllBtn = DOMCache.get("exportAllBtn");
+  const exportSettingsBtn = DOMCache.get("exportSettingsBtn");
+  const exportTermsBtn = DOMCache.get("exportTermsBtn");
+  const exportProjectBtn = DOMCache.get("exportProjectBtn");
+  const importSettingsBtn = DOMCache.get("importSettingsBtn");
+  const importSettingsFile = DOMCache.get("importSettingsFile");
+  const clearProjectOnlyBtn = DOMCache.get("clearProjectOnlyBtn");
+  const clearAllCacheBtn = DOMCache.get("clearAllCacheBtn");
+  const cancelClearCacheBtn = DOMCache.get("cancelClearCacheBtn");
+  const requestFileSystemAccessBtn = DOMCache.get(
     "requestFileSystemAccessBtn"
   );
-  const disconnectFileSystemBtn = document.getElementById("disconnectFileSystemBtn");
-  const storageBackendStatus = document.getElementById("storageBackendStatus");
+  const disconnectFileSystemBtn = DOMCache.get("disconnectFileSystemBtn");
+  const storageBackendStatus = DOMCache.get("storageBackendStatus");
 
   async function updateStorageBackendStatus() {
     if (!storageBackendStatus) return;
@@ -42,7 +42,9 @@ function registerEventListenersDataManagement(ctx) {
         if (!handle && typeof fsBackend.loadHandleFromIdb === "function") {
           try {
             handle = await fsBackend.loadHandleFromIdb();
-          } catch (_) {}
+          } catch (_) {
+            (loggers.storage || console).debug("loadHandleFromIdb failed:", _);
+          }
         }
 
         if (!handle) {
@@ -55,7 +57,9 @@ function registerEventListenersDataManagement(ctx) {
             } else if (permission === "denied") {
               statusText = "文件夹存储（未授权）";
             }
-          } catch (_) {}
+          } catch (_) {
+            (loggers.storage || console).debug("queryPermission failed:", _);
+          }
         }
       }
 
@@ -113,7 +117,7 @@ function registerEventListenersDataManagement(ctx) {
             "文件夹存储已停用，数据已迁移回 IndexedDB。"
           );
         } catch (error) {
-          console.error("停用文件夹存储失败:", error);
+          (loggers.storage || console).error("停用文件夹存储失败:", error);
           showNotification(
             "error",
             "停用失败",
@@ -150,14 +154,11 @@ function registerEventListenersDataManagement(ctx) {
               storageManager.__persistPreferredBackend("filesystem");
             } else {
               try {
-                const settings =
-                  typeof safeJsonParse === "function"
-                    ? safeJsonParse(localStorage.getItem("translatorSettings"), {})
-                    : JSON.parse(localStorage.getItem("translatorSettings") || "{}");
-                settings.preferredStorageBackend = "filesystem";
-                localStorage.setItem("translatorSettings", JSON.stringify(settings));
+                SettingsCache.update(function (s) {
+                  s.preferredStorageBackend = "filesystem";
+                });
               } catch (e) {
-                console.warn("保存存储后端设置失败:", e);
+                (loggers.storage || console).warn("保存存储后端设置失败:", e);
               }
             }
 
@@ -169,7 +170,7 @@ function registerEventListenersDataManagement(ctx) {
                   migrateMsg = `已迁移 ${result.migrated} 个历史项目。`;
                 }
               } catch (e) {
-                console.warn("迁移数据到文件存储失败:", e);
+                (loggers.storage || console).warn("迁移数据到文件存储失败:", e);
               }
             }
 
@@ -181,7 +182,7 @@ function registerEventListenersDataManagement(ctx) {
               try {
                 await autoSaveManager.saveProject();
               } catch (e) {
-                console.warn("切换文件存储后保存当前项目失败:", e);
+                (loggers.storage || console).warn("切换文件存储后保存当前项目失败:", e);
               }
             }
 
@@ -199,7 +200,7 @@ function registerEventListenersDataManagement(ctx) {
             );
           }
         } catch (error) {
-          console.error("文件夹存储授权失败:", error);
+          (loggers.storage || console).error("文件夹存储授权失败:", error);
           showNotification(
             "error",
             "授权失败",
@@ -242,7 +243,7 @@ function registerEventListenersDataManagement(ctx) {
         try {
           await storageManager.clearCurrentProject();
         } catch (e) {
-          console.error("清理 currentProject 失败:", e);
+          (loggers.storage || console).error("清理 currentProject 失败:", e);
         }
 
         const idbClearPromise = deletingProjectId
@@ -250,7 +251,7 @@ function registerEventListenersDataManagement(ctx) {
           : Promise.resolve();
 
         idbClearPromise
-          .catch((e) => console.error("清理IndexedDB失败:", e))
+          .catch((e) => (loggers.storage || console).error("清理IndexedDB失败:", e))
           .finally(() => {
             showNotification("success", "清除成功", "当前项目数据已清除");
             setTimeout(() => {
@@ -282,7 +283,7 @@ function registerEventListenersDataManagement(ctx) {
             storageManager.preferredBackendId = "indexeddb";
           }
         } catch (e) {
-          console.warn("清理文件系统句柄失败:", e);
+          (loggers.storage || console).warn("清理文件系统句柄失败:", e);
         }
 
         try {
@@ -295,35 +296,26 @@ function registerEventListenersDataManagement(ctx) {
             await storageManager.clearCurrentProject();
           }
         } catch (e) {
-          console.error("清理 currentProject 失败:", e);
+          (loggers.storage || console).error("清理 currentProject 失败:", e);
         }
 
         try {
           try {
-            const raw = localStorage.getItem("translatorSettings");
-            const settings = raw
-              ? typeof safeJsonParse === "function"
-                ? safeJsonParse(raw, {})
-                : JSON.parse(raw)
-              : {};
-            if (settings && typeof settings === "object") {
-              settings.preferredStorageBackend = "indexeddb";
-              localStorage.setItem(
-                "translatorSettings",
-                JSON.stringify(settings)
-              );
-            }
+            SettingsCache.update(function (s) {
+              s.preferredStorageBackend = "indexeddb";
+            });
           } catch (e) {
-            console.warn("重置 preferredStorageBackend 失败:", e);
+            (loggers.storage || console).warn("重置 preferredStorageBackend 失败:", e);
           }
 
           localStorage.clear();
+          SettingsCache.invalidate();
         } catch (e) {
-          console.error("清理 localStorage 失败:", e);
+          (loggers.storage || console).error("清理 localStorage 失败:", e);
         }
 
         Promise.resolve(idbClearAllFileContents())
-          .catch((e) => console.error("清空IndexedDB失败:", e))
+          .catch((e) => (loggers.storage || console).error("清空IndexedDB失败:", e))
           .finally(() => {
             showNotification("success", "清除成功", "所有缓存数据已清除");
             setTimeout(() => {
@@ -356,10 +348,7 @@ function registerEventListenersDataManagement(ctx) {
         const allData = {
           version: "1.0.0",
           exportDate: new Date().toISOString(),
-          settings: safeJsonParse(
-            localStorage.getItem("translatorSettings"),
-            {}
-          ),
+          settings: SettingsCache.get(),
           projectsIndex,
           activeProjectId,
           projectsData,
@@ -426,10 +415,7 @@ function registerEventListenersDataManagement(ctx) {
       exportSettingsBtn,
       "click",
       () => {
-        const settings = safeJsonParse(
-          localStorage.getItem("translatorSettings"),
-          {}
-        );
+        const settings = SettingsCache.get();
         const data = {
           version: "1.0.0",
           exportDate: new Date().toISOString(),
@@ -516,12 +502,12 @@ function registerEventListenersDataManagement(ctx) {
               const data = JSON.parse(event.target.result);
 
               // 获取导入选项
-              const includeSettings = document.getElementById(
+              const includeSettings = DOMCache.get(
                 "importIncludeSettings"
               )?.checked;
               const includeTerms =
-                document.getElementById("importIncludeTerms")?.checked;
-              const includeProjects = document.getElementById(
+                DOMCache.get("importIncludeTerms")?.checked;
+              const includeProjects = DOMCache.get(
                 "importIncludeProjects"
               )?.checked;
 
@@ -529,10 +515,7 @@ function registerEventListenersDataManagement(ctx) {
 
               // 导入设置
               if (includeSettings && data.settings) {
-                localStorage.setItem(
-                  "translatorSettings",
-                  JSON.stringify(data.settings)
-                );
+                SettingsCache.save(data.settings);
                 loadSettings();
                 applySettings(data.settings);
                 importCount++;
@@ -580,7 +563,7 @@ function registerEventListenersDataManagement(ctx) {
                     updateTerminologyList();
                   }
                 } catch (e) {
-                  console.error("同步术语库到界面失败:", e);
+                  (loggers.app || console).error("同步术语库到界面失败:", e);
                 }
 
                 try {
@@ -591,7 +574,7 @@ function registerEventListenersDataManagement(ctx) {
                     autoSaveManager.markDirty();
                     Promise.resolve(autoSaveManager.saveProject()).catch(
                       (e) => {
-                        console.error("保存术语到项目存储失败:", e);
+                        (loggers.storage || console).error("保存术语到项目存储失败:", e);
                       }
                     );
                   } else if (typeof storageManager !== "undefined") {
@@ -607,11 +590,11 @@ function registerEventListenersDataManagement(ctx) {
                     Promise.resolve(
                       storageManager.saveCurrentProject(payload)
                     ).catch((e) => {
-                      console.error("保存术语到项目存储失败:", e);
+                      (loggers.storage || console).error("保存术语到项目存储失败:", e);
                     });
                   }
                 } catch (e) {
-                  console.error("触发项目保存失败:", e);
+                  (loggers.storage || console).error("触发项目保存失败:", e);
                 }
                 importCount++;
               }
@@ -646,7 +629,7 @@ function registerEventListenersDataManagement(ctx) {
 
                 uniqueProjects.forEach((p) => {
                   Promise.resolve(storageManager.saveProject(p)).catch((e) => {
-                    console.error("导入项目失败:", e);
+                    (loggers.storage || console).error("导入项目失败:", e);
                   });
                 });
 
@@ -668,7 +651,7 @@ function registerEventListenersDataManagement(ctx) {
 
                   Promise.resolve(storageManager.saveProjectsIndex(idx)).catch(
                     (e) => {
-                      console.error("导入 projectsIndex 失败:", e);
+                      (loggers.storage || console).error("导入 projectsIndex 失败:", e);
                     }
                   );
 
@@ -693,7 +676,7 @@ function registerEventListenersDataManagement(ctx) {
                   Promise.resolve(
                     storageManager.saveProjectsIndex(data.projectsIndex)
                   ).catch((e) => {
-                    console.error("导入 projectsIndex 失败:", e);
+                    (loggers.storage || console).error("导入 projectsIndex 失败:", e);
                   });
 
                   if (data.activeProjectId) {
@@ -720,7 +703,7 @@ function registerEventListenersDataManagement(ctx) {
                 showNotification("warning", "未导入", "请至少选择一个导入选项");
               }
             } catch (error) {
-              console.error("Import error:", error);
+              (loggers.app || console).error("Import error:", error);
               showNotification("error", "导入失败", "无效的JSON文件格式");
             }
           };
@@ -741,7 +724,7 @@ function registerEventListenersDataManagement(ctx) {
   const translationSearchInput = ctx?.translationSearchInput;
   const translationSearchInputMobile = ctx?.translationSearchInputMobile;
 
-  const clearAllSampleDataBtn = document.getElementById("clearAllSampleData");
+  const clearAllSampleDataBtn = DOMCache.get("clearAllSampleData");
   if (clearAllSampleDataBtn) {
     if (
       !(clearAllSampleDataBtn.dataset && clearAllSampleDataBtn.dataset.bound)
@@ -779,41 +762,51 @@ function registerEventListenersDataManagement(ctx) {
                   if (p && (p.__isSampleProject || id === "sample-project-1")) {
                     deleteIds.add(id);
                   }
-                } catch (_) {}
+                } catch (_) {
+                  (loggers.app || console).debug("clearSampleData check project:", _);
+                }
               }
 
               for (const id of deleteIds) {
                 try {
                   await storageManager.deleteProject(id);
                 } catch (e) {
-                  console.warn("删除示例项目失败:", id, e);
+                  (loggers.storage || console).warn("删除示例项目失败:", id, e);
                 }
               }
             } catch (e) {
-              console.error("清除示例数据失败:", e);
+              (loggers.storage || console).error("清除示例数据失败:", e);
             }
 
             if (activeWasSample) {
               try {
                 AppState.translations.items = [];
                 AppState.translations.filtered = [];
-              } catch (_) {}
+              } catch (_) {
+                (loggers.app || console).debug("clearSampleData reset translations:", _);
+              }
 
               try {
                 AppState.terminology.list = [];
                 AppState.terminology.filtered = [];
-              } catch (_) {}
+              } catch (_) {
+                (loggers.app || console).debug("clearSampleData reset terminology:", _);
+              }
 
               try {
                 AppState.project = null;
                 AppState.fileMetadata = {};
-              } catch (_) {}
+              } catch (_) {
+                (loggers.app || console).debug("clearSampleData reset project:", _);
+              }
 
               try {
                 if (translationSearchInput) translationSearchInput.value = "";
                 if (translationSearchInputMobile)
                   translationSearchInputMobile.value = "";
-              } catch (_) {}
+              } catch (_) {
+                (loggers.app || console).debug("clearSampleData reset search:", _);
+              }
 
               showNotification("success", "清除成功", "示例数据已清除");
               setTimeout(() => location.reload(), 600);

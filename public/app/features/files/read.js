@@ -13,9 +13,7 @@ async function __readFileAsyncImpl(file) {
 
   const __getAutoDetectEncoding = () => {
     try {
-      const saved = localStorage.getItem("translatorSettings");
-      if (!saved) return true;
-      const settings = JSON.parse(saved);
+      const settings = SettingsCache.get();
       if (settings && settings.autoDetectEncoding !== undefined) {
         return !!settings.autoDetectEncoding;
       }

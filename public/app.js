@@ -242,8 +242,6 @@
     var totalCount = scripts.length;
     var loadErrors = [];
     var startTime = performance.now();
-    var batchSize = 3; // 并行加载批次大小
-    var currentBatch = 0;
 
     function updateProgress() {
       var progress = (loadedCount / totalCount) * 100;

@@ -97,7 +97,9 @@ function openFileContentDB() {
                 "存储已更新",
                 "检测到数据库版本变更，当前页面的存储连接将被关闭。建议刷新页面以继续正常保存。"
               );
-            } catch (_) {}
+            } catch (_) {
+              (loggers.storage || console).debug("idb versionchange notification:", _);
+            }
           }
           try {
             __fileContentDB.db.close();
@@ -173,7 +175,9 @@ function idbGetFileContent(key) {
         __fileContentLsFallbackWarn("读取");
         return val;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.storage || console).debug("idb localStorage fallback read:", _);
+    }
     throw e;
   });
 }

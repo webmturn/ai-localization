@@ -9,24 +9,24 @@ function handleImportFileSelect(e) {
   // 保存文件引用
   pendingImportFile = file;
 
-  console.log("文件已选择:", file.name);
+  (loggers.app || console).debug("文件已选择:", file.name);
 
   // 获取导入按钮并启用它
-  const importTerminologyBtn = document.getElementById("importTerminologyBtn");
+  const importTerminologyBtn = DOMCache.get("importTerminologyBtn");
   if (importTerminologyBtn) {
-    console.log("启用导入按钮");
+    (loggers.app || console).debug("启用导入按钮");
     importTerminologyBtn.disabled = false;
     importTerminologyBtn.classList.remove(
       "disabled:opacity-50",
       "disabled:cursor-not-allowed"
     );
   } else {
-    console.error("未找到导入按钮元素");
+    (loggers.app || console).error("未找到导入按钮元素");
   }
 
   // 显示文件信息
-  const importDropArea = document.getElementById("importDropArea");
-  const importFileInput = document.getElementById("importFileInput");
+  const importDropArea = DOMCache.get("importDropArea");
+  const importFileInput = DOMCache.get("importFileInput");
   if (importDropArea) {
     const icon = document.createElement("i");
     icon.className = "fa fa-file-text text-2xl text-primary mb-2";
@@ -65,7 +65,7 @@ function handleImportFileSelect(e) {
 // 导入术语
 async function importTerminology() {
   try {
-    console.log("开始导入术语库...");
+    (loggers.app || console).debug("开始导入术语库...");
 
     // 使用全局变量中保存的文件
     if (!pendingImportFile) {
@@ -74,21 +74,21 @@ async function importTerminology() {
     }
 
     const file = pendingImportFile;
-    const importTerminologyBtn = document.getElementById(
+    const importTerminologyBtn = DOMCache.get(
       "importTerminologyBtn"
     );
 
-    console.log("导入文件:", file.name);
-    const importFormat = document.getElementById("importFormat").value;
-    const overwrite = document.getElementById("importOverwrite").checked;
+    (loggers.app || console).debug("导入文件:", file.name);
+    const importFormat = DOMCache.get("importFormat").value;
+    const overwrite = DOMCache.get("importOverwrite").checked;
 
-    console.log("导入设置:", { format: importFormat, overwrite: overwrite });
+    (loggers.app || console).debug("导入设置:", { format: importFormat, overwrite: overwrite });
 
     // 显示进度条
-    const importProgress = document.getElementById("importProgress");
-    const importProgressBar = document.getElementById("importProgressBar");
-    const importPercentage = document.getElementById("importPercentage");
-    const importStatus = document.getElementById("importStatus");
+    const importProgress = DOMCache.get("importProgress");
+    const importProgressBar = DOMCache.get("importProgressBar");
+    const importPercentage = DOMCache.get("importPercentage");
+    const importStatus = DOMCache.get("importStatus");
 
     if (importProgress) {
       importProgress.classList.remove("hidden");
@@ -101,7 +101,7 @@ async function importTerminology() {
     try {
       fileContent = await readFileAsync(file);
     } catch (e) {
-      console.error("文件读取失败:", e);
+      (loggers.app || console).error("文件读取失败:", e);
       showNotification("error", "文件读取失败", "无法读取选中的文件");
 
       if (importProgress) {
@@ -110,7 +110,7 @@ async function importTerminology() {
       return;
     }
 
-    console.log("文件读取完成，内容长度:", fileContent.length);
+    (loggers.app || console).debug("文件读取完成，内容长度:", fileContent.length);
     const __persistTerminologyList = async () => {
       let savedToProject = false;
       try {
@@ -127,7 +127,7 @@ async function importTerminology() {
           savedToProject = true;
         }
       } catch (e) {
-        console.error("保存术语到项目存储失败:", e);
+        (loggers.storage || console).error("保存术语到项目存储失败:", e);
       }
 
       if (!savedToProject) {
@@ -164,7 +164,7 @@ async function importTerminology() {
             await storageManager.saveCurrentProject(payload);
           }
         } catch (e) {
-          console.error("保存术语到项目存储失败:", e);
+          (loggers.storage || console).error("保存术语到项目存储失败:", e);
         }
       }
     };
@@ -221,7 +221,7 @@ async function importTerminology() {
       throw new Error("不支持的文件格式");
     }
 
-    console.log("成功解析术语数量:", importedTerms.length);
+    (loggers.app || console).debug("成功解析术语数量:", importedTerms.length);
 
     if (importedTerms.length === 0) {
       throw new Error("文件中没有找到有效的术语数据");
@@ -282,7 +282,7 @@ async function importTerminology() {
       importProgress.classList.add("hidden");
       importTerminologyBtn.disabled = true;
 
-      const importDropArea = document.getElementById("importDropArea");
+      const importDropArea = DOMCache.get("importDropArea");
       if (importDropArea) {
         const icon = document.createElement("i");
         icon.className =
@@ -304,7 +304,7 @@ async function importTerminology() {
 
         importDropArea.replaceChildren(icon, p1, p2, btn);
 
-        const input = document.getElementById("importFileInput");
+        const input = DOMCache.get("importFileInput");
         if (input) {
           input.classList.add("hidden");
           importDropArea.appendChild(input);
@@ -312,8 +312,7 @@ async function importTerminology() {
         }
       }
     })().catch((error) => {
-      console.error("导入失败:", error);
-      console.error("错误堆栈:", error.stack);
+      (loggers.app || console).error("导入失败:", error);
       showNotification(
         "error",
         "导入失败",
@@ -325,7 +324,7 @@ async function importTerminology() {
       }
     });
   } catch (error) {
-    console.error("导入术语库时出错:", error);
+    (loggers.app || console).error("导入术语库时出错:", error);
     showNotification(
       "error",
       "导入失败",
@@ -353,7 +352,7 @@ function handleImportDrop(e) {
   setDropAreaActive(e.currentTarget, false);
 
   if (e.dataTransfer.files.length) {
-    const importFileInput = document.getElementById("importFileInput");
+    const importFileInput = DOMCache.get("importFileInput");
     if (importFileInput) {
       importFileInput.files = e.dataTransfer.files;
       handleImportFileSelect({ target: importFileInput });

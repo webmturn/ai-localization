@@ -263,7 +263,7 @@ class EnhancedQualityChecker {
           });
         }
       } catch (error) {
-        console.warn(`规则 ${ruleId} 检查失败:`, error);
+        (loggers.app || console).warn(`规则 ${ruleId} 检查失败:`, error);
       }
     }
     

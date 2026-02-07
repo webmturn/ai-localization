@@ -183,7 +183,7 @@ class StorageErrorHandler {
       }
     } else {
       // 备用错误处理
-      console.error(`存储错误 (${context}):`, error);
+      (loggers.storage || console).error(`存储错误 (${context}):`, error);
       this.showNotification("error", "存储错误", `${context}失败：${error.message || "未知错误"}`);
     }
   }
@@ -228,13 +228,13 @@ class StorageErrorHandler {
     if (typeof showNotification === 'function') {
       showNotification(type, title, message);
     } else {
-      console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+      (loggers.storage || console).info(`${type.toUpperCase()}: ${title} - ${message}`);
     }
     
     // 处理额外操作
     if (options.actions && Array.isArray(options.actions)) {
       // 这里可以扩展显示操作按钮的功能
-      console.log("可用操作:", options.actions.map(a => a.text));
+      (loggers.storage || console).debug("可用操作:", options.actions.map(a => a.text));
     }
   }
   
@@ -294,7 +294,7 @@ if (typeof module !== 'undefined' && module.exports) {
     try {
       window.diContainer.registerFactory('storageErrorHandler', () => storageErrorHandler);
     } catch (error) {
-      console.warn('StorageErrorHandler DI注册失败:', error.message);
+      (loggers.storage || console).warn('StorageErrorHandler DI注册失败:', error.message);
     }
   }
 }

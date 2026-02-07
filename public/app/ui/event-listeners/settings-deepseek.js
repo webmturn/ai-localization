@@ -47,18 +47,20 @@ function __getDefaultPrimingSampleIds(items, count) {
 
 function __updatePrimingSelectedCountLabel() {
   try {
-    const idsEl = document.getElementById("deepseekPrimingSampleIds");
-    const countEl = document.getElementById("deepseekPrimingSelectedCount");
+    const idsEl = DOMCache.get("deepseekPrimingSampleIds");
+    const countEl = DOMCache.get("deepseekPrimingSelectedCount");
     if (!idsEl || !countEl) return;
     const ids = safeJsonParse(idsEl.value, []);
     countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
-  } catch (_) {}
+  } catch (_) {
+    (loggers.app || console).debug("deepseek updatePrimingCount:", _);
+  }
 }
 
 function __renderPrimingSamplesModal() {
-  const listEl = document.getElementById("deepseekPrimingSamplesList");
-  const idsEl = document.getElementById("deepseekPrimingSampleIds");
-  const countInput = document.getElementById("deepseekPrimingSampleCount");
+  const listEl = DOMCache.get("deepseekPrimingSamplesList");
+  const idsEl = DOMCache.get("deepseekPrimingSampleIds");
+  const countInput = DOMCache.get("deepseekPrimingSampleCount");
   if (!listEl || !idsEl) return;
 
   const items = __getPrimingBaseItems();
@@ -173,7 +175,7 @@ function __normalizeConversationToFlatMessages(messages) {
 }
 
 function __renderDeepseekConversationMessages(messages) {
-  const listEl = document.getElementById("deepseekConversationMessages");
+  const listEl = DOMCache.get("deepseekConversationMessages");
   if (!listEl) return;
   listEl.replaceChildren();
 
@@ -233,7 +235,7 @@ function __getDeepseekConversationSnapshot() {
 }
 
 function registerEventListenersSettingsDeepseek(ctx) {
-  const selectPrimingBtn = document.getElementById(
+  const selectPrimingBtn = DOMCache.get(
     "selectDeepseekPrimingSamples",
   );
   if (selectPrimingBtn) {
@@ -252,15 +254,15 @@ function registerEventListenersSettingsDeepseek(ctx) {
     );
   }
 
-  const savePrimingBtn = document.getElementById("saveDeepseekPrimingSamples");
+  const savePrimingBtn = DOMCache.get("saveDeepseekPrimingSamples");
   if (savePrimingBtn) {
     EventManager.add(
       savePrimingBtn,
       "click",
       () => {
-        const listEl = document.getElementById("deepseekPrimingSamplesList");
-        const idsEl = document.getElementById("deepseekPrimingSampleIds");
-        const countInput = document.getElementById(
+        const listEl = DOMCache.get("deepseekPrimingSamplesList");
+        const idsEl = DOMCache.get("deepseekPrimingSampleIds");
+        const countInput = DOMCache.get(
           "deepseekPrimingSampleCount",
         );
         if (!listEl || !idsEl) return;
@@ -302,7 +304,7 @@ function registerEventListenersSettingsDeepseek(ctx) {
     );
   }
 
-  const clearConversationBtn = document.getElementById(
+  const clearConversationBtn = DOMCache.get(
     "clearDeepseekConversation",
   );
   if (clearConversationBtn) {
@@ -318,7 +320,9 @@ function registerEventListenersSettingsDeepseek(ctx) {
           ) {
             translationService.deepseekConversations.clear();
           }
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("deepseek clearConversations:", _);
+        }
         showNotification("success", "已清空会话", "DeepSeek 会话上下文已清空");
       },
       {
@@ -329,7 +333,7 @@ function registerEventListenersSettingsDeepseek(ctx) {
     );
   }
 
-  const viewConversationBtn = document.getElementById(
+  const viewConversationBtn = DOMCache.get(
     "viewDeepseekConversation",
   );
   if (viewConversationBtn) {
@@ -337,14 +341,14 @@ function registerEventListenersSettingsDeepseek(ctx) {
       viewConversationBtn,
       "click",
       () => {
-        const keySelect = document.getElementById(
+        const keySelect = DOMCache.get(
           "deepseekConversationKeySelect",
         );
-        const metaEl = document.getElementById("deepseekConversationMeta");
-        const copyBtn = document.getElementById("copyDeepseekConversation");
+        const metaEl = DOMCache.get("deepseekConversationMeta");
+        const copyBtn = DOMCache.get("copyDeepseekConversation");
 
         const scope =
-          document.getElementById("deepseekConversationScope")?.value ||
+          DOMCache.get("deepseekConversationScope")?.value ||
           "project";
         const defaultKey = __buildDeepseekConversationKey(scope);
 
@@ -379,7 +383,7 @@ function registerEventListenersSettingsDeepseek(ctx) {
           const k = keySelect ? keySelect.value : selectedKey;
           const messages = snapshot[k] || [];
           if (metaEl) {
-            const enabled = !!document.getElementById(
+            const enabled = !!DOMCache.get(
               "deepseekConversationEnabled",
             )?.checked;
             const rawKey = String(k || "");

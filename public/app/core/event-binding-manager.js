@@ -37,7 +37,7 @@ class EventBindingManager {
     } = options;
     
     if (!target || typeof handler !== 'function') {
-      console.error('EventBindingManager: 无效的目标或处理函数');
+      (loggers.app || console).error('EventBindingManager: 无效的目标或处理函数');
       return null;
     }
     
@@ -52,7 +52,7 @@ class EventBindingManager {
             this.unbind(eventId);
             return result;
           } catch (error) {
-            console.error(`事件处理函数执行错误 (${label}):`, error);
+            (loggers.app || console).error(`事件处理函数执行错误 (${label}):`, error);
             this.unbind(eventId);
           }
         }
@@ -60,7 +60,7 @@ class EventBindingManager {
           try {
             return handler.apply(target, args);
           } catch (error) {
-            console.error(`事件处理函数执行错误 (${label}):`, error);
+            (loggers.app || console).error(`事件处理函数执行错误 (${label}):`, error);
           }
         };
     
@@ -106,7 +106,7 @@ class EventBindingManager {
   unbind(eventId) {
     const eventInfo = this.boundEvents.get(eventId);
     if (!eventInfo) {
-      console.warn(`EventBindingManager: 事件ID ${eventId} 不存在`);
+      (loggers.app || console).warn(`EventBindingManager: 事件ID ${eventId} 不存在`);
       return false;
     }
     
@@ -140,7 +140,7 @@ class EventBindingManager {
   unbindGroup(group) {
     const eventIds = this.eventGroups.get(group);
     if (!eventIds) {
-      console.warn(`EventBindingManager: 事件组 ${group} 不存在`);
+      (loggers.app || console).warn(`EventBindingManager: 事件组 ${group} 不存在`);
       return 0;
     }
     
@@ -173,7 +173,7 @@ class EventBindingManager {
       }
     });
     
-    console.log(`🧹 清理所有事件绑定: ${unboundCount} 个事件`);
+    (loggers.app || console).debug(`清理所有事件绑定: ${unboundCount} 个事件`);
     return unboundCount;
   }
   
@@ -336,7 +336,7 @@ class EventBindingManager {
     });
     
     if (cleanedCount > 0) {
-      console.log(`🧹 清理过期事件: ${cleanedCount} 个事件`);
+      (loggers.app || console).debug(`清理过期事件: ${cleanedCount} 个事件`);
     }
     
     return cleanedCount;

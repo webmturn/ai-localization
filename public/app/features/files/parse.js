@@ -186,11 +186,11 @@ async function __parseFileAsyncImpl(file) {
     try {
       await idbPutFileContent(contentKey, content);
     } catch (e) {
-      console.error("导入时写入IndexedDB失败:", e);
+      (loggers.storage || console).error("导入时写入IndexedDB失败:", e);
       notifyIndexedDbFileContentErrorOnce(e, "导入时保存原始内容");
     }
 
-    console.log(
+    (loggers.app || console).debug(
       `开始解析文件: ${file.name} (${fileExtension}), 大小: ${file.size} bytes`
     );
 
@@ -214,7 +214,7 @@ async function __parseFileAsyncImpl(file) {
         };
 
         const warnFallback = (message) => {
-          console.warn(message);
+          (loggers.app || console).warn(message);
           showNotification("warning", "XML解析提示", message);
         };
 
@@ -271,7 +271,7 @@ async function __parseFileAsyncImpl(file) {
         }
 
         if (detection.type === "android") {
-          console.log("结构识别: Android strings.xml");
+          (loggers.app || console).debug("结构识别: Android strings.xml");
           if (!ensureSchema("android", detection.doc)) {
             return parseGenericXML(normalizedContent, file.name);
           }
@@ -280,7 +280,7 @@ async function __parseFileAsyncImpl(file) {
           );
         }
         if (detection.type === "xliff") {
-          console.log("结构识别: XLIFF");
+          (loggers.app || console).debug("结构识别: XLIFF");
           if (!ensureSchema("xliff", detection.doc)) {
             return parseGenericXML(normalizedContent, file.name);
           }
@@ -289,7 +289,7 @@ async function __parseFileAsyncImpl(file) {
           );
         }
         if (detection.type === "ts") {
-          console.log("结构识别: Qt TS");
+          (loggers.app || console).debug("结构识别: Qt TS");
           if (!ensureSchema("ts", detection.doc)) {
             return parseGenericXML(normalizedContent, file.name);
           }
@@ -298,7 +298,7 @@ async function __parseFileAsyncImpl(file) {
           );
         }
         if (detection.type === "resx") {
-          console.log("结构识别: RESX");
+          (loggers.app || console).debug("结构识别: RESX");
           if (!ensureSchema("resx", detection.doc)) {
             return parseGenericXML(normalizedContent, file.name);
           }
@@ -306,7 +306,7 @@ async function __parseFileAsyncImpl(file) {
             parseRESX(normalizedContent, file.name)
           );
         }
-        console.log("结构识别: 通用XML");
+        (loggers.app || console).debug("结构识别: 通用XML");
         return parseGenericXML(normalizedContent, file.name);
       };
 
@@ -317,15 +317,15 @@ async function __parseFileAsyncImpl(file) {
         ts: parseXmlByDetectedFormat,
         resx: parseXmlByDetectedFormat,
         strings: () => {
-          console.log("检测到iOS strings格式");
+          (loggers.app || console).debug("检测到iOS strings格式");
           return parseIOSStrings(normalizedContent, file.name);
         },
         po: () => {
-          console.log("检测到PO格式");
+          (loggers.app || console).debug("检测到PO格式");
           return parsePO(normalizedContent, file.name);
         },
         json: () => {
-          console.log("检测到JSON格式");
+          (loggers.app || console).debug("检测到JSON格式");
           return parseJSON(normalizedContent, file.name);
         },
       };
@@ -334,11 +334,11 @@ async function __parseFileAsyncImpl(file) {
       if (parser) {
         items = parser();
       } else {
-        console.log("使用文本文件解析器");
+        (loggers.app || console).debug("使用文本文件解析器");
         items = parseTextFile(normalizedContent, file.name);
       }
     } catch (parseError) {
-      console.error(`特定解析器失败，使用备用方法:`, parseError);
+      (loggers.app || console).error(`特定解析器失败，使用备用方法:`, parseError);
       items = parseTextFile(normalizedContent, file.name);
     }
 
@@ -375,7 +375,7 @@ async function __parseFileAsyncImpl(file) {
       }
     }
 
-    console.log(`文件 ${file.name} 解析完成，找到 ${items.length} 个翻译项`);
+    (loggers.app || console).info(`文件 ${file.name} 解析完成，找到 ${items.length} 个翻译项`);
     showNotification(
       "success",
       "文件解析成功",
@@ -384,7 +384,7 @@ async function __parseFileAsyncImpl(file) {
 
     return { success: true, items, fileName: file.name, warnings };
   } catch (error) {
-    console.error(`解析文件 ${file.name} 时出错:`, error);
+    (loggers.app || console).error(`解析文件 ${file.name} 时出错:`, error);
     showNotification(
       "error",
       "文件解析错误",

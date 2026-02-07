@@ -3,13 +3,13 @@ function initEventListeners() {
   if (eventListenersInitialized) return;
   eventListenersInitialized = true;
 
-  const sourceList = document.getElementById("sourceList");
-  const targetList = document.getElementById("targetList");
-  const mobileCombinedList = document.getElementById("mobileCombinedList");
-  const fileTree = document.getElementById("fileTree");
-  const searchResultsList = document.getElementById("searchResultsList");
-  const searchResultsPanel = document.getElementById("searchResultsPanel");
-  const terminologyListElement = document.getElementById("terminologyList");
+  const sourceList = DOMCache.get("sourceList");
+  const targetList = DOMCache.get("targetList");
+  const mobileCombinedList = DOMCache.get("mobileCombinedList");
+  const fileTree = DOMCache.get("fileTree");
+  const searchResultsList = DOMCache.get("searchResultsList");
+  const searchResultsPanel = DOMCache.get("searchResultsPanel");
+  const terminologyListElement = DOMCache.get("terminologyList");
 
   const ctxTranslationSearchInput = DOMCache.get("translationSearchInput");
   const ctxTranslationSearchInputMobile = DOMCache.get(
@@ -42,7 +42,7 @@ function initEventListeners() {
     try {
       window.registerEventListenersKeyboard(ctx);
     } catch (err) {
-      console.error("注册快捷键失败:", err);
+      (loggers.app || console).error("注册快捷键失败:", err);
     }
   }
   registerEventListenersTranslationLists(ctx);
@@ -58,6 +58,3 @@ function initEventListeners() {
     registerEventListenersProjectManager(ctx);
   }
 }
-
-// 加载保存的设置
-// 加载保存的设置

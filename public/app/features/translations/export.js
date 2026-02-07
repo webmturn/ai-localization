@@ -23,13 +23,17 @@
         });
         return;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("translations export ArchDebug check:", _);
+    }
     try {
       if (!window.ArchDebug) {
         if (window.__translationsExportShimLoaded) return;
         window.__translationsExportShimLoaded = true;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("translations export shim check:", _);
+    }
   }
 
   var base = "app/features/translations/export/";
@@ -54,7 +58,9 @@
         var v = u.searchParams.get("v");
         if (v) suffix = "?v=" + encodeURIComponent(v);
       }
-    } catch (e) {}
+    } catch (e) {
+      // URL parse guard - safe to ignore
+    }
     return suffix;
   }
 
@@ -71,8 +77,8 @@
     };
     s.onerror = function (e) {
       try {
-        console.error("Failed to load export module:", s.src, e);
-      } catch (_) {}
+        (loggers.app || console).error("Failed to load export module:", s.src, e);
+      } catch (_) { /* console.error itself failed - nothing we can do */ }
     };
     document.head.appendChild(s);
   }

@@ -50,7 +50,7 @@ function __exportQualityReportPdfImpl() {
             try {
               __exportQualityReportPdfImpl();
             } catch (e) {
-              console.error("exportQualityReportPdf (after load) failed:", e);
+              (loggers.app || console).error("exportQualityReportPdf (after load) failed:", e);
               showNotification(
                 "error",
                 "导出失败",
@@ -59,7 +59,7 @@ function __exportQualityReportPdfImpl() {
             }
           })
           .catch(function (e) {
-            console.error("Failed to lazy-load Chart.js:", e);
+            (loggers.app || console).error("Failed to lazy-load Chart.js:", e);
             showNotification(
               "error",
               "导出失败",
@@ -68,7 +68,9 @@ function __exportQualityReportPdfImpl() {
           });
         return;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("quality export Chart.js check:", _);
+    }
   }
 
   const projectName = AppState.project?.name || "未命名项目";
@@ -127,7 +129,7 @@ function __exportQualityReportPdfImpl() {
 
   function getOnScreenChartDataUrl(id) {
     try {
-      const el = document.getElementById(id);
+      const el = DOMCache.get(id);
       if (!el || typeof el.toDataURL !== "function") return "";
       return el.toDataURL("image/png", 1.0);
     } catch (_) {
@@ -161,23 +163,31 @@ function __exportQualityReportPdfImpl() {
       try {
         if (typeof chart.resize === "function") chart.resize(width, height);
         if (typeof chart.update === "function") chart.update("none");
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("chart resize/update:", _);
+      }
 
       let url = "";
       try {
         if (typeof chart.toBase64Image === "function") {
           url = chart.toBase64Image();
         }
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("chart.toBase64Image:", _);
+      }
       if (!url) {
         try {
           url = canvas.toDataURL("image/png", 1.0);
-        } catch (_) {}
+        } catch (_) {
+          (loggers.app || console).debug("canvas.toDataURL:", _);
+        }
       }
 
       try {
         chart.destroy();
-      } catch (_) {}
+      } catch (_) {
+        (loggers.app || console).debug("chart.destroy:", _);
+      }
 
       return url || "";
     } catch (_) {
@@ -480,7 +490,9 @@ function __exportQualityReportPdfImpl() {
           window.print();
           setTimeout(function () { window.close(); }, 800);
         }, 200);
-      } catch (e) {}
+      } catch (e) {
+        // print window timing - safe to ignore
+      }
     });
   </script>
 </body>
@@ -503,7 +515,9 @@ function __exportQualityReportPdfImpl() {
   } catch (e) {
     try {
       w.close();
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("window.close:", _);
+    }
     showNotification("error", "导出失败", "无法生成 PDF 打印页");
     return;
   }

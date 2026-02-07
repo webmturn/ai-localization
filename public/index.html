@@ -352,10 +352,10 @@
 
     <!-- 模态框 -->
     <!-- 新建项目模态框 -->
-    <div id="newProjectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="newProjectModal" role="dialog" aria-modal="true" aria-labelledby="newProjectModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between gap-3 mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">新建项目</h3>
+                <h3 id="newProjectModalTitle" class="text-lg font-semibold text-gray-900 dark:text-gray-100">新建项目</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -404,10 +404,10 @@
         </div>
     </div>
 
-    <div id="projectManagerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="projectManagerModal" role="dialog" aria-modal="true" aria-labelledby="projectManagerModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-2xl p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 id="projectManagerModalTitle" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     <i class="fa fa-th-large mr-2 text-primary"></i>项目管理
                 </h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
@@ -508,10 +508,10 @@
     </div>
 
     <!-- 翻译进度模态框 -->
-    <div id="translationProgressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="translationProgressModal" role="dialog" aria-modal="true" aria-labelledby="translationProgressModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译进度</h3>
+                <h3 id="translationProgressModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译进度</h3>
                 <button id="cancelTranslationBtn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -550,10 +550,10 @@
     </div>
 
     <!-- 导出选项模态框 -->
-    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="exportModal" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">导出翻译</h3>
+                <h3 id="exportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">导出翻译</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -591,10 +591,10 @@
     </div>
 
     <!-- 批量查找替换模态框 -->
-    <div id="findReplaceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="findReplaceModal" role="dialog" aria-modal="true" aria-labelledby="findReplaceModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">批量查找替换（译文）</h3>
+                <h3 id="findReplaceModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">批量查找替换（译文）</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -655,10 +655,10 @@
     </div>
 
     <!-- 术语库模态框 -->
-    <div id="terminologyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="terminologyModal" role="dialog" aria-modal="true" aria-labelledby="terminologyModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-2xl p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">术语库管理</h3>
+                <h3 id="terminologyModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">术语库管理</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -839,11 +839,11 @@
     </div>
 
     <!-- 质量检查报告模态框 -->
-    <div id="qualityReportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="qualityReportModal" role="dialog" aria-modal="true" aria-labelledby="qualityReportModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col fade-in">
             <!-- 头部（固定） -->
             <div class="flex items-center justify-between p-6 pb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译质量报告</h3>
+                <h3 id="qualityReportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译质量报告</h3>
                 <div class="flex items-center space-x-3">
                     <button id="runQualityCheckBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 text-sm flex items-center">
                         <i class="fa fa-refresh mr-2"></i>重新检查
@@ -1063,10 +1063,10 @@
     </div>
 
     <!-- 添加术语模态框 -->
-    <div id="addTermModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="addTermModal" role="dialog" aria-modal="true" aria-labelledby="addTermModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">添加术语</h3>
+                <h3 id="addTermModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">添加术语</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -1103,11 +1103,11 @@
     </div>
 
     <!-- 设置模态框 -->
-    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <!-- 头部 -->
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">设置</h3>
+                <h3 id="settingsModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">设置</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -1478,7 +1478,7 @@
                                         <i class="fa fa-exclamation-triangle text-yellow-600 dark:text-amber-400 mt-0.5 mr-2 flex-shrink-0"></i>
                                         <div class="text-xs text-yellow-800 dark:text-amber-100">
                                             <p class="font-medium mb-1">安全提示</p>
-                                            <p>API 密钥将存储在浏览器本地,不会上传到服务器。请勿在公共设备上保存密钥。</p>
+                                            <p>API 密钥经加密后存储在浏览器本地,不会上传到服务器。请勿在公共或共享设备上保存密钥,建议定期轮换密钥以确保安全。</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1852,10 +1852,10 @@
         </div>
     </div>
 
-    <div id="clearCacheModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="clearCacheModal" role="dialog" aria-modal="true" aria-labelledby="clearCacheModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">清除缓存</h3>
+                <h3 id="clearCacheModalTitle" class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">清除缓存</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -1884,10 +1884,10 @@
     </div>
 
     <!-- 帮助模态框 -->
-    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">帮助文档</h3>
+                <h3 id="helpModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">帮助文档</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -2078,7 +2078,7 @@
     </div>
 
     <!-- 关于模态框 -->
-    <div id="aboutModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md">
             <div class="p-6 text-center">
                 <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
@@ -2087,7 +2087,7 @@
                 <div class="w-20 h-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
                     <i class="fa fa-language text-4xl text-primary"></i>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">智能翻译工具</h3>
+                <h3 id="aboutModalTitle" class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">智能翻译工具</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">版本 1.0.0（本地运行）</p>
                 
                 <div class="text-left space-y-4 mb-6">
@@ -2127,7 +2127,7 @@
     </div>
 
     <!-- 通知提示 -->
-    <div id="notification" class="fixed bottom-20 left-4 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated p-4 max-w-sm z-40 transform transition-all duration-300 -translate-x-full opacity-0">
+    <div id="notification" role="alert" aria-live="assertive" aria-atomic="true" class="fixed bottom-20 left-4 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated p-4 max-w-sm z-40 transform transition-all duration-300 -translate-x-full opacity-0">
         <div class="flex items-start">
             <div id="notificationIcon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-green-50 text-green-800 dark:bg-emerald-500/20 dark:text-emerald-400 mr-3">
                 <i id="notificationIconInner" class="fa fa-check-circle"></i>
@@ -2142,10 +2142,10 @@
         </div>
     </div>
 
-    <div id="deepseekPrimingSamplesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="deepseekPrimingSamplesModal" role="dialog" aria-modal="true" aria-labelledby="deepseekPrimingSamplesModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">选择 Priming 样本</h3>
+                <h3 id="deepseekPrimingSamplesModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">选择 Priming 样本</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -2164,10 +2164,10 @@
         </div>
     </div>
 
-    <div id="deepseekConversationViewerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="deepseekConversationViewerModal" role="dialog" aria-modal="true" aria-labelledby="deepseekConversationViewerModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-6xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">DeepSeek 会话查看器</h3>
+                <h3 id="deepseekConversationViewerModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">DeepSeek 会话查看器</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>

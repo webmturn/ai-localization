@@ -183,7 +183,7 @@ class DIContainer {
       
     } catch (error) {
       this.resolving.delete(name);
-      console.error(`❌ 解析服务失败: ${name}`, error);
+      (loggers.architecture || console).error(`解析服务失败: ${name}`, error);
       throw error;
     }
   }
@@ -227,7 +227,7 @@ class DIContainer {
       try {
         resolved[name] = this.resolve(name, context);
       } catch (error) {
-        console.error(`解析服务 ${name} 失败:`, error);
+        (loggers.architecture || console).error(`解析服务 ${name} 失败:`, error);
         resolved[name] = null;
       }
     });
@@ -319,7 +319,7 @@ class DIContainer {
         try {
           instance.dispose();
         } catch (error) {
-          console.error(`清理服务 ${name} 失败:`, error);
+          (loggers.architecture || console).error(`清理服务 ${name} 失败:`, error);
         }
       }
     });
@@ -332,7 +332,7 @@ class DIContainer {
     this.resolving.clear();
     this.interceptors.clear();
     
-    console.log('🧹 DI容器已清理');
+    (loggers.architecture || console).debug('DI容器已清理');
   }
   
   /**
@@ -486,7 +486,7 @@ function configureCoreServices(container) {
   
   // 通知服务
   container.registerFactory('notificationService', () => ({
-    show: window.showNotification || console.log,
+    show: window.showNotification || ((t,ti,m) => (loggers.app || console).info(`${t}: ${ti} - ${m}`)),
     showError: (title, message) => window.showNotification?.('error', title, message),
     showWarning: (title, message) => window.showNotification?.('warning', title, message),
     showSuccess: (title, message) => window.showNotification?.('success', title, message),
@@ -601,7 +601,7 @@ function initializeDI() {
   };
   window.registerService = (name, impl, options) => diContainer.register(name, impl, options);
   
-  console.log('✅ 依赖注入系统初始化完成');
+  (loggers.architecture || console).info('依赖注入系统初始化完成');
   
   return { diContainer, serviceLocator };
 }
@@ -702,14 +702,14 @@ function registerCoreServices() {
   diContainer.registerFactory('eventBindings', () => window.eventBindings);
   
   // 注册P1新增的分层架构服务
-  diContainer.registerFactory('translationBusinessLogic', () => window.translationBusinessLogic || window.TranslationBusinessLogic);
-  diContainer.registerFactory('translationUIController', () => window.translationUIController || window.TranslationUIController);
+  diContainer.registerFactory('translationBusinessLogic', () => window.translationBusinessLogic || null);
+  diContainer.registerFactory('translationUIController', () => window.translationUIController || null);
   
   // 注册P1新增的性能优化服务
   diContainer.registerFactory('domOptimizationManager', () => window.domOptimizationManager || window.DOMOptimizationManager);
   // requestDeduplicationManager、unifiedErrorHandler 已从生产加载移除
   
-  console.log('✅ 核心服务注册完成');
+  (loggers.architecture || console).info('核心服务注册完成');
 }
 
 /**
@@ -729,7 +729,7 @@ function createServiceProxy(serviceName, fallbackGlobal = null) {
           }
         }
       } catch (error) {
-        console.warn(`服务 ${serviceName} 不可用，使用备用方案:`, error);
+        (loggers.architecture || console).warn(`服务 ${serviceName} 不可用，使用备用方案:`, error);
       }
       
       // 备用方案：使用全局对象
@@ -759,7 +759,7 @@ function integrateWithArchitecture() {
   // 这会导致循环依赖问题（Proxy 尝试获取服务，服务工厂又检查 window.xxx）
   // 改为只提供 getService/hasService 接口，保持原有全局变量不变
   
-  console.log('✅ 架构系统集成完成（保持原有全局变量）');
+  (loggers.architecture || console).info('架构系统集成完成（保持原有全局变量）');
   
   // 添加架构状态检查
   window.checkArchitectureStatus = () => {
@@ -770,11 +770,11 @@ function integrateWithArchitecture() {
       integration: 'active'
     };
     
-    console.log('🏗️ 架构状态:', status);
+    (loggers.architecture || console).info('架构状态:', status);
     return status;
   };
   
-  console.log('✅ 架构系统集成完成');
+  (loggers.architecture || console).info('架构系统集成完成');
 }
 
 /**
@@ -815,7 +815,7 @@ function withServices(serviceNames, callback) {
     if (window.errorManager) {
       window.errorManager.handleError(error, { context: 'withServices' });
     } else {
-      console.error('批量服务操作失败:', error);
+      (loggers.architecture || console).error('批量服务操作失败:', error);
     }
     throw error;
   }

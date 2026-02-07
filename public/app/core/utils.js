@@ -42,8 +42,103 @@ function safeJsonParse(value, fallback) {
   try {
     return JSON.parse(value);
   } catch (error) {
-    console.warn("JSON parse failed, fallback used:", error);
+    (loggers.app || console).warn("JSON parse failed, fallback used:", error);
     return fallback;
+  }
+}
+
+/**
+ * translatorSettings 缓存访问器（单例）
+ * 避免 26+ 处重复 localStorage.getItem("translatorSettings") + JSON.parse
+ * 写入时自动同步缓存，保证一致性
+ * @namespace SettingsCache
+ */
+var SettingsCache = {
+  _key: "translatorSettings",
+  _cache: null,
+  _dirty: true,
+
+  /**
+   * 读取设置（带缓存）
+   * @returns {Object} 设置对象（永远返回普通对象，不返回null）
+   */
+  get: function () {
+    if (!this._dirty && this._cache) return this._cache;
+    var raw = localStorage.getItem(this._key);
+    this._cache = raw ? safeJsonParse(raw, {}) : {};
+    this._dirty = false;
+    return this._cache;
+  },
+
+  /**
+   * 保存设置（写入 localStorage 并更新缓存）
+   * @param {Object} settings - 完整的设置对象
+   */
+  save: function (settings) {
+    if (!settings || typeof settings !== "object") return;
+    localStorage.setItem(this._key, JSON.stringify(settings));
+    this._cache = settings;
+    this._dirty = false;
+  },
+
+  /**
+   * 读取 → 修改 → 保存 的快捷方法
+   * @param {Function} mutator - 接收当前settings的函数，直接修改即可
+   */
+  update: function (mutator) {
+    var s = this.get();
+    mutator(s);
+    this.save(s);
+  },
+
+  /**
+   * 标记缓存失效（下次 get 时重新从 localStorage 读取）
+   */
+  invalidate: function () {
+    this._dirty = true;
+    this._cache = null;
+  },
+};
+
+/**
+ * 通用标签页切换工具
+ * @param {string} tabSelector - 标签按钮的CSS选择器
+ * @param {string} panelSelector - 面板的CSS选择器
+ * @param {string} tabName - 要激活的标签名（匹配 data-tab 属性）
+ * @param {Object} [options] - 可选配置
+ * @param {string[]} [options.activeClasses] - 激活状态的类名
+ * @param {string[]} [options.inactiveClasses] - 非激活状态的类名
+ * @param {string} [options.activePanelId] - 要显示的面板ID（如果不通过 data-tab 匹配）
+ */
+function switchTabState(tabSelector, panelSelector, tabName, options) {
+  var opts = options || {};
+  var activeClasses = opts.activeClasses || ["active", "bg-primary", "text-white", "border-primary"];
+  var inactiveClasses = opts.inactiveClasses || [
+    "bg-gray-50", "dark:bg-gray-900", "text-gray-700", "dark:text-gray-200",
+    "border-gray-300", "dark:border-gray-600", "hover:bg-gray-100", "dark:hover:bg-gray-700"
+  ];
+
+  DOMCache.queryAll(tabSelector).forEach(function (tab) {
+    tab.classList.remove.apply(tab.classList, activeClasses);
+    tab.classList.add.apply(tab.classList, inactiveClasses);
+
+    if (tab.dataset.tab === tabName) {
+      tab.classList.add.apply(tab.classList, activeClasses);
+      tab.classList.remove.apply(tab.classList, inactiveClasses);
+    }
+  });
+
+  DOMCache.queryAll(panelSelector).forEach(function (panel) {
+    panel.classList.remove("active", "block");
+    panel.classList.add("hidden");
+  });
+
+  if (opts.activePanelId) {
+    var activePanel = DOMCache.get(opts.activePanelId);
+    if (activePanel) {
+      activePanel.classList.remove("hidden");
+      activePanel.classList.add("active", "block");
+    }
   }
 }
 
@@ -74,44 +169,46 @@ function filterItems(
 }
 
 (function () {
-  var App = (window.App = window.App || {});
+  const App = (window.App = window.App || {});
   App.services = App.services || {};
 
   if (typeof App.services.loadScriptOnce === "function") return;
 
-  var inflight = Object.create(null);
+  const inflight = Object.create(null);
 
   App.services.loadScriptOnce = function (src, options) {
-    var key = String(src || "");
+    const key = String(src || "");
     if (!key) return Promise.reject(new Error("loadScriptOnce: empty src"));
 
     if (inflight[key]) return inflight[key];
 
     inflight[key] = new Promise(function (resolve, reject) {
       try {
-        var existing = document.querySelector('script[data-app-src="' + key.replace(/"/g, "\\\"") + '"]');
+        const existing = document.querySelector('script[data-app-src="' + key.replace(/"/g, "\\\"") + '"]');
         if (existing) {
           resolve();
           return;
         }
 
-        var s = document.createElement("script");
+        const s = document.createElement("script");
         s.async = false;
         s.dataset.appSrc = key;
 
         if (options && options.defer) s.defer = true;
 
-        var suffix = "";
+        let suffix = "";
         try {
-          var appScriptSuffix = window.ArchDebug
+          const appScriptSuffix = window.ArchDebug
             ? window.ArchDebug.getFlag('appScriptSuffix')
             : (function () {
                 try {
-                  var App = window.App;
-                  if (App && typeof App.__appScriptSuffix === 'string') {
-                    return App.__appScriptSuffix;
+                  const App2 = window.App;
+                  if (App2 && typeof App2.__appScriptSuffix === 'string') {
+                    return App2.__appScriptSuffix;
                   }
-                } catch (_) {}
+                } catch (_) {
+                  // property access guard - safe to ignore
+                }
                 try {
                   return window.__appScriptSuffix;
                 } catch (_) {
@@ -119,7 +216,9 @@ function filterItems(
                 }
               })();
           suffix = typeof appScriptSuffix === "string" ? appScriptSuffix : "";
-        } catch (_) {}
+        } catch (_) {
+          // suffix detection guard - safe to ignore
+        }
 
         s.src = key + suffix;
 
@@ -159,12 +258,12 @@ function filterItems(
     });
   };
 
-  var qualityModulePromise = null;
+  let qualityModulePromise = null;
   App.services.ensureQualityModule = function () {
     if (App.services.__qualityModuleLoaded) return Promise.resolve();
     if (qualityModulePromise) return qualityModulePromise;
 
-    var parts = [
+    const parts = [
       "app/features/quality/checks.js",
       "app/features/quality/scoring.js",
       "app/features/quality/charts.js",
@@ -190,12 +289,12 @@ function filterItems(
     return qualityModulePromise;
   };
 
-  var translationsExportPromise = null;
+  let translationsExportPromise = null;
   App.services.ensureTranslationsExportModule = function () {
     if (App.services.__translationsExportLoaded) return Promise.resolve();
     if (translationsExportPromise) return translationsExportPromise;
 
-    var parts = [
+    const parts = [
       "app/features/translations/export/translation-formats.js",
       "app/features/translations/export/translation-original.js",
       "app/features/translations/export/translation-entry.js",
@@ -218,12 +317,12 @@ function filterItems(
     return translationsExportPromise;
   };
 
-  var terminologyIoPromise = null;
+  let terminologyIoPromise = null;
   App.services.ensureTerminologyImportExportModule = function () {
     if (App.services.__terminologyImportExportLoaded) return Promise.resolve();
     if (terminologyIoPromise) return terminologyIoPromise;
 
-    var parts = [
+    const parts = [
       "app/features/translations/export/terminology-import.js",
       "app/features/translations/export/terminology-export.js",
     ];

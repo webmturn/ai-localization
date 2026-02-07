@@ -24,13 +24,11 @@ class NamespaceManager {
    */
   initialize() {
     if (this.initialized) {
-      console.warn('命名空间系统已经初始化');
+      (loggers.architecture || console).warn('命名空间系统已经初始化');
       return;
     }
     
-    // 使用日志系统
-    const logger = window.loggers?.architecture || console;
-    logger.info?.('初始化命名空间系统...') || console.log('🏗️ 初始化命名空间系统...');
+    (loggers.architecture || console).info('初始化命名空间系统...');
     
     // 创建主命名空间
     this.createMainNamespace();
@@ -39,7 +37,7 @@ class NamespaceManager {
     this.setupGlobalProtection();
     
     this.initialized = true;
-    logger.info?.('命名空间系统初始化完成') || console.log('✅ 命名空间系统初始化完成');
+    (loggers.architecture || console).info('命名空间系统初始化完成');
   }
   
   /**
@@ -84,7 +82,7 @@ class NamespaceManager {
           configurable: false
         });
       } catch (error) {
-        console.warn('App.__namespace__已存在，跳过设置');
+        (loggers.architecture || console).warn('App.__namespace__已存在，跳过设置');
       }
     }
   }
@@ -129,7 +127,7 @@ class NamespaceManager {
           });
         } catch (error) {
           // 如果属性已存在，跳过
-          console.warn(`命名空间 ${fullPath} 的__namespace__属性已存在`);
+          (loggers.architecture || console).warn(`命名空间 ${fullPath} 的__namespace__属性已存在`);
         }
       }
       
@@ -151,9 +149,7 @@ class NamespaceManager {
     
     this.namespaces.set(path, current);
     
-    // 使用日志系统
-    const logger = window.loggers?.architecture || console;
-    logger.debug?.(`创建命名空间: ${path}`) || (typeof isDevelopment !== 'undefined' && isDevelopment && console.log(`📁 创建命名空间: ${path}`));
+    (loggers.architecture || console).debug(`创建命名空间: ${path}`);
     
     return current;
   }
@@ -175,7 +171,7 @@ class NamespaceManager {
     
     // 检查是否已存在
     if (moduleName in namespace && !overwrite) {
-      console.warn(`模块 ${moduleName} 已存在于命名空间 ${namespacePath}`);
+      (loggers.architecture || console).warn(`模块 ${moduleName} 已存在于命名空间 ${namespacePath}`);
       return false;
     }
     
@@ -231,12 +227,17 @@ class NamespaceManager {
    * 设置全局变量保护
    */
   setupGlobalProtection() {
+    // 仅在开发模式下启用全局变量监控
+    if (typeof isDevelopment === 'undefined' || !isDevelopment) {
+      return;
+    }
+
     // 记录现有的全局变量
     const existingGlobals = new Set(Object.getOwnPropertyNames(window));
     
     // 监控新全局变量的添加（通过定期检查实现）
     const self = this;
-    setInterval(() => {
+    this._globalProtectionIntervalId = setInterval(() => {
       try {
         const currentGlobals = Object.getOwnPropertyNames(window);
         currentGlobals.forEach(propertyStr => {
@@ -248,21 +249,29 @@ class NamespaceManager {
             const logger = window.loggers?.namespace || console;
             logger.debug?.(`检测到新的全局变量: ${propertyStr}，建议使用命名空间`);
             
-            // 记录全局变量
+            // 记录全局变量（不捕获堆栈以避免性能开销）
             if (!self.globalRegistry.has(propertyStr)) {
               self.globalRegistry.set(propertyStr, {
-                value: window[propertyStr],
-                created: new Date().toISOString(),
-                stack: new Error().stack
+                created: new Date().toISOString()
               });
             }
             existingGlobals.add(propertyStr);
           }
         });
       } catch (error) {
-        console.warn('全局变量保护检查失败:', error);
+        (loggers.architecture || console).warn('全局变量保护检查失败:', error);
       }
     }, 10000); // 每10秒检查一次，减少频率
+  }
+  
+  /**
+   * 清理命名空间管理器资源
+   */
+  cleanup() {
+    if (this._globalProtectionIntervalId) {
+      clearInterval(this._globalProtectionIntervalId);
+      this._globalProtectionIntervalId = null;
+    }
   }
   
   /**
@@ -357,7 +366,7 @@ function createSafeGlobal(name, value, options = {}) {
   }
   
   if (name in window && !overwrite) {
-    console.warn(`全局变量 ${name} 已存在`);
+    (loggers.architecture || console).warn(`全局变量 ${name} 已存在`);
     return false;
   }
   
@@ -413,6 +422,6 @@ setTimeout(() => {
   try {
     namespaceManager.initialize();
   } catch (error) {
-    console.error('命名空间系统初始化失败:', error);
+    (loggers.architecture || console).error('命名空间系统初始化失败:', error);
   }
 }, 0);

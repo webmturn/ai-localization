@@ -1,11 +1,11 @@
 // 导出术语库
 function exportTerminology() {
-  const format = document.getElementById("exportTerminologyFormat").value;
-  const filter = document.getElementById("exportFilter").value;
-  const includeDefinition = document.getElementById(
+  const format = DOMCache.get("exportTerminologyFormat").value;
+  const filter = DOMCache.get("exportFilter").value;
+  const includeDefinition = DOMCache.get(
     "exportIncludeDefinition"
   ).checked;
-  const includeMetadata = document.getElementById(
+  const includeMetadata = DOMCache.get(
     "exportIncludeMetadata"
   ).checked;
 
@@ -159,7 +159,7 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
             try {
               generateTerminologyExcel(terms, includeDefinition, includeMetadata);
             } catch (e) {
-              console.error("generateTerminologyExcel (after load) failed:", e);
+              (loggers.app || console).error("generateTerminologyExcel (after load) failed:", e);
               showNotification(
                 "error",
                 "导出失败",
@@ -168,7 +168,7 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
             }
           })
           .catch(function (e) {
-            console.error("Failed to lazy-load SheetJS:", e);
+            (loggers.app || console).error("Failed to lazy-load SheetJS:", e);
             showNotification(
               "error",
               "导出失败",
@@ -177,7 +177,9 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
           });
         return;
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("terminology-export XLSX load:", _);
+    }
 
     showNotification("error", "导出失败", "Excel库未加载，请刷新页面重试");
     return;
@@ -265,7 +267,7 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
   try {
     XLSX.writeFile(wb, filename);
   } catch (error) {
-    console.error("Excel导出失败:", error);
+    (loggers.app || console).error("Excel导出失败:", error);
     showNotification("error", "导出失败", error.message || "Excel文件生成失败");
   }
 }

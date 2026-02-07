@@ -10,7 +10,7 @@
   
   // 检查是否已经初始化
   if (window.errorManager) {
-    console.log('✅ 错误管理器已存在，跳过预加载');
+    (loggers.errors || console).debug('错误管理器已存在，跳过预加载');
     return;
   }
   
@@ -25,13 +25,13 @@
       // 错误管理器类已加载，立即初始化
       try {
         if (window.errorManager) {
-          console.log('✅ 错误管理器已存在，跳过预加载');
+          (loggers.errors || console).debug('错误管理器已存在，跳过预加载');
           return;
         }
         window.initializeErrorManager();
-        console.log('✅ 错误管理器预加载初始化完成');
+        (loggers.errors || console).debug('错误管理器预加载初始化完成');
       } catch (error) {
-        console.error('❌ 错误管理器预加载初始化失败:', error);
+        (loggers.errors || console).error('错误管理器预加载初始化失败:', error);
       }
       return;
     }
@@ -39,7 +39,7 @@
     if (checkCount < maxChecks) {
       setTimeout(checkErrorManager, 100);
     } else {
-      console.warn('⚠️ 错误管理器预加载超时，将在架构初始化时处理');
+      (loggers.errors || console).warn('错误管理器预加载超时，将在架构初始化时处理');
     }
   };
   

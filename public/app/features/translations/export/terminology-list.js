@@ -1,16 +1,16 @@
 // 保存术语（更新现有函数）
 function saveTerm() {
-  const sourceTerm = document.getElementById("sourceTerm").value.trim();
-  const targetTerm = document.getElementById("targetTerm").value.trim();
-  const partOfSpeech = document.getElementById("partOfSpeech").value;
-  const termDefinition = document.getElementById("termDefinition").value.trim();
+  const sourceTerm = DOMCache.get("sourceTerm").value.trim();
+  const targetTerm = DOMCache.get("targetTerm").value.trim();
+  const partOfSpeech = DOMCache.get("partOfSpeech").value;
+  const termDefinition = DOMCache.get("termDefinition").value.trim();
 
   if (!sourceTerm || !targetTerm) {
     showNotification("warning", "缺少术语", "请输入源术语和目标术语");
     return;
   }
 
-  const saveBtn = document.getElementById("saveTermBtn");
+  const saveBtn = DOMCache.get("saveTermBtn");
   const isEditing = saveBtn.dataset.editingId;
 
   if (isEditing) {
@@ -57,7 +57,7 @@ function saveTerm() {
       AppState.project.terminologyList = AppState.terminology.list;
     }
   } catch (e) {
-    console.error("同步术语到项目状态失败:", e);
+    (loggers.app || console).error("同步术语到项目状态失败:", e);
   }
 
   try {
@@ -67,18 +67,18 @@ function saveTerm() {
       typeof autoSaveManager.saveProject === "function"
     ) {
       Promise.resolve(autoSaveManager.saveProject()).catch((e) => {
-        console.error("保存术语到项目存储失败:", e);
+        (loggers.storage || console).error("保存术语到项目存储失败:", e);
       });
     }
   } catch (e) {
-    console.error("触发项目保存失败:", e);
+    (loggers.storage || console).error("触发项目保存失败:", e);
   }
 
   // 重置表单
-  document.getElementById("sourceTerm").value = "";
-  document.getElementById("targetTerm").value = "";
-  document.getElementById("partOfSpeech").value = "noun";
-  document.getElementById("termDefinition").value = "";
+  DOMCache.get("sourceTerm").value = "";
+  DOMCache.get("targetTerm").value = "";
+  DOMCache.get("partOfSpeech").value = "noun";
+  DOMCache.get("termDefinition").value = "";
 
   // 更新列表
   filterTerminology();
@@ -89,53 +89,10 @@ function saveTerm() {
 
 // 切换术语库标签页
 function switchTerminologyTab(tabName) {
-  // 更新标签按钮状态
-  document.querySelectorAll(".terminology-tab").forEach((tab) => {
-    tab.classList.remove(
-      "active",
-      "bg-primary",
-      "text-white",
-      "border-primary"
-    );
-    tab.classList.add(
-      "bg-gray-50",
-      "dark:bg-gray-900",
-      "text-gray-700",
-      "dark:text-gray-200",
-      "border-gray-300",
-      "dark:border-gray-600",
-      "hover:bg-gray-100",
-      "dark:hover:bg-gray-700"
-    );
-
-    if (tab.dataset.tab === tabName) {
-      tab.classList.add("active", "bg-primary", "text-white", "border-primary");
-      tab.classList.remove(
-        "bg-gray-50",
-        "dark:bg-gray-900",
-        "text-gray-700",
-        "dark:text-gray-200",
-        "border-gray-300",
-        "dark:border-gray-600",
-        "hover:bg-gray-100",
-        "dark:hover:bg-gray-700"
-      );
-    }
+  const panelId = `terminology${tabName === "list" ? "List" : "ImportExport"}Panel`;
+  switchTabState(".terminology-tab", ".tab-panel", tabName, {
+    activePanelId: panelId,
   });
-
-  // 显示对应面板
-  document.querySelectorAll(".tab-panel").forEach((panel) => {
-    panel.classList.remove("active");
-    panel.classList.add("hidden");
-  });
-
-  const activePanel = document.getElementById(
-    `terminology${tabName === "list" ? "List" : "ImportExport"}Panel`
-  );
-  if (activePanel) {
-    activePanel.classList.remove("hidden");
-    activePanel.classList.add("active");
-  }
 
   // 如果是列表标签页，刷新列表
   if (tabName === "list") {
@@ -145,7 +102,7 @@ function switchTerminologyTab(tabName) {
 
 // 更新术语列表
 function updateTerminologyList() {
-  const terminologyListElement = document.getElementById("terminologyList");
+  const terminologyListElement = DOMCache.get("terminologyList");
   if (!terminologyListElement) return;
 
   // 使用 AppState 获取数据
@@ -268,20 +225,20 @@ function updateTerminologyPagination() {
       ? 0
       : Math.min(startIndex + terminologyPerPage - 1, totalItems);
 
-  const terminologyCount = document.getElementById("terminologyCount");
+  const terminologyCount = DOMCache.get("terminologyCount");
   if (terminologyCount) {
     terminologyCount.textContent = `显示 ${startIndex}-${endIndex} 条，共 ${totalItems} 条`;
   }
 
   // 更新页码
-  const currentPageElement = document.getElementById("terminologyCurrentPage");
+  const currentPageElement = DOMCache.get("terminologyCurrentPage");
   if (currentPageElement) {
     currentPageElement.textContent = currentTerminologyPage;
   }
 
   // 更新按钮状态
-  const prevBtn = document.getElementById("terminologyPrevBtn");
-  const nextBtn = document.getElementById("terminologyNextBtn");
+  const prevBtn = DOMCache.get("terminologyPrevBtn");
+  const nextBtn = DOMCache.get("terminologyNextBtn");
 
   if (prevBtn) {
     prevBtn.disabled = totalItems === 0 || currentTerminologyPage <= 1;
@@ -313,8 +270,8 @@ function handleTerminologyPagination(direction) {
 
 // 过滤术语
 function filterTerminology() {
-  const searchInput = document.getElementById("terminologySearch");
-  const filterSelect = document.getElementById("terminologyFilter");
+  const searchInput = DOMCache.get("terminologySearch");
+  const filterSelect = DOMCache.get("terminologyFilter");
 
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
   const filterValue = filterSelect ? filterSelect.value : "all";
@@ -344,16 +301,16 @@ function editTerm(termId) {
   if (!term) return;
 
   // 填充编辑模态框
-  document.getElementById("sourceTerm").value = term.source;
-  document.getElementById("targetTerm").value = term.target;
-  document.getElementById("partOfSpeech").value = term.partOfSpeech;
-  document.getElementById("termDefinition").value = term.definition || "";
+  DOMCache.get("sourceTerm").value = term.source;
+  DOMCache.get("targetTerm").value = term.target;
+  DOMCache.get("partOfSpeech").value = term.partOfSpeech;
+  DOMCache.get("termDefinition").value = term.definition || "";
 
   // 显示编辑模态框
-  document.getElementById("addTermModal").classList.remove("hidden");
+  DOMCache.get("addTermModal").classList.remove("hidden");
 
   // 暂时保存正在编辑的术语ID
-  const saveBtn = document.getElementById("saveTermBtn");
+  const saveBtn = DOMCache.get("saveTermBtn");
   saveBtn.dataset.editingId = termId;
   saveBtn.textContent = "更新术语";
 }
@@ -370,7 +327,7 @@ function deleteTerm(termId) {
           AppState.project.terminologyList = AppState.terminology.list;
         }
       } catch (e) {
-        console.error("同步术语到项目状态失败:", e);
+        (loggers.app || console).error("同步术语到项目状态失败:", e);
       }
 
       try {
@@ -380,11 +337,11 @@ function deleteTerm(termId) {
           typeof autoSaveManager.saveProject === "function"
         ) {
           Promise.resolve(autoSaveManager.saveProject()).catch((e) => {
-            console.error("保存术语到项目存储失败:", e);
+            (loggers.storage || console).error("保存术语到项目存储失败:", e);
           });
         }
       } catch (e) {
-        console.error("触发项目保存失败:", e);
+        (loggers.storage || console).error("触发项目保存失败:", e);
       }
 
       // 保存到 localStorage
@@ -394,7 +351,7 @@ function deleteTerm(termId) {
           JSON.stringify(AppState.terminology.list)
         );
       } catch (e) {
-        console.error("保存术语库失败:", e);
+        (loggers.storage || console).error("保存术语库失败:", e);
       }
 
       filterTerminology(); // 重新过滤并更新列表

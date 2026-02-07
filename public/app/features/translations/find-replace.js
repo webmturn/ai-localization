@@ -12,9 +12,9 @@ function __truncatePreviewText(text, maxLen) {
 }
 
 function __setFindReplacePreviewList(items, limit) {
-  const listEl = document.getElementById("findReplacePreviewList");
-  const bodyEl = document.getElementById("findReplacePreviewListBody");
-  const limitEl = document.getElementById("findReplacePreviewListLimit");
+  const listEl = DOMCache.get("findReplacePreviewList");
+  const bodyEl = DOMCache.get("findReplacePreviewListBody");
+  const limitEl = DOMCache.get("findReplacePreviewListLimit");
 
   if (!listEl || !bodyEl || !limitEl) return;
 
@@ -95,20 +95,17 @@ function __buildFindReplacePattern(find, useRegex, caseSensitive) {
 
 function previewFindReplace(options = {}) {
   const silent = !!options.silent;
-  const find = document.getElementById("findReplaceFind")?.value || "";
-  const replace = document.getElementById("findReplaceReplace")?.value || "";
-  const scope = document.getElementById("findReplaceScope")?.value || "file";
-  const useRegex = !!document.getElementById("findReplaceUseRegex")?.checked;
+  const find = DOMCache.get("findReplaceFind")?.value || "";
+  const replace = DOMCache.get("findReplaceReplace")?.value || "";
+  const scope = DOMCache.get("findReplaceScope")?.value || "file";
+  const useRegex = !!DOMCache.get("findReplaceUseRegex")?.checked;
   const caseSensitive =
-    !!document.getElementById("findReplaceCaseSensitive")?.checked;
+    !!DOMCache.get("findReplaceCaseSensitive")?.checked;
 
-  const previewEl = document.getElementById("findReplacePreviewCount");
+  const previewEl = DOMCache.get("findReplacePreviewCount");
   if (!previewEl) return 0;
 
-  // 使用DI获取应用状态
-  const appState = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('appState', 'AppState') 
-    : window.AppState;
+  const appState = getServiceSafely('appState', 'AppState');
     
   if (!appState?.project || !Array.isArray(appState.project.translationItems)) {
     previewEl.textContent = "0";
@@ -116,9 +113,7 @@ function previewFindReplace(options = {}) {
     if (!silent) {
       // 使用验证器
       if (typeof TranslationValidators !== 'undefined') {
-        const errorManager = typeof getServiceSafely === 'function' 
-          ? getServiceSafely('errorManager', 'errorManager') 
-          : window.errorManager;
+        const errorManager = getServiceSafely('errorManager', 'errorManager');
         if (errorManager) {
           errorManager.handleError(new Error('请先上传文件或打开项目'), { context: 'previewFindReplace' });
         } else {
@@ -163,7 +158,7 @@ function previewFindReplace(options = {}) {
     if (!text) continue;
     try {
       regex.lastIndex = 0;
-    } catch (_) {}
+    } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
     const m = text.match(regex);
     if (m && m.length) {
       matches += m.length;
@@ -172,7 +167,7 @@ function previewFindReplace(options = {}) {
         let after = "";
         try {
           regex.lastIndex = 0;
-        } catch (_) {}
+        } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
         after = text.replace(regex, replace);
 
         const meta = item.metadata || {};
@@ -192,24 +187,19 @@ function previewFindReplace(options = {}) {
 }
 
 function applyFindReplace() {
-  const find = document.getElementById("findReplaceFind")?.value || "";
-  const replace = document.getElementById("findReplaceReplace")?.value || "";
-  const scope = document.getElementById("findReplaceScope")?.value || "file";
-  const useRegex = !!document.getElementById("findReplaceUseRegex")?.checked;
+  const find = DOMCache.get("findReplaceFind")?.value || "";
+  const replace = DOMCache.get("findReplaceReplace")?.value || "";
+  const scope = DOMCache.get("findReplaceScope")?.value || "file";
+  const useRegex = !!DOMCache.get("findReplaceUseRegex")?.checked;
   const caseSensitive =
-    !!document.getElementById("findReplaceCaseSensitive")?.checked;
+    !!DOMCache.get("findReplaceCaseSensitive")?.checked;
 
-  // 使用DI获取应用状态
-  const appState = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('appState', 'AppState') 
-    : window.AppState;
+  const appState = getServiceSafely('appState', 'AppState');
     
   if (!appState?.project || !Array.isArray(appState.project.translationItems)) {
     // 使用验证器
     if (typeof TranslationValidators !== 'undefined') {
-      const errorManager = typeof getServiceSafely === 'function' 
-        ? getServiceSafely('errorManager', 'errorManager') 
-        : window.errorManager;
+      const errorManager = getServiceSafely('errorManager', 'errorManager');
       if (errorManager) {
         errorManager.handleError(new Error('请先上传文件或打开项目'), { context: 'applyFindReplace' });
       } else {
@@ -249,7 +239,7 @@ function applyFindReplace() {
 
     try {
       regex.lastIndex = 0;
-    } catch (_) {}
+    } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
 
     let changed = false;
     const after = before.replace(regex, () => {
@@ -270,7 +260,7 @@ function applyFindReplace() {
     affectedItems++;
   }
 
-  const previewEl = document.getElementById("findReplacePreviewCount");
+  const previewEl = DOMCache.get("findReplacePreviewCount");
   if (previewEl) previewEl.textContent = String(replacedOccurrences);
 
   if (replacedOccurrences === 0) {
@@ -281,10 +271,7 @@ function applyFindReplace() {
   appState.project.updatedAt = new Date();
   appState.translations.items = appState.project.translationItems;
   
-  // 使用DI获取自动保存管理器
-  const autoSave = typeof getServiceSafely === 'function' 
-    ? getServiceSafely('autoSaveManager', 'autoSaveManager') 
-    : window.autoSaveManager;
+  const autoSave = getServiceSafely('autoSaveManager', 'autoSaveManager');
   if (autoSave) {
     autoSave.markDirty();
   }
@@ -312,4 +299,6 @@ try {
     window.previewFindReplace = previewFindReplace;
     window.applyFindReplace = applyFindReplace;
   }
-} catch (_) {}
+} catch (_) {
+  (loggers.app || console).debug("find-replace module init:", _);
+}

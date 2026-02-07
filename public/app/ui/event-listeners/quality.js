@@ -3,7 +3,7 @@ function initQualityCheckEventListeners() {
   if (qualityCheckEventListenersInitialized) return;
   qualityCheckEventListenersInitialized = true;
 
-  const runQualityCheckBtn = document.getElementById("runQualityCheckBtn");
+  const runQualityCheckBtn = DOMCache.get("runQualityCheckBtn");
   if (runQualityCheckBtn)
     EventManager.add(runQualityCheckBtn, "click", runQualityCheck, {
       tag: "quality",
@@ -11,7 +11,7 @@ function initQualityCheckEventListeners() {
       label: "runQualityCheckBtn:click",
     });
 
-  const issueFilterSeverity = document.getElementById("issueFilterSeverity");
+  const issueFilterSeverity = DOMCache.get("issueFilterSeverity");
   if (issueFilterSeverity)
     EventManager.add(issueFilterSeverity, "change", filterIssues, {
       tag: "quality",
@@ -19,7 +19,7 @@ function initQualityCheckEventListeners() {
       label: "issueFilterSeverity:change",
     });
 
-  const issueFilterType = document.getElementById("issueFilterType");
+  const issueFilterType = DOMCache.get("issueFilterType");
   if (issueFilterType)
     EventManager.add(issueFilterType, "change", filterIssues, {
       tag: "quality",
@@ -27,7 +27,7 @@ function initQualityCheckEventListeners() {
       label: "issueFilterType:change",
     });
 
-  const resetIssueFilterBtn = document.getElementById("resetIssueFilter");
+  const resetIssueFilterBtn = DOMCache.get("resetIssueFilter");
   if (resetIssueFilterBtn)
     EventManager.add(resetIssueFilterBtn, "click", resetIssueFilter, {
       tag: "quality",
@@ -35,7 +35,7 @@ function initQualityCheckEventListeners() {
       label: "resetIssueFilterBtn:click",
     });
 
-  const exportQualityReportBtn = document.getElementById("exportQualityReport");
+  const exportQualityReportBtn = DOMCache.get("exportQualityReport");
   if (exportQualityReportBtn)
     EventManager.add(exportQualityReportBtn, "click", exportQualityReportData, {
       tag: "quality",
@@ -43,7 +43,7 @@ function initQualityCheckEventListeners() {
       label: "exportQualityReportBtn:click",
     });
 
-  const exportQualityReportPdfBtn = document.getElementById(
+  const exportQualityReportPdfBtn = DOMCache.get(
     "exportQualityReportPdf",
   );
   if (exportQualityReportPdfBtn)

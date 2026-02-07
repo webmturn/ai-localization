@@ -17,78 +17,34 @@
   function __openModal(modalId) {
     try {
       if (typeof openModal === "function") return openModal(modalId);
-    } catch (_) {}
-    const modal = document.getElementById(modalId);
+    } catch (_) {
+      (loggers.app || console).debug("openModal fallback:", _);
+    }
+    const modal = DOMCache.get(modalId);
     if (modal) modal.classList.remove("hidden");
   }
 
   function __closeModal(modalId) {
     try {
       if (typeof closeModal === "function") return closeModal(modalId);
-    } catch (_) {}
-    const modal = document.getElementById(modalId);
+    } catch (_) {
+      (loggers.app || console).debug("closeModal fallback:", _);
+    }
+    const modal = DOMCache.get(modalId);
     if (modal) modal.classList.add("hidden");
   }
 
   function __switchProjectManagerTab(tabName) {
     try {
-      document.querySelectorAll(".project-tab").forEach((tab) => {
-        tab.classList.remove(
-          "active",
-          "bg-primary",
-          "text-white",
-          "border-primary"
-        );
-        tab.classList.add(
-          "bg-gray-50",
-          "dark:bg-gray-900",
-          "text-gray-700",
-          "dark:text-gray-200",
-          "border-gray-300",
-          "dark:border-gray-600",
-          "hover:bg-gray-100",
-          "dark:hover:bg-gray-700"
-        );
-      });
-
-      const activeTab = document.querySelector(
-        `.project-tab[data-tab="${tabName}"]`
-      );
-      if (activeTab) {
-        activeTab.classList.add(
-          "active",
-          "bg-primary",
-          "text-white",
-          "border-primary"
-        );
-        activeTab.classList.remove(
-          "bg-gray-50",
-          "dark:bg-gray-900",
-          "text-gray-700",
-          "dark:text-gray-200",
-          "border-gray-300",
-          "dark:border-gray-600",
-          "hover:bg-gray-100",
-          "dark:hover:bg-gray-700"
-        );
-      }
-
-      document.querySelectorAll(".project-tab-panel").forEach((panel) => {
-        panel.classList.remove("active", "block");
-        panel.classList.add("hidden");
-      });
-
       const panelId =
         tabName === "create-import"
           ? "projectManagerCreateImportPanel"
           : "projectManagerListPanel";
-      const activePanel = document.getElementById(panelId);
-      if (activePanel) {
-        activePanel.classList.remove("hidden");
-        activePanel.classList.add("active", "block");
-      }
+      switchTabState(".project-tab", ".project-tab-panel", tabName, {
+        activePanelId: panelId,
+      });
     } catch (e) {
-      console.error("切换项目管理标签页失败:", e);
+      (loggers.app || console).error("切换项目管理标签页失败:", e);
     }
   }
 
@@ -98,7 +54,7 @@
         await storageManager.saveProject(AppState.project);
       }
     } catch (e) {
-      console.error("确保当前项目进入索引失败:", e);
+      (loggers.storage || console).error("确保当前项目进入索引失败:", e);
     }
   }
 
@@ -126,31 +82,35 @@
     AppState.translations.searchQuery = "";
 
     try {
-      const sourceLanguageEl = document.getElementById("sourceLanguage");
-      const targetLanguageEl = document.getElementById("targetLanguage");
+      const sourceLanguageEl = DOMCache.get("sourceLanguage");
+      const targetLanguageEl = DOMCache.get("targetLanguage");
       if (sourceLanguageEl)
         sourceLanguageEl.value =
           project.sourceLanguage || sourceLanguageEl.value;
       if (targetLanguageEl)
         targetLanguageEl.value =
           project.targetLanguage || targetLanguageEl.value;
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("loadProjectToUI language sync:", _);
+    }
 
     if (typeof updateFileTree === "function") updateFileTree();
     if (typeof updateTranslationLists === "function") updateTranslationLists();
     if (typeof updateCounters === "function") updateCounters();
 
     try {
-      const projectStatusEl = document.getElementById("projectStatus");
+      const projectStatusEl = DOMCache.get("projectStatus");
       if (projectStatusEl) {
         projectStatusEl.textContent = "已切换";
         projectStatusEl.className =
           "text-success dark:text-emerald-400 font-medium";
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("project manager update status:", _);
+    }
 
     try {
-      const settingsModal = document.getElementById("settingsModal");
+      const settingsModal = DOMCache.get("settingsModal");
       if (
         settingsModal &&
         !settingsModal.classList.contains("hidden") &&
@@ -158,11 +118,13 @@
       ) {
         window.loadProjectPromptTemplatesToUI();
       }
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("project manager loadPromptTemplates:", _);
+    }
   }
 
   async function refreshProjectManagerList() {
-    const listEl = document.getElementById("projectManagerList");
+    const listEl = DOMCache.get("projectManagerList");
     if (!listEl) return;
 
     await __ensureCurrentProjectIndexed();
@@ -270,9 +232,9 @@
   }
 
   async function __createEmptyProject() {
-    const nameInput = document.getElementById("projectManagerProjectName");
-    const sourceLangInput = document.getElementById("projectManagerSourceLang");
-    const targetLangInput = document.getElementById("projectManagerTargetLang");
+    const nameInput = DOMCache.get("projectManagerProjectName");
+    const sourceLangInput = DOMCache.get("projectManagerSourceLang");
+    const targetLangInput = DOMCache.get("projectManagerTargetLang");
 
     let name = "";
     if (nameInput && typeof nameInput.value === "string") {
@@ -286,11 +248,11 @@
 
     const sourceLanguage =
       (sourceLangInput && sourceLangInput.value) ||
-      document.getElementById("sourceLanguage")?.value ||
+      DOMCache.get("sourceLanguage")?.value ||
       "en";
     const targetLanguage =
       (targetLangInput && targetLangInput.value) ||
-      document.getElementById("targetLanguage")?.value ||
+      DOMCache.get("targetLanguage")?.value ||
       "zh";
 
     const project = {
@@ -308,7 +270,9 @@
 
     try {
       if (nameInput) nameInput.value = "";
-    } catch (_) {}
+    } catch (_) {
+      (loggers.app || console).debug("project manager reset nameInput:", _);
+    }
 
     await storageManager.saveProject(project);
     await storageManager.setActiveProjectId(project.id);
@@ -391,13 +355,13 @@
         `项目 "${project.name}" 已导入并打开`
       );
     } catch (e) {
-      console.error("导入项目失败:", e);
+      (loggers.app || console).error("导入项目失败:", e);
       showNotification("error", "导入失败", "无法解析项目文件");
     }
   }
 
   function registerEventListenersProjectManager() {
-    const projectManagerBtn = document.getElementById("projectManagerBtn");
+    const projectManagerBtn = DOMCache.get("projectManagerBtn");
     if (projectManagerBtn) {
       EventManager.add(projectManagerBtn, "click", openProjectManager, {
         tag: "project",
@@ -406,7 +370,7 @@
       });
     }
 
-    const projectManagerListTab = document.getElementById(
+    const projectManagerListTab = DOMCache.get(
       "projectManagerListTab"
     );
     if (projectManagerListTab) {
@@ -422,7 +386,7 @@
       );
     }
 
-    const projectManagerCreateImportTab = document.getElementById(
+    const projectManagerCreateImportTab = DOMCache.get(
       "projectManagerCreateImportTab"
     );
     if (projectManagerCreateImportTab) {
@@ -438,7 +402,7 @@
       );
     }
 
-    const projectManagerCreateBtn = document.getElementById(
+    const projectManagerCreateBtn = DOMCache.get(
       "projectManagerCreateBtn"
     );
     if (projectManagerCreateBtn) {
@@ -449,10 +413,10 @@
       });
     }
 
-    const projectManagerImportBtn = document.getElementById(
+    const projectManagerImportBtn = DOMCache.get(
       "projectManagerImportBtn"
     );
-    const projectManagerImportFile = document.getElementById(
+    const projectManagerImportFile = DOMCache.get(
       "projectManagerImportFile"
     );
 
@@ -488,47 +452,79 @@
       );
     }
 
-    const projectManagerImportDropZone = document.getElementById(
+    const projectManagerImportDropZone = DOMCache.get(
       "projectManagerImportDropZone"
     );
     if (projectManagerImportDropZone) {
-      projectManagerImportDropZone.addEventListener(
+      EventManager.add(
+        projectManagerImportDropZone,
         "click",
         (e) => {
           if (e.target.closest("#projectManagerImportBtn")) return;
           projectManagerImportFile?.click();
         },
-        false
+        {
+          tag: "project",
+          scope: "projectManager:dropZone",
+          label: "importDropZone:click",
+        }
       );
 
-      projectManagerImportDropZone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        projectManagerImportDropZone.dataset.active = "true";
-      });
+      EventManager.add(
+        projectManagerImportDropZone,
+        "dragover",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          projectManagerImportDropZone.dataset.active = "true";
+        },
+        {
+          tag: "project",
+          scope: "projectManager:dropZone",
+          label: "importDropZone:dragover",
+        }
+      );
 
-      projectManagerImportDropZone.addEventListener("dragleave", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!projectManagerImportDropZone.contains(e.relatedTarget)) {
+      EventManager.add(
+        projectManagerImportDropZone,
+        "dragleave",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!projectManagerImportDropZone.contains(e.relatedTarget)) {
+            projectManagerImportDropZone.dataset.active = "false";
+          }
+        },
+        {
+          tag: "project",
+          scope: "projectManager:dropZone",
+          label: "importDropZone:dragleave",
+        }
+      );
+
+      EventManager.add(
+        projectManagerImportDropZone,
+        "drop",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           projectManagerImportDropZone.dataset.active = "false";
+          const file = e.dataTransfer?.files?.[0];
+          if (file && (file.name.toLowerCase().endsWith(".json") || file.type === "application/json")) {
+            __handleImportFile(file);
+          } else if (file) {
+            showNotification("warning", "格式错误", "请拖拽 .json 项目文件");
+          }
+        },
+        {
+          tag: "project",
+          scope: "projectManager:dropZone",
+          label: "importDropZone:drop",
         }
-      });
-
-      projectManagerImportDropZone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        projectManagerImportDropZone.dataset.active = "false";
-        const file = e.dataTransfer?.files?.[0];
-        if (file && (file.name.toLowerCase().endsWith(".json") || file.type === "application/json")) {
-          __handleImportFile(file);
-        } else if (file) {
-          showNotification("warning", "格式错误", "请拖拽 .json 项目文件");
-        }
-      });
+      );
     }
 
-    const projectManagerRefreshBtn = document.getElementById(
+    const projectManagerRefreshBtn = DOMCache.get(
       "projectManagerRefreshBtn"
     );
     if (projectManagerRefreshBtn) {
@@ -547,7 +543,7 @@
       );
     }
 
-    const listEl = document.getElementById("projectManagerList");
+    const listEl = DOMCache.get("projectManagerList");
     if (listEl) {
       EventManager.add(
         listEl,
@@ -578,7 +574,7 @@
             await storageManager
               .renameProject(projectId, nextName)
               .catch((e) => {
-                console.error("重命名失败:", e);
+                (loggers.storage || console).error("重命名失败:", e);
               });
 
             if (AppState.project?.id === projectId) {
@@ -595,7 +591,7 @@
             if (!ok) return;
 
             await storageManager.deleteProject(projectId).catch((e) => {
-              console.error("删除项目失败:", e);
+              (loggers.storage || console).error("删除项目失败:", e);
             });
 
             const activeId = await storageManager

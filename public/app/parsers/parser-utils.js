@@ -308,7 +308,9 @@ class EnhancedParserManager {
         try {
           JSON.parse(content);
           return 'json';
-        } catch (e) {}
+        } catch (e) {
+          // JSON parse probe - expected to fail for non-JSON
+        }
       }
       
       // XML 检测

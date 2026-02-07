@@ -255,6 +255,45 @@
     }
   }
 
+  /** 聚焦选中项的译文 textarea */
+  function _focusSelectedTextarea() {
+    var idx = AppState && AppState.translations ? AppState.translations.selected : -1;
+    if (!Number.isFinite(idx) || idx < 0) return;
+    var isMobile = window.innerWidth < 768;
+    var container = isMobile
+      ? document.getElementById("mobileCombinedList")
+      : document.getElementById("targetList");
+    if (!container) return;
+    var textarea = container.querySelector('textarea[data-index="' + idx + '"]');
+    if (textarea) {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    }
+  }
+
+  /** 在相邻 textarea 间导航（Tab 支持） */
+  function _navigateTextarea(currentIndex, direction) {
+    var isMobile = window.innerWidth < 768;
+    var container = isMobile
+      ? document.getElementById("mobileCombinedList")
+      : document.getElementById("targetList");
+    if (!container) return;
+    var textareas = Array.from(container.querySelectorAll("textarea[data-index]"));
+    var currentPos = textareas.findIndex(function (ta) {
+      return parseInt(ta.dataset.index) === currentIndex;
+    });
+    if (currentPos === -1) return;
+    var nextPos = currentPos + direction;
+    if (nextPos < 0 || nextPos >= textareas.length) return;
+    var nextTextarea = textareas[nextPos];
+    var nextIndex = parseInt(nextTextarea.dataset.index);
+    if (typeof selectTranslationItem === "function") {
+      selectTranslationItem(nextIndex, { shouldScroll: true, shouldFocusTextarea: false });
+    }
+    nextTextarea.focus();
+    nextTextarea.selectionStart = nextTextarea.selectionEnd = nextTextarea.value.length;
+  }
+
   function registerEventListenersKeyboard(ctx) {
     EventManager.add(
       window,
@@ -268,6 +307,48 @@
             target.tagName === "TEXTAREA" ||
             target.tagName === "SELECT")
         );
+
+        // ── 翻译列表上下文快捷键（优先于全局快捷键） ──
+
+        // 在译文 textarea 中按 Escape → 退出编辑，焦点回到列表
+        if (e.key === "Escape" && isEditable && target.tagName === "TEXTAREA") {
+          var inTranslationList = !!(target.closest("#targetList") || target.closest("#mobileCombinedList"));
+          if (inTranslationList) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            target.blur();
+            return;
+          }
+        }
+
+        // 在译文 textarea 中按 Tab / Shift+Tab → 切换到下/上一条 textarea
+        if (e.key === "Tab" && isEditable && target.tagName === "TEXTAREA") {
+          var inList = !!(target.closest("#targetList") || target.closest("#mobileCombinedList"));
+          if (inList && target.dataset.index) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            _navigateTextarea(parseInt(target.dataset.index), e.shiftKey ? -1 : 1);
+            return;
+          }
+        }
+
+        // 非编辑状态 + 有选中翻译项时的快捷键
+        if (!isEditable && AppState && AppState.translations && AppState.translations.selected >= 0) {
+          // ↑/↓ 无修饰键 → 导航翻译项
+          if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            runAction(e.key === "ArrowUp" ? "prevItem" : "nextItem", e);
+            return;
+          }
+          // Enter 无修饰键 → 聚焦选中项的 textarea 开始编辑
+          if (e.key === "Enter" && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            _focusSelectedTextarea();
+            return;
+          }
+        }
 
         const keyStr = eventToKeyString(e);
         const effective = getEffectiveShortcuts();

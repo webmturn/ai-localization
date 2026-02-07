@@ -2149,18 +2149,29 @@
     </div>
 
     <!-- 通知提示 -->
-    <div id="notification" role="alert" aria-live="assertive" aria-atomic="true" class="fixed bottom-20 left-4 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated p-4 max-w-sm z-40 transform transition-all duration-300 -translate-x-full opacity-0">
-        <div class="flex items-start">
-            <div id="notificationIcon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-green-50 text-green-800 dark:bg-emerald-500/20 dark:text-emerald-400 mr-3">
-                <i id="notificationIconInner" class="fa fa-check-circle"></i>
+    <div id="notification" role="alert" aria-live="assertive" aria-atomic="true" class="fixed bottom-20 left-4 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated max-w-sm z-40 transform transition-all duration-300 -translate-x-full opacity-0 overflow-hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <div id="notificationIcon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-green-50 text-green-800 dark:bg-emerald-500/20 dark:text-emerald-400 mr-3">
+                    <i id="notificationIconInner" class="fa fa-check-circle"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h4 id="notificationTitle" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">文件已添加</h4>
+                        <span id="notificationQueueBadge" class="hidden text-xs bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full px-1.5 py-0.5 font-medium flex-shrink-0"></span>
+                    </div>
+                    <p id="notificationMessage" class="mt-1 text-sm text-gray-600 dark:text-gray-300">1 个文件已成功添加到项目中，共提取 1974 个翻译项</p>
+                    <div id="notificationActions" class="hidden mt-2 flex items-center gap-2">
+                        <button id="notificationActionBtn" class="text-xs font-medium px-2.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors"></button>
+                    </div>
+                </div>
+                <button id="closeNotification" class="ml-3 flex-shrink-0 text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭通知" aria-label="关闭通知">
+                    <i class="fa fa-times"></i>
+                </button>
             </div>
-            <div class="flex-1">
-                <h4 id="notificationTitle" class="text-sm font-medium text-gray-900 dark:text-gray-100">文件已添加</h4>
-                <p id="notificationMessage" class="mt-1 text-sm text-gray-600 dark:text-gray-300">1 个文件已成功添加到项目中，共提取 1974 个翻译项</p>
-            </div>
-            <button id="closeNotification" class="ml-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭通知" aria-label="关闭通知">
-                <i class="fa fa-times"></i>
-            </button>
+        </div>
+        <div id="notificationProgress" class="h-0.5 bg-gray-200 dark:bg-gray-700">
+            <div id="notificationProgressBar" class="h-full bg-primary transition-none" style="width: 100%"></div>
         </div>
     </div>
 

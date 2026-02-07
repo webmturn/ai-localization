@@ -81,6 +81,7 @@ async function __runQualityCheckImpl() {
   }
 
   __qualityIsChecking = true;
+  __qualityCheckCache.clear();
 
   const originalProjectItems = AppState?.project?.translationItems;
 

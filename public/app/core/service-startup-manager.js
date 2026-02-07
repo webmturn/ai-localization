@@ -111,7 +111,7 @@ class ServiceStartupManager {
       priority: 50,
       dependencies: ['errorManager'],
       factory: () => window.storageManager,
-      healthCheck: (service) => service && typeof service.save === 'function'
+      healthCheck: (service) => service && typeof service.saveCurrentProject === 'function'
     });
 
     // 翻译服务

@@ -477,11 +477,12 @@ class BatchErrorCollector {
    * 获取汇总结果
    */
   getSummary() {
+    const total = this.successes.length + this.errors.length;
     return {
-      total: this.successes.length + this.errors.length,
+      total,
       successCount: this.successes.length,
       errorCount: this.errors.length,
-      successRate: this.total > 0 ? (this.successes.length / this.total) : 0,
+      successRate: total > 0 ? (this.successes.length / total) : 0,
       errors: this.errors,
       successes: this.successes
     };

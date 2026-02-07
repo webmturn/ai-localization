@@ -8,13 +8,13 @@
 
 ### 核心组件
 
-1. **ErrorManager** (`public/app/core/error-manager.js`)
+1. **ErrorManager** (`public/app/core/errors/error-manager.js`)
    - 统一错误管理器
    - 错误分类和标准化
    - 错误通知和日志记录
    - 错误统计和分析
 
-2. **ErrorUtils** (`public/app/core/error-utils.js`)
+2. **ErrorUtils** (`public/app/core/errors/error-utils.js`)
    - 错误处理工具函数
    - 异步操作包装器
    - 重试机制

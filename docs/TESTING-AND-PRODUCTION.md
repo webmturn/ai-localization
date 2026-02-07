@@ -31,13 +31,14 @@
 
 ### 核心系统文件（生产环境必需）
 ```
-public/app/core/
+public/app/core/errors/
 ├── error-manager.js      ✅ 核心错误管理器
 ├── error-utils.js        ✅ 错误处理工具
 └── error-production.js   ✅ 生产环境监控
 
 public/app/services/storage/
-└── error-handler.js      ✅ 存储错误处理
+├── error-handler.js          ✅ 存储错误处理（统一）
+└── storage-error-handler.js  ✅ 存储错误处理
 
 public/app/network/
 └── error-handler.js      ✅ 网络错误处理

@@ -2,7 +2,7 @@
 
 **项目**: 智能翻译工具 (AI Localization)  
 **版本**: 1.0.0  
-**更新日期**: 2026-02-06
+**更新日期**: 2026-02-07
 
 ---
 
@@ -331,19 +331,23 @@ const allValid = ValidationUtils.validateAll([
 ### translationService
 
 ```javascript
-// 翻译文本
+// 翻译文本（单条，带重试）
 const translated = await translationService.translate(
   text,
   sourceLang,
   targetLang,
-  engine,
-  context
+  engine,    // 'deepseek' | 'openai' | 'google'
+  context,   // { elementType, xmlPath, parentText, key }
+  maxRetries // 可选，默认读取设置
 );
 
 // 批量翻译
-const results = await translationService.translateBatch(
+const { results, errors } = await translationService.translateBatch(
   items,
-  options
+  sourceLang,
+  targetLang,
+  engine,
+  onProgress  // (completed, total, message) => {}
 );
 
 // 取消翻译
@@ -459,14 +463,33 @@ const stats = EventManager.getStats();
 ### DOMCache
 
 ```javascript
-// 获取缓存的元素
+// 按 ID 获取元素（缓存）
 const element = DOMCache.get('elementId');
+
+// 按选择器查询单个元素（缓存）
+const el = DOMCache.query('.my-class');
+
+// 按选择器查询多个元素（不缓存，因 NodeList 是 live 的）
+const els = DOMCache.queryAll('.items');
 
 // 移除缓存
 DOMCache.remove('elementId');
 
 // 清除所有缓存
 DOMCache.clear();
+```
+
+### SettingsCache
+
+```javascript
+// 获取设置（从缓存或 localStorage）
+const settings = SettingsCache.get();
+
+// 保存设置（同时更新缓存和 localStorage）
+SettingsCache.save(settings);
+
+// 清除缓存（下次 get 会重新读取 localStorage）
+SettingsCache.clear();
 ```
 
 ---
@@ -499,6 +522,28 @@ AppState.qualityCheckResults.overallScore    // 总分
 AppState.qualityCheckResults.translatedCount // 已翻译数
 AppState.qualityCheckResults.issues          // 问题列表
 ```
+
+---
+
+## DeepSeek 翻译设置
+
+通过 `SettingsCache` 读写，存储在 localStorage `translatorSettings` 中：
+
+| 设置项 | 类型 | 默认值 | 说明 |
+|----------|------|--------|------|
+| `deepseekApiKey` | string | - | API 密钥（加密存储） |
+| `deepseekUseKeyContext` | boolean | false | 翻译时参考 key/字段名 |
+| `deepseekContextAwareEnabled` | boolean | false | 上下文感知翻译 |
+| `deepseekContextWindowSize` | number | 3 | 前后各取多少条相邻条目 (1-10) |
+| `deepseekPrimingEnabled` | boolean | false | 启用 Priming 样本 |
+| `deepseekPrimingSampleCount` | number | 3 | Priming 样本数 |
+| `deepseekPrimingSampleIds` | string[] | [] | 手选的样本 ID |
+| `deepseekConversationEnabled` | boolean | false | 多轮会话记忆 |
+| `deepseekConversationScope` | string | 'project' | 会话范围: project/fileType/file |
+| `deepseekBatchMaxItems` | number | 40 | 每批次最大条目数 (5-100) |
+| `deepseekBatchMaxChars` | number | 6000 | 每批次最大字符数 (1000-20000) |
+| `translationRequestCacheEnabled` | boolean | false | 请求缓存 |
+| `translationRequestCacheTTLSeconds` | number | 5 | 缓存 TTL (1-600秒) |
 
 ---
 

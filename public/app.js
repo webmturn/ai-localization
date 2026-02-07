@@ -177,14 +177,10 @@
   // 开发模式下加载测试和演示代码
   if (typeof isDevelopment !== 'undefined' && isDevelopment) {
     scripts.push(
-      "app/core/error-demo.js",
-      "app/core/error-test.js", 
-      "app/core/error-system-test.js",
-      "app/examples/error-handling-examples.js",
-      "app/dev-tools/p0-integration-test.js",      // P0集成测试
-      "app/dev-tools/p1-decoupling-test.js",      // P1解耦测试
-      "app/dev-tools/legacy-cleanup-test.js",     // 遗留代码清理测试
-      "app/dev-tools/p2-improvements-test.js"     // P2改进验证测试
+      "app/dev-tools/error-demo.js",
+      "app/dev-tools/error-test.js",
+      "app/dev-tools/error-system-test.js",
+      "app/dev-tools/error-handling-examples.js"
     );
   } else {
     // 生产模式下加载精简版监控工具

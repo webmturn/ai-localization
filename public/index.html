@@ -244,10 +244,18 @@
                         <div class="translation-column flex flex-col min-h-0">
                             <div id="sourceScrollArea" class="flex-1 overflow-visible scrollbar-hide md:flex-initial md:min-h-0">
                                 <div id="mobileCombinedList" class="p-2 md:hidden">
-                                    <div class="text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center">请先上传文件</div>
+                                    <div class="flex flex-col items-center justify-center gap-3 py-12 px-4">
+                                        <i class="fa fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">尚无翻译项</p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译，<br>或加载示例项目快速体验</p>
+                                    </div>
                                 </div>
                                 <div id="sourceList" class="p-2 hidden md:block">
-                                    <div class="text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center">请先上传文件</div>
+                                    <div class="flex flex-col items-center justify-center gap-3 py-16 px-4">
+                                        <i class="fa fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">尚无翻译项</p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -255,7 +263,10 @@
                         <div class="translation-column hidden md:flex flex-col min-h-0">
                             <div id="targetScrollArea" class="flex-1 overflow-visible scrollbar-hide md:flex-initial md:min-h-0">
                                 <div id="targetList" class="p-2">
-                                    <div class="text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center">请先上传文件</div>
+                                    <div class="flex flex-col items-center justify-center gap-3 py-16 px-4">
+                                        <i class="fa fa-pencil-square-o text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">译文将显示在这里</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

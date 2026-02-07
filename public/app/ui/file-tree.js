@@ -43,9 +43,13 @@ function updateFileTree(files) {
       }
     }
     const li = document.createElement("li");
-    li.className =
-      "text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center";
-    li.textContent = "暂无文件";
+    li.className = "p-6 text-center";
+    li.innerHTML =
+      '<div class="flex flex-col items-center gap-2">' +
+        '<i class="fa fa-folder-open-o text-3xl text-gray-300 dark:text-gray-600"></i>' +
+        '<p class="text-sm text-gray-500 dark:text-gray-400">暂无文件</p>' +
+        '<p class="text-xs text-gray-400 dark:text-gray-500">拖拽文件到上方区域或点击浏览</p>' +
+      '</div>';
     fileTree.replaceChildren(li);
     return;
   }

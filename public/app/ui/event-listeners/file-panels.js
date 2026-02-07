@@ -40,9 +40,9 @@ function registerEventListenersFilePanels(ctx) {
         if (!row || !fileTree.contains(row)) return;
 
         fileTree.querySelectorAll("li > div").forEach((el) => {
-          el.classList.remove("bg-gray-100", "dark:bg-gray-800");
+          el.classList.remove("bg-blue-50", "dark:bg-blue-900/20", "ring-1", "ring-blue-200", "dark:ring-blue-800");
         });
-        row.classList.add("bg-gray-100", "dark:bg-gray-800");
+        row.classList.add("bg-blue-50", "dark:bg-blue-900/20", "ring-1", "ring-blue-200", "dark:ring-blue-800");
 
         const filename =
           row.dataset.filename || row.querySelector("span")?.textContent;

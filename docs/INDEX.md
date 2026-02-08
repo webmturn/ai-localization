@@ -1,7 +1,7 @@
 # 文档索引
 
 **项目**: 智能翻译工具 (AI Localization)  
-**最后更新**: 2026-02-08
+**最后更新**: 2026-02-09
 
 ---
 
@@ -46,6 +46,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [RELEASE-v1.1.0.md](RELEASE-v1.1.0.md) | v1.1.0 发布说明（移动端优化 + 桌面客户端预览） |
 | [GITHUB-RELEASE-CHECKLIST.md](GITHUB-RELEASE-CHECKLIST.md) | GitHub 发布检查清单 |
 | [README-CDN-UPDATE.md](README-CDN-UPDATE.md) | CDN 更新指南 |
 | [README-TAILWIND.md](README-TAILWIND.md) | Tailwind CSS 使用说明 |

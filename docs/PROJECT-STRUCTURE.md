@@ -1,7 +1,7 @@
 # 项目目录结构
 
 > 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-> 最后更新：2026-02-07
+> 最后更新：2026-02-08
 
 ## 📁 完整目录树
 
@@ -39,7 +39,7 @@ html/
 │   └── split-app-js.ps1                 # 单体 app.js 拆分工具
 │
 ├── src/                             # 源代码
-│   └── input.css                        # Tailwind CSS 输入文件
+│   └── input.css                        # Tailwind CSS 输入文件（含移动端响应式样式）
 │
 ├── public/                          # 发布目录（浏览器打开/部署）
 │   ├── index.html                       # 主 HTML 文件

@@ -779,6 +779,23 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     background-color: #2563eb;
 }
 
+/* ==================== 移动端底部工具栏安全区域 ==================== */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 767px) {
+    /* 移动端内容区域留出底部工具栏空间 */
+    #translationScrollWrapper {
+        padding-bottom: 3.5rem;
+    }
+
+    /* 通知位置调整：不被底部工具栏遮挡 */
+    #notification {
+        bottom: 5rem;
+    }
+}
+
 /* 字体大小：作用于根元素，页面内容通过 rem 继承 */
 html.text-sm {
     font-size: 14px;

@@ -61,14 +61,26 @@
 
     <!-- 主要内容区域（高度由上方视口容器分配，不写死 calc） -->
     <main class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-        <!-- 移动端侧边栏切换按钮 -->
-        <div class="md:hidden fixed bottom-4 right-4 z-40 flex space-x-2">
-            <button id="toggleLeftSidebar" class="w-12 h-12 bg-primary text-white rounded-full shadow-lg dark:shadow-dark-elevated flex items-center justify-center hover:bg-primary/90 transition-all" title="切换文件浏览器" aria-label="切换文件浏览器">
-                <i class="fa fa-folder-open"></i>
-            </button>
-            <button id="toggleRightSidebar" class="w-12 h-12 bg-primary text-white rounded-full shadow-lg dark:shadow-dark-elevated flex items-center justify-center hover:bg-primary/90 transition-all" title="切换设置面板" aria-label="切换设置面板">
-                <i class="fa fa-cog"></i>
-            </button>
+        <!-- 移动端底部工具栏 -->
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-dark-elevated safe-area-bottom">
+            <div class="flex items-center justify-around h-14 px-2">
+                <button id="toggleLeftSidebar" class="flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="文件" aria-label="切换文件浏览器">
+                    <i class="fa fa-folder-open text-lg"></i>
+                    <span class="text-[10px]">文件</span>
+                </button>
+                <button id="mobileTranslateBtn" class="flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="翻译" aria-label="翻译选中项">
+                    <i class="fa fa-language text-lg"></i>
+                    <span class="text-[10px]">翻译</span>
+                </button>
+                <button id="mobileSelectAllBtn" class="flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="全选" aria-label="全选当前页">
+                    <i class="fa fa-check-square-o text-lg"></i>
+                    <span class="text-[10px]">全选</span>
+                </button>
+                <button id="toggleRightSidebar" class="flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="设置" aria-label="切换设置面板">
+                    <i class="fa fa-cog text-lg"></i>
+                    <span class="text-[10px]">设置</span>
+                </button>
+            </div>
         </div>
         
         <!-- 左侧文件浏览器 -->

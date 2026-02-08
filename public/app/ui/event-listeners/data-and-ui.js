@@ -256,6 +256,92 @@ function registerEventListenersDataAndUi(ctx) {
     );
   }
 
+  // ==================== 移动端底部工具栏按钮 ====================
+  const mobileTranslateBtn = DOMCache.get("mobileTranslateBtn");
+  if (mobileTranslateBtn) {
+    EventManager.add(
+      mobileTranslateBtn,
+      "click",
+      () => {
+        if (typeof translateSelected === "function") {
+          translateSelected();
+        } else if (typeof translateAll === "function") {
+          translateAll();
+        }
+      },
+      { tag: "translations", scope: "mobile", label: "mobileTranslateBtn:click" }
+    );
+  }
+
+  const mobileSelectAllBtn = DOMCache.get("mobileSelectAllBtn");
+  if (mobileSelectAllBtn) {
+    EventManager.add(
+      mobileSelectAllBtn,
+      "click",
+      () => {
+        if (typeof selectCurrentPageTranslationItems === "function") {
+          selectCurrentPageTranslationItems();
+        }
+      },
+      { tag: "translations", scope: "mobile", label: "mobileSelectAllBtn:click" }
+    );
+  }
+
+  // ==================== 移动端侧边栏手势滑动 ====================
+  if (leftSidebar || rightSidebar) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    EventManager.add(
+      document,
+      "touchstart",
+      (e) => {
+        if (window.innerWidth >= 768) return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+      },
+      { tag: "ui", scope: "sidebar", label: "sidebar:touchstart", listenerOptions: { passive: true } }
+    );
+
+    EventManager.add(
+      document,
+      "touchend",
+      (e) => {
+        if (window.innerWidth >= 768) return;
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        const dt = Date.now() - touchStartTime;
+
+        // 要求：水平滑动 > 60px，垂直偏移 < 水平的一半，时间 < 400ms
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.5 || dt > 400) return;
+
+        const leftOpen = leftSidebar?.classList.contains("show-sidebar");
+        const rightOpen = rightSidebar?.classList.contains("show-sidebar");
+
+        if (dx > 0) {
+          // 右滑
+          if (rightOpen && rightSidebar) {
+            rightSidebar.classList.remove("show-sidebar");
+          } else if (!leftOpen && leftSidebar && touchStartX < 40) {
+            leftSidebar.classList.add("show-sidebar");
+          }
+        } else {
+          // 左滑
+          if (leftOpen && leftSidebar) {
+            leftSidebar.classList.remove("show-sidebar");
+          } else if (!rightOpen && rightSidebar && touchStartX > window.innerWidth - 40) {
+            rightSidebar.classList.add("show-sidebar");
+          }
+        }
+      },
+      { tag: "ui", scope: "sidebar", label: "sidebar:touchend", listenerOptions: { passive: true } }
+    );
+  }
+
   // ==================== 按钮点击旋转效果（可复用） ====================
   EventManager.add(
     document.body,

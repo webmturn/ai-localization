@@ -129,6 +129,8 @@ function registerEventListenersTranslationLists(ctx) {
         if (targetEl && targetEl.tagName === "TEXTAREA") {
           return;
         }
+        // 长按多选后跳过普通点击
+        if (longPressFired) { longPressFired = false; return; }
         const item = targetEl
           ? targetEl.closest(".responsive-translation-item")
           : null;
@@ -149,6 +151,63 @@ function registerEventListenersTranslationLists(ctx) {
         tag: "translations",
         scope: "list:mobileCombined",
         label: "mobileCombinedList:clickDelegate",
+      }
+    );
+
+    // 长按多选（移动端）
+    let longPressTimer = null;
+    let longPressFired = false;
+
+    EventManager.add(
+      mobileCombinedList,
+      "touchstart",
+      function (e) {
+        longPressFired = false;
+        const targetEl = e.target instanceof Element ? e.target : e.target?.parentElement;
+        if (targetEl && targetEl.tagName === "TEXTAREA") return;
+        const item = targetEl ? targetEl.closest(".responsive-translation-item") : null;
+        if (!item || !item.dataset.index) return;
+        const index = parseInt(item.dataset.index);
+        longPressTimer = setTimeout(function () {
+          longPressFired = true;
+          toggleMultiSelection(index);
+          // 触觉反馈（如果浏览器支持）
+          if (navigator.vibrate) navigator.vibrate(30);
+        }, 500);
+      },
+      {
+        tag: "translations",
+        scope: "list:mobileCombined",
+        label: "mobileCombinedList:touchstartLongPress",
+        listenerOptions: { passive: true },
+      }
+    );
+
+    EventManager.add(
+      mobileCombinedList,
+      "touchend",
+      function () {
+        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      },
+      {
+        tag: "translations",
+        scope: "list:mobileCombined",
+        label: "mobileCombinedList:touchendLongPress",
+        listenerOptions: { passive: true },
+      }
+    );
+
+    EventManager.add(
+      mobileCombinedList,
+      "touchmove",
+      function () {
+        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      },
+      {
+        tag: "translations",
+        scope: "list:mobileCombined",
+        label: "mobileCombinedList:touchmoveLongPress",
+        listenerOptions: { passive: true },
       }
     );
 

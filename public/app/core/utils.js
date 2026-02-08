@@ -265,6 +265,7 @@ function filterItems(
 
     const parts = [
       "app/features/quality/checks.js",
+      "app/features/quality/enhanced-checks.js",
       "app/features/quality/scoring.js",
       "app/features/quality/charts.js",
       "app/features/quality/ui.js",
@@ -342,6 +343,24 @@ function filterItems(
       });
 
     return terminologyIoPromise;
+  };
+
+  let projectManagerPromise = null;
+  App.services.ensureProjectManagerModule = function () {
+    if (App.services.__projectManagerLoaded) return Promise.resolve();
+    if (projectManagerPromise) return projectManagerPromise;
+
+    projectManagerPromise = App.services
+      .loadScriptOnce("app/features/projects/manager.js")
+      .then(function () {
+        App.services.__projectManagerLoaded = true;
+      })
+      .catch(function (e) {
+        projectManagerPromise = null;
+        throw e;
+      });
+
+    return projectManagerPromise;
   };
 })();
 

@@ -56,5 +56,28 @@ function initEventListeners() {
   }
   if (typeof registerEventListenersProjectManager === "function") {
     registerEventListenersProjectManager(ctx);
+  } else {
+    // manager.js 懒加载：首次点击时加载模块并注册事件
+    const projectManagerBtn = DOMCache.get("projectManagerBtn");
+    if (projectManagerBtn) {
+      const lazyHandler = function () {
+        const ensure = window.App?.services?.ensureProjectManagerModule;
+        if (typeof ensure !== "function") return;
+        ensure()
+          .then(function () {
+            projectManagerBtn.removeEventListener("click", lazyHandler);
+            if (typeof registerEventListenersProjectManager === "function") {
+              registerEventListenersProjectManager(ctx);
+            }
+            const open = window.App?.features?.projects?.openProjectManager;
+            if (typeof open === "function") open();
+          })
+          .catch(function (e) {
+            (loggers.app || console).error("项目管理器加载失败:", e);
+            showNotification("error", "加载失败", "项目管理器模块加载失败");
+          });
+      };
+      projectManagerBtn.addEventListener("click", lazyHandler);
+    }
   }
 }

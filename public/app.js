@@ -114,15 +114,7 @@
     "app/features/translations/export/ui.js",
     "app/features/translations/export/project.js",
     "app/features/translations/export/terminology-list.js",
-    "app/features/quality/checks.js",
-    "app/features/quality/enhanced-checks.js",
-    "app/features/quality/scoring.js",
-    "app/features/quality/run.js",
-    "app/features/quality/charts.js",
-    "app/features/quality/export.js",
-    "app/features/quality/ui.js",
     "app/features/terminology/init.js",
-    "app/features/projects/manager.js",
     "app/features/sample/sample-project.js"
   ];
 

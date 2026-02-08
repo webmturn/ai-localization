@@ -2,7 +2,8 @@
 
 一个功能强大的本地化翻译工具，支持多种文件格式的翻译和管理。
 
-**仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
+**仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
+**当前版本**：v1.1.0 | [发布说明](docs/RELEASE-v1.1.0.md) | [桌面测试版下载](https://github.com/webmturn/ai-localization/releases/tag/v1.1.0)
 
 ## ✨ 特性
 

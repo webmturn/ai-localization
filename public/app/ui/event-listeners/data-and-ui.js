@@ -224,16 +224,44 @@ function registerEventListenersDataAndUi(ctx) {
     { tag: "ui", scope: "sidebar", label: "sidebar:resizeApplyWidths" }
   );
 
+  const sidebarBackdrop = DOMCache.get("sidebarBackdrop");
+
+  function showBackdrop() {
+    if (!sidebarBackdrop || window.innerWidth >= 768) return;
+    sidebarBackdrop.classList.remove("hidden");
+    requestAnimationFrame(() => sidebarBackdrop.classList.add("show"));
+  }
+  function hideBackdrop() {
+    if (!sidebarBackdrop) return;
+    sidebarBackdrop.classList.remove("show");
+    setTimeout(() => sidebarBackdrop.classList.add("hidden"), 300);
+  }
+  function closeBothSidebars() {
+    if (leftSidebar) leftSidebar.classList.remove("show-sidebar");
+    if (rightSidebar) rightSidebar.classList.remove("show-sidebar");
+    hideBackdrop();
+  }
+
+  if (sidebarBackdrop) {
+    EventManager.add(
+      sidebarBackdrop,
+      "click",
+      closeBothSidebars,
+      { tag: "ui", scope: "sidebar", label: "sidebarBackdrop:click" }
+    );
+  }
+
   if (toggleLeftSidebar && leftSidebar) {
     EventManager.add(
       toggleLeftSidebar,
       "click",
       () => {
+        const willOpen = !leftSidebar.classList.contains("show-sidebar");
         leftSidebar.classList.toggle("show-sidebar");
-        // 关闭右侧边栏
         if (rightSidebar && rightSidebar.classList.contains("show-sidebar")) {
           rightSidebar.classList.remove("show-sidebar");
         }
+        willOpen ? showBackdrop() : hideBackdrop();
         applySidebarWidthsForLayout();
       },
       { tag: "ui", scope: "sidebar", label: "toggleLeftSidebar:click" }
@@ -245,14 +273,63 @@ function registerEventListenersDataAndUi(ctx) {
       toggleRightSidebar,
       "click",
       () => {
+        const willOpen = !rightSidebar.classList.contains("show-sidebar");
         rightSidebar.classList.toggle("show-sidebar");
-        // 关闭左侧边栏
         if (leftSidebar && leftSidebar.classList.contains("show-sidebar")) {
           leftSidebar.classList.remove("show-sidebar");
         }
+        willOpen ? showBackdrop() : hideBackdrop();
         applySidebarWidthsForLayout();
       },
       { tag: "ui", scope: "sidebar", label: "toggleRightSidebar:click" }
+    );
+  }
+
+  // ==================== 移动端更多菜单 ====================
+  const mobileMoreBtn = DOMCache.get("mobileMoreBtn");
+  const mobileMoreMenu = DOMCache.get("mobileMoreMenu");
+  if (mobileMoreBtn && mobileMoreMenu) {
+    EventManager.add(
+      mobileMoreBtn,
+      "click",
+      (e) => {
+        e.stopPropagation();
+        mobileMoreMenu.classList.toggle("hidden");
+      },
+      { tag: "ui", scope: "mobile", label: "mobileMoreBtn:click" }
+    );
+    // 点击菜单外关闭
+    EventManager.add(
+      document,
+      "click",
+      (e) => {
+        if (!mobileMoreMenu.classList.contains("hidden") && !mobileMoreBtn.contains(e.target)) {
+          mobileMoreMenu.classList.add("hidden");
+        }
+      },
+      { tag: "ui", scope: "mobile", label: "mobileMoreMenu:outsideClick" }
+    );
+    // 菜单项代理
+    const menuActions = {
+      mobileOpenProjectBtn: () => { DOMCache.get("openProjectBtn")?.click(); },
+      mobileProjectManagerBtn: () => { DOMCache.get("projectManagerBtn")?.click(); },
+      mobileSaveProjectBtn: () => { DOMCache.get("saveProjectBtn")?.click(); },
+      mobileSettingsBtn: () => { DOMCache.get("openSettingsMenu")?.click(); },
+      mobileHelpBtn: () => { DOMCache.get("openHelpMenu")?.click(); },
+      mobileAboutBtn: () => { DOMCache.get("openAboutMenu")?.click(); },
+    };
+    EventManager.add(
+      mobileMoreMenu,
+      "click",
+      (e) => {
+        const link = e.target.closest("a[id]");
+        if (!link) return;
+        e.preventDefault();
+        mobileMoreMenu.classList.add("hidden");
+        const action = menuActions[link.id];
+        if (action) action();
+      },
+      { tag: "ui", scope: "mobile", label: "mobileMoreMenu:itemClick" }
     );
   }
 
@@ -326,15 +403,19 @@ function registerEventListenersDataAndUi(ctx) {
           // 右滑
           if (rightOpen && rightSidebar) {
             rightSidebar.classList.remove("show-sidebar");
+            hideBackdrop();
           } else if (!leftOpen && leftSidebar && touchStartX < 40) {
             leftSidebar.classList.add("show-sidebar");
+            showBackdrop();
           }
         } else {
           // 左滑
           if (leftOpen && leftSidebar) {
             leftSidebar.classList.remove("show-sidebar");
+            hideBackdrop();
           } else if (!rightOpen && rightSidebar && touchStartX > window.innerWidth - 40) {
             rightSidebar.classList.add("show-sidebar");
+            showBackdrop();
           }
         }
       },

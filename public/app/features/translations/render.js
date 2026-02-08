@@ -195,7 +195,7 @@ function createMobileCombinedTranslationItemElement(
     originalIndex
   );
   const isSelected = isPrimarySelected || isMultiSelected;
-  div.className = `responsive-translation-item border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors p-2 ${
+  div.className = `responsive-translation-item border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors px-2.5 py-2 ${
     isSelected
       ? "selected bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
       : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
@@ -214,14 +214,14 @@ function createMobileCombinedTranslationItemElement(
   const hasExtraInfo = !!(context || item.metadata?.resourceId);
 
   const top = document.createElement("div");
-  top.className = "flex items-start justify-between gap-2";
+  top.className = "flex items-start justify-between gap-1.5";
 
   const left = document.createElement("div");
   left.className = "min-w-0 flex-1";
 
   const p = document.createElement("p");
   p.className =
-    "text-sm font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100";
+    "text-[13px] leading-snug font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100";
   p.appendChild(highlightText(sourceText, searchQuery));
   left.appendChild(p);
 
@@ -250,9 +250,9 @@ function createMobileCombinedTranslationItemElement(
   }
 
   const right = document.createElement("div");
-  right.className = "flex flex-col items-end gap-1";
+  right.className = "flex flex-col items-end gap-0.5 flex-shrink-0";
   const status = document.createElement("span");
-  status.className = `text-xs font-semibold ${statusClass} px-2 py-0.5 rounded-full whitespace-nowrap`;
+  status.className = `text-[10px] font-semibold ${statusClass} px-1.5 py-px rounded-full whitespace-nowrap`;
   status.textContent = getStatusText(item.status);
   right.appendChild(status);
 
@@ -271,20 +271,21 @@ function createMobileCombinedTranslationItemElement(
   top.appendChild(right);
 
   const bottom = document.createElement("div");
-  bottom.className = "mt-2";
+  bottom.className = "mt-1.5";
   const textarea = document.createElement("textarea");
   textarea.className = `w-full border ${
     isPrimarySelected
       ? "border-blue-500"
       : "border-gray-200 dark:border-gray-700"
-  } rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none break-words bg-white dark:bg-gray-900 p-2 text-sm text-gray-900 dark:text-gray-100`;
+  } rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none break-words bg-white dark:bg-gray-900 px-2 py-1.5 text-[13px] leading-snug text-gray-900 dark:text-gray-100 placeholder:text-gray-400`;
   textarea.setAttribute("aria-label", "译文编辑");
   textarea.title = "译文编辑";
+  textarea.placeholder = "输入译文...";
   textarea.dataset.index = String(originalIndex);
   if (item && item.id !== undefined && item.id !== null) {
     textarea.dataset.id = String(item.id);
   }
-  textarea.rows = 3;
+  textarea.rows = 2;
   textarea.value = targetText;
   bottom.appendChild(textarea);
 

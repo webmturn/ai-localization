@@ -24,23 +24,51 @@
         <div class="w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
             <div class="flex items-center space-x-1 sm:space-x-2">
                 <i class="fa fa-language text-primary text-xl sm:text-2xl"></i>
-                <h1 class="text-base sm:text-xl font-bold text-primary">智能翻译工具</h1>
+                <h1 class="text-base sm:text-xl font-bold text-primary"><span class="hidden sm:inline">智能翻译工具</span><span class="sm:hidden">翻译</span></h1>
             </div>
             <div class="flex items-center space-x-1 sm:space-x-4">
                 <button id="newProjectBtn" class="flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-xs sm:text-sm" title="新建项目 (Ctrl+Alt+N)">
                     <i class="fa fa-plus sm:mr-2"></i><span class="hidden sm:inline">新建项目</span>
                 </button>
-                <button id="openProjectBtn" class="flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-xs sm:text-sm" title="打开项目">
-                    <i class="fa fa-folder-open sm:mr-2"></i><span class="hidden sm:inline">打开项目</span>
+                <button id="openProjectBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="打开项目">
+                    <i class="fa fa-folder-open mr-2"></i>打开项目
                 </button>
-                <button id="projectManagerBtn" class="flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-xs sm:text-sm" title="项目管理">
-                    <i class="fa fa-th-large sm:mr-2"></i><span class="hidden sm:inline">项目管理</span>
+                <button id="projectManagerBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="项目管理">
+                    <i class="fa fa-th-large mr-2"></i>项目管理
                 </button>
-                <button id="saveProjectBtn" class="flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-xs sm:text-sm" title="保存项目">
-                    <i class="fa fa-save sm:mr-2"></i><span class="hidden sm:inline">保存项目</span>
+                <button id="saveProjectBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="保存项目">
+                    <i class="fa fa-save mr-2"></i>保存项目
                 </button>
-                <div class="relative">
-                    <button id="userMenuBtn" class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="用户菜单" aria-label="用户菜单">
+                <!-- 移动端更多菜单 -->
+                <div class="relative sm:hidden">
+                    <button id="mobileMoreBtn" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="更多操作" aria-label="更多操作">
+                        <i class="fa fa-ellipsis-v text-sm"></i>
+                    </button>
+                    <div id="mobileMoreMenu" class="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-dark-elevated border border-gray-200 dark:border-gray-700 py-2 z-50 hidden">
+                        <a href="#" id="mobileOpenProjectBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-folder-open w-5 mr-3 text-gray-400"></i>打开项目
+                        </a>
+                        <a href="#" id="mobileProjectManagerBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-th-large w-5 mr-3 text-gray-400"></i>项目管理
+                        </a>
+                        <a href="#" id="mobileSaveProjectBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-save w-5 mr-3 text-gray-400"></i>保存项目
+                        </a>
+                        <div class="my-1 border-t border-gray-100 dark:border-gray-700"></div>
+                        <a href="#" id="mobileSettingsBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-cog w-5 mr-3 text-gray-400"></i>设置
+                        </a>
+                        <a href="#" id="mobileHelpBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-question-circle w-5 mr-3 text-gray-400"></i>帮助
+                        </a>
+                        <a href="#" id="mobileAboutBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
+                            <i class="fa fa-info-circle w-5 mr-3 text-gray-400"></i>关于
+                        </a>
+                    </div>
+                </div>
+                <!-- 桌面端用户菜单 -->
+                <div class="relative hidden sm:block">
+                    <button id="userMenuBtn" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="用户菜单" aria-label="用户菜单">
                         <i class="fa fa-user text-sm"></i>
                     </button>
                     <div id="userMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg dark:shadow-dark-elevated border border-gray-200 dark:border-gray-700 py-1 z-50 hidden">
@@ -83,13 +111,16 @@
             </div>
         </div>
         
+        <!-- 移动端侧边栏遮罩层 -->
+        <div id="sidebarBackdrop" class="md:hidden fixed inset-0 bg-black/40 z-20 hidden transition-opacity duration-300 opacity-0" aria-hidden="true"></div>
+
         <!-- 左侧文件浏览器 -->
-        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300" style="--sidebar-width: 320px;">
+        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-left" style="--sidebar-width: 320px;">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-left hidden md:block" data-sidebar="left" title="拖拽调整宽度"></div>
             <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">项目文件</h2>
-                <button class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('leftSidebar').classList.remove('show-sidebar')" title="关闭文件浏览器" aria-label="关闭文件浏览器">
+                <button class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('leftSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭文件浏览器" aria-label="关闭文件浏览器">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
@@ -136,52 +167,50 @@
         <section class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden">
             <!-- 工具栏 -->
             <div class="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 min-w-0">
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-                    <!-- 翻译操作按钮 -->
-                    <div class="toolbar-actions flex items-center space-x-2">
-                        <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm" title="翻译选中项" aria-label="翻译选中项">
-                            <i class="fa fa-language mr-1.5 sm:mr-2"></i>翻译选中
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- 语言选择器（移动端紧凑） -->
+                    <div class="language-switcher toolbar-control flex-shrink-0">
+                        <select id="sourceLanguage" name="source_language" title="选择源语言" aria-label="源语言选择">
+                            <option value="en">英语</option>
+                            <option value="zh">中文</option>
+                            <option value="ja">日语</option>
+                            <option value="ko">韩语</option>
+                            <option value="fr">法语</option>
+                            <option value="de">德语</option>
+                            <option value="es">西班牙语</option>
+                        </select>
+                        <button id="swapLanguagesBtn" class="swap-btn btn-click-spin-trigger" data-spin="180" title="交换语言" aria-label="交换源语言和目标语言">
+                            <i class="fa fa-exchange"></i>
                         </button>
-                        <button id="translateAllBtn" class="toolbar-btn flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm" title="翻译所有项" aria-label="翻译所有项">
-                            <i class="fa fa-bolt mr-1.5 sm:mr-2"></i>全部翻译
+                        <select id="targetLanguage" name="target_language" title="选择目标语言" aria-label="目标语言选择">
+                            <option value="zh">中文</option>
+                            <option value="en">英语</option>
+                            <option value="ja">日语</option>
+                            <option value="ko">韩语</option>
+                            <option value="fr">法语</option>
+                            <option value="de">德语</option>
+                            <option value="es">西班牙语</option>
+                        </select>
+                    </div>
+
+                    <!-- 翻译操作按钮 -->
+                    <div class="toolbar-actions flex items-center space-x-2 flex-shrink-0">
+                        <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm" title="翻译选中项" aria-label="翻译选中项">
+                            <i class="fa fa-language mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">翻译选中</span><span class="sm:hidden">翻译</span>
+                        </button>
+                        <button id="translateAllBtn" class="toolbar-btn hidden sm:flex px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors items-center justify-center text-sm font-medium shadow-sm" title="翻译所有项" aria-label="翻译所有项">
+                            <i class="fa fa-bolt mr-2"></i>全部翻译
                         </button>
                     </div>
                     
-                    <!-- 紧凑语言选择器 -->
-                    <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                        <div class="language-switcher toolbar-control">
-                            <select id="sourceLanguage" name="source_language" title="选择源语言" aria-label="源语言选择">
-                                <option value="en">英语</option>
-                                <option value="zh">中文</option>
-                                <option value="ja">日语</option>
-                                <option value="ko">韩语</option>
-                                <option value="fr">法语</option>
-                                <option value="de">德语</option>
-                                <option value="es">西班牙语</option>
-                            </select>
-                            <button id="swapLanguagesBtn" class="swap-btn btn-click-spin-trigger" data-spin="180" title="交换语言" aria-label="交换源语言和目标语言">
-                                <i class="fa fa-exchange"></i>
-                            </button>
-                            <select id="targetLanguage" name="target_language" title="选择目标语言" aria-label="目标语言选择">
-                                <option value="zh">中文</option>
-                                <option value="en">英语</option>
-                                <option value="ja">日语</option>
-                                <option value="ko">韩语</option>
-                                <option value="fr">法语</option>
-                                <option value="de">德语</option>
-                                <option value="es">西班牙语</option>
-                            </select>
-                        </div>
-                        
-                        <!-- 翻译引擎选择 -->
-                        <div class="toolbar-engine-select toolbar-control flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
-                            <i class="fa fa-cog text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
-                            <select id="translationEngine" name="translation_engine" title="选择翻译引擎" aria-label="翻译引擎选择">
-                                <option value="openai">OpenAI</option>
-                                <option value="deepseek">DeepSeek</option>
-                                <option value="google">Google</option>
-                            </select>
-                        </div>
+                    <!-- 翻译引擎选择（仅桌面端） -->
+                    <div class="toolbar-engine-select toolbar-control hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
+                        <i class="fa fa-cog text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
+                        <select id="translationEngine" name="translation_engine" title="选择翻译引擎" aria-label="翻译引擎选择">
+                            <option value="openai">OpenAI</option>
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="google">Google</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -307,11 +336,11 @@
         </section>
 
         <!-- 右侧工具栏和设置面板 -->
-        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-30 transform translate-x-full md:translate-x-0 transition-transform duration-300" style="--sidebar-width: 384px;">
+        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-30 transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right" style="--sidebar-width: 384px;">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-right hidden md:block" data-sidebar="right" title="拖拽调整宽度"></div>
             <!-- 移动端关闭按钮 -->
-            <button class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" onclick="document.getElementById('rightSidebar').classList.remove('show-sidebar')" title="关闭设置面板" aria-label="关闭设置面板">
+            <button class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" onclick="document.getElementById('rightSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭设置面板" aria-label="关闭设置面板">
                 <i class="fa fa-times"></i>
             </button>
             <!-- 标签页导航（增强版） -->

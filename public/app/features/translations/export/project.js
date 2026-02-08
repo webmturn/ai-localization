@@ -222,7 +222,7 @@ async function saveProject() {
     fileMetadata: safeFileMetadata,
     createdAt: AppState.project.createdAt,
     updatedAt: AppState.project.updatedAt,
-    version: "1.0.0",
+    version: "1.1.0",
   };
 
   let persistedOk = true;

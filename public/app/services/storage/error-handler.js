@@ -162,7 +162,7 @@ async function putProjectSafe(key, projectJson) {
         key, 
         projectJson, 
         updatedAt: Date.now(),
-        version: '1.0.0' // 添加版本信息
+        version: '1.1.0' // 添加版本信息
       });
       
       request.onsuccess = () => resolve(true);

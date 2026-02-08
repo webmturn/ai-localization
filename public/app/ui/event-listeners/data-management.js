@@ -346,7 +346,7 @@ function registerEventListenersDataManagement(ctx) {
           .loadAllProjectsData()
           .catch(() => []);
         const allData = {
-          version: "1.0.0",
+          version: "1.1.0",
           exportDate: new Date().toISOString(),
           settings: SettingsCache.get(),
           projectsIndex,
@@ -383,7 +383,7 @@ function registerEventListenersDataManagement(ctx) {
           .catch(() => null);
         if (project) {
           const data = {
-            version: "1.0.0",
+            version: "1.1.0",
             exportDate: new Date().toISOString(),
             project,
           };
@@ -417,7 +417,7 @@ function registerEventListenersDataManagement(ctx) {
       () => {
         const settings = SettingsCache.get();
         const data = {
-          version: "1.0.0",
+          version: "1.1.0",
           exportDate: new Date().toISOString(),
           settings,
         };
@@ -457,7 +457,7 @@ function registerEventListenersDataManagement(ctx) {
             ? AppState.terminology.list
             : []);
         const data = {
-          version: "1.0.0",
+          version: "1.1.0",
           exportDate: new Date().toISOString(),
           terminologyList,
         };

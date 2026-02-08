@@ -608,7 +608,7 @@ class ErrorManager {
   exportErrorLog() {
     const exportData = {
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.1.0',
       userAgent: navigator.userAgent,
       url: window.location.href,
       stats: this.getErrorStats(),

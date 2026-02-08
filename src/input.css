@@ -779,6 +779,188 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     background-color: #2563eb;
 }
 
+/* ==================== 移动端设置模态框导航 ==================== */
+@media (max-width: 639px) {
+    #settingsModal nav {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    #settingsModal nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 含 select 的行：竖向堆叠（label在上，控件在下） */
+    #settingsModal .settings-tab-content > .space-y-4 > .flex.items-center.justify-between:has(select) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    /* select/range 全宽 */
+    #settingsModal .settings-tab-content select,
+    #settingsModal .settings-tab-content input[type="range"],
+    #settingsModal .settings-tab-content input[type="number"] {
+        width: 100%;
+    }
+
+    /* 含 toggle 的行：保持横向，toggle不换行 */
+    #settingsModal .settings-tab-content .flex.items-center.justify-between:has(.peer) {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    #settingsModal .settings-tab-content .flex.items-center.justify-between:has(.peer) > label:last-child {
+        flex-shrink: 0;
+    }
+
+    /* 内容区标题缩小间距 */
+    #settingsModal .settings-tab-content h4 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* 内容区整体间距缩紧 */
+    #settingsModal .settings-tab-content .space-y-4 > * + *,
+    #settingsModal .settings-tab-content .space-y-5 > * + * {
+        margin-top: 0.75rem;
+    }
+
+    /* 按钮组：换行且靠左 */
+    #settingsModal .settings-tab-content .flex.items-center.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    /* 子面板内表单行也竖向堆叠 */
+    #settingsModal .settings-tab-content .space-y-4 .flex.items-center.justify-between:has(select) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    /* 快捷键列表：缩紧行间距 */
+    #shortcutsList > div {
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+    }
+    #shortcutsList .shortcut-kbd {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+    }
+
+    /* 底部操作按钮：移动端稍大触控区 */
+    #settingsModal > .modal-content > .sticky.bottom-0 button {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* ==================== 移动端其他模态框优化 ==================== */
+@media (max-width: 639px) {
+    /* 质量报告模态框：缩减内边距 */
+    #qualityReportModal > div {
+        padding: 0;
+    }
+    #qualityReportModal .flex.items-center.justify-between {
+        padding: 0.75rem 1rem;
+    }
+    #qualityReportModal .flex-1.overflow-y-auto {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    /* 质量报告：统计卡片字号缩小 */
+    #qualityReportModal .text-3xl {
+        font-size: 1.5rem;
+    }
+
+    /* 术语库模态框：工具栏竖向堆叠 */
+    #terminologyListPanel > .mb-4.flex.justify-between {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #terminologyListPanel > .mb-4 > .flex.items-center.space-x-4 {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    #terminologyListPanel > .mb-4 > .flex.items-center.space-x-4 > * {
+        margin-left: 0 !important;
+    }
+    #terminologyListPanel #terminologySearch {
+        width: 100%;
+    }
+    #terminologyListPanel #terminologyFilter {
+        width: 100%;
+    }
+    #terminologyListPanel #addTermBtn {
+        width: 100%;
+        justify-content: center;
+    }
+    /* 术语库分页：堆叠 */
+    #terminologyListPanel > .mt-4.flex.justify-between {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    /* 质量报告底部：竖向堆叠 */
+    #qualityReportModal > div > .border-t.p-6 {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    #qualityReportModal > div > .border-t .flex.space-x-3 {
+        justify-content: center;
+    }
+    #qualityReportModal > div > .border-t .flex.space-x-3 button {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* 质量报告头部：重新检查按钮缩小 */
+    #qualityReportModal #runQualityCheckBtn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+    #qualityReportModal #runQualityCheckBtn .mr-2 {
+        margin-right: 0.25rem;
+    }
+
+    /* 帮助模态框：缩减间距 */
+    #helpModal .mb-8 {
+        margin-bottom: 1.5rem;
+    }
+    #helpModal .pt-8 {
+        padding-top: 1.5rem;
+    }
+    #helpModal .pl-6 {
+        padding-left: 1rem;
+    }
+
+    /* 通用：所有模态框 p-4 外层缩减为 p-2 */
+    [role="dialog"] {
+        padding: 0.5rem;
+    }
+
+    /* 通知：移动端居中全宽 */
+    #notification {
+        left: 0.5rem;
+        right: 0.5rem;
+        max-width: none;
+    }
+
+    /* 关于模态框：修复关闭按钮定位 */
+    #aboutModal > .modal-content {
+        position: relative;
+    }
+
+    /* 项目管理器：工具栏堆叠 */
+    #projectManagerListPanel > .mb-4.flex.justify-between {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
 /* ==================== 移动端侧边栏底部Sheet样式 ==================== */
 @media (max-width: 767px) {
     .mobile-sidebar-left,

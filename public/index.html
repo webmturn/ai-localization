@@ -247,6 +247,16 @@
 
             <!-- 翻译内容区域：表头固定不滚动，仅下方列表区域滚动 -->
             <div class="responsive-translation-container flex-1 min-h-0 flex flex-col overflow-hidden">
+                <!-- 移动端搜索栏（仅移动端显示，位于表头上方） -->
+                <div class="md:hidden flex-shrink-0 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <div class="relative">
+                        <input type="text" id="translationSearchInputMobile" placeholder="搜索翻译项..." class="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索翻译项" aria-label="搜索翻译项">
+                        <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                        <button id="clearTranslationSearchMobile" class="hidden absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="清除搜索" aria-label="清除搜索">
+                            <i class="fa fa-times text-xs"></i>
+                        </button>
+                    </div>
+                </div>
                 <!-- 表头行：固定在顶部，不参与滚动 -->
                 <div class="translation-headers flex flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <div class="translation-column-header flex-1 min-w-0 p-3 flex items-center justify-between translation-column-header-source">
@@ -266,16 +276,6 @@
                                 <i class="fa fa-filter"></i>
                             </button>
                         </div>
-                    </div>
-                </div>
-                <!-- 移动端搜索栏（仅移动端显示） -->
-                <div class="md:hidden flex-shrink-0 p-2 border-b border-gray-200 bg-gray-50 dark:bg-gray-900">
-                    <div class="relative">
-                        <input type="text" id="translationSearchInputMobile" placeholder="搜索翻译项..." class="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索翻译项" aria-label="搜索翻译项">
-                        <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
-                        <button id="clearTranslationSearchMobile" class="hidden absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="清除搜索" aria-label="清除搜索">
-                            <i class="fa fa-times text-xs"></i>
-                        </button>
                     </div>
                 </div>
                 <!-- 可滚动区域：仅此处滚动，原文/译文同行对齐（scrollIntoView 会使用此容器） -->
@@ -1155,8 +1155,8 @@
     </div>
 
     <!-- 设置模态框 -->
-    <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
-        <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-2 sm:p-4 overflow-y-auto">
+        <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             <!-- 头部 -->
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 id="settingsModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">设置</h3>
@@ -1165,44 +1165,44 @@
                 </button>
             </div>
             
-            <!-- 主体内容：左右分栏 -->
-            <div class="flex flex-1 overflow-hidden">
-                <!-- 左侧导航栏 -->
-                <div class="w-48 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0">
-                    <nav class="p-2 space-y-1">
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated active" data-tab="appearance">
-                            <i class="fa fa-paint-brush mr-2 w-4 text-center"></i>外观设置
+            <!-- 主体内容：移动端上下分栏 / 桌面端左右分栏 -->
+            <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
+                <!-- 导航栏：移动端横向滚动 / 桌面端竖向列表 -->
+                <div class="sm:w-48 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
+                    <nav class="flex sm:flex-col sm:p-2 sm:space-y-1 p-1 gap-1 sm:gap-0">
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated active whitespace-nowrap" data-tab="appearance">
+                            <i class="fa fa-paint-brush sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">外观设置</span><span class="sm:hidden ml-1">外观</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="engine">
-                            <i class="fa fa-cog mr-2 w-4 text-center"></i>翻译引擎
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="engine">
+                            <i class="fa fa-cog sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">翻译引擎</span><span class="sm:hidden ml-1">引擎</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="promptTemplates">
-                            <i class="fa fa-commenting-o mr-2 w-4 text-center"></i>Prompt 模板（项目）
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="promptTemplates">
+                            <i class="fa fa-commenting-o sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">Prompt 模板（项目）</span><span class="sm:hidden ml-1">Prompt</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="quality">
-                            <i class="fa fa-check-circle mr-2 w-4 text-center"></i>质量检查
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="quality">
+                            <i class="fa fa-check-circle sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">质量检查</span><span class="sm:hidden ml-1">质检</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="shortcuts">
-                            <i class="fa fa-keyboard-o mr-2 w-4 text-center"></i>快捷键
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="shortcuts">
+                            <i class="fa fa-keyboard-o sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">快捷键</span><span class="sm:hidden ml-1">快捷键</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="terminology">
-                            <i class="fa fa-book mr-2 w-4 text-center"></i>术语库
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="terminology">
+                            <i class="fa fa-book sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">术语库</span><span class="sm:hidden ml-1">术语</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="file">
-                            <i class="fa fa-file-text mr-2 w-4 text-center"></i>文件处理
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="file">
+                            <i class="fa fa-file-text sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">文件处理</span><span class="sm:hidden ml-1">文件</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="api">
-                            <i class="fa fa-key mr-2 w-4 text-center"></i>API 密钥
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="api">
+                            <i class="fa fa-key sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">API 密钥</span><span class="sm:hidden ml-1">API</span>
                         </button>
-                        <button class="settings-tab-btn w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated" data-tab="data">
-                            <i class="fa fa-database mr-2 w-4 text-center"></i>数据管理
+                        <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="data">
+                            <i class="fa fa-database sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">数据管理</span><span class="sm:hidden ml-1">数据</span>
                         </button>
                     </nav>
                 </div>
                 
                 <!-- 右侧内容区域 -->
-                <div class="flex-1 overflow-y-auto">
-                    <div class="p-6">
+                <div class="flex-1 overflow-y-auto min-h-0">
+                    <div class="p-4 sm:p-6">
                         <!-- 外观设置 -->
                         <div class="settings-tab-content" data-tab="appearance">
                             <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">外观设置</h4>

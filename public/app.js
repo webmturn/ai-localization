@@ -231,6 +231,24 @@
     var loadErrors = [];
     var startTime = performance.now();
 
+    // 预加载：让浏览器并行下载所有脚本（不执行），加速后续顺序加载
+    function preloadAllScripts() {
+      var basePath;
+      try {
+        basePath = (window.ArchDebug
+          ? window.ArchDebug.getFlag('appBasePath')
+          : App.__appBasePath) || '';
+      } catch (_) { basePath = App.__appBasePath || ''; }
+      if (typeof basePath !== 'string') basePath = '';
+      for (var i = 0; i < scripts.length; i++) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'script';
+        link.href = basePath + scripts[i] + suffix;
+        document.head.appendChild(link);
+      }
+    }
+
     function updateProgress() {
       var progress = (loadedCount / totalCount) * 100;
       
@@ -358,6 +376,7 @@
     return {
       start: function() {
         safeLog('info', `开始加载 ${totalCount} 个脚本...`);
+        preloadAllScripts();
         loadScript(0);
       }
     };

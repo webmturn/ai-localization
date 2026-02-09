@@ -22,10 +22,10 @@
         transition: transform 80ms ease, filter 120ms ease;
     }
 
-    button:active,
+    button:active:not(.toggle-password),
     a:active,
     [role="button"]:active,
-    .cursor-pointer:active {
+    .cursor-pointer:active:not(.toggle-password) {
         transform: translateY(1px) scale(0.98);
         filter: brightness(0.98);
     }

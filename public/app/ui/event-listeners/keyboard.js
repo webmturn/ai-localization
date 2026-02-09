@@ -168,7 +168,7 @@
     if (id === "focusSearch") {
       const desktop = DOMCache.get("translationSearchInput");
       const mobile = DOMCache.get("translationSearchInputMobile");
-      const searchInput = window.innerWidth < 768 ? (mobile || desktop) : (desktop || mobile);
+      const searchInput = isMobileViewport() ? (mobile || desktop) : (desktop || mobile);
       if (searchInput) {
         searchInput.focus();
         if (typeof searchInput.select === "function") searchInput.select();
@@ -259,7 +259,7 @@
   function _focusSelectedTextarea() {
     var idx = AppState && AppState.translations ? AppState.translations.selected : -1;
     if (!Number.isFinite(idx) || idx < 0) return;
-    var isMobile = window.innerWidth < 768;
+    var isMobile = isMobileViewport();
     var container = isMobile
       ? DOMCache.get("mobileCombinedList")
       : DOMCache.get("targetList");
@@ -273,7 +273,7 @@
 
   /** 在相邻 textarea 间导航（Tab 支持） */
   function _navigateTextarea(currentIndex, direction) {
-    var isMobile = window.innerWidth < 768;
+    var isMobile = isMobileViewport();
     var container = isMobile
       ? DOMCache.get("mobileCombinedList")
       : DOMCache.get("targetList");

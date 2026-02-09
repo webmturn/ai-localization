@@ -229,7 +229,7 @@ class FileSystemProjectStorage {
 
   async __queueWrite(task) {
     const run = this.__writeQueue.then(task, task);
-    this.__writeQueue = run.catch(() => {});
+    this.__writeQueue = run.catch((e) => { (loggers.storage || console).debug('__queueWrite 队列任务失败:', e); });
     return run;
   }
 
@@ -1248,13 +1248,13 @@ const storageManager = new StorageManager();
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && !storageManager.indexedDbAvailable) {
-      storageManager.retryIndexedDbAvailability().catch(() => {});
+      storageManager.retryIndexedDbAvailability().catch((e) => { (loggers.storage || console).debug('IndexedDB 重试失败:', e); });
     }
   });
 
   document.addEventListener("click", function __fsReconnectOnClick() {
     if (storageManager.__fsFallbackPending) {
-      storageManager.tryReconnectFilesystem().catch(() => {});
+      storageManager.tryReconnectFilesystem().catch((e) => { (loggers.storage || console).debug('文件系统重连失败:', e); });
     }
     document.removeEventListener("click", __fsReconnectOnClick);
   }, { once: true });

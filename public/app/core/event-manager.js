@@ -61,6 +61,21 @@ const EventManager = {
       }
     }
 
+    // 去重：如果存在相同 target+event+label 的监听器，先移除旧的避免重复绑定
+    if (label) {
+      const dupes = this.listeners.filter(
+        (l) => l.label === label && l.target === target && l.event === event
+      );
+      if (dupes.length > 0) {
+        dupes.forEach((l) => {
+          try { l.target.removeEventListener(l.event, l.handler, l.options); } catch (_) {}
+        });
+        this.listeners = this.listeners.filter(
+          (l) => !(l.label === label && l.target === target && l.event === event)
+        );
+      }
+    }
+
     target.addEventListener(event, handler, listenerOptions);
 
     const listenerId = `${Date.now()}_${Math.random()

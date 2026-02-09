@@ -665,7 +665,7 @@ function registerEventListenersDataManagement(ctx) {
                   if (nextActive) {
                     Promise.resolve(
                       storageManager.setActiveProjectId(nextActive)
-                    ).catch(() => {});
+                    ).catch((e) => { (loggers.storage || console).debug('设置活动项目ID失败:', e); });
                   }
 
                   importCount++;
@@ -682,7 +682,7 @@ function registerEventListenersDataManagement(ctx) {
                   if (data.activeProjectId) {
                     Promise.resolve(
                       storageManager.setActiveProjectId(data.activeProjectId)
-                    ).catch(() => {});
+                    ).catch((e) => { (loggers.storage || console).debug('设置活动项目ID失败:', e); });
                   }
                   importCount++;
                 }

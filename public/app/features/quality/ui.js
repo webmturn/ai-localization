@@ -423,7 +423,7 @@ async function __focusTranslationItemImpl(itemId) {
     : null;
   const selectorByIndex = `.responsive-translation-item[data-index="${index}"]`;
 
-  const isMobile = window.innerWidth < 768;
+  const isMobile = isMobileViewport();
   const smartScrollToComfortZone = (el, behavior = "smooth") => {
     if (!el) return;
     const container =

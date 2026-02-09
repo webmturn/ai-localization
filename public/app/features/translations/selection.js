@@ -55,7 +55,7 @@ function updateSelectionStyles() {
     container.scrollTo({ top: target, behavior });
   };
 
-  const isMobile = window.innerWidth < 768;
+  const isMobile = isMobileViewport();
   const primaryIndex = AppState.translations.selected;
   const selectedSet = new Set(AppState.translations.multiSelected || []);
   if (primaryIndex !== -1) selectedSet.add(primaryIndex);

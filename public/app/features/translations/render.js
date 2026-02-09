@@ -313,7 +313,7 @@ function updateTranslationLists() {
     const sourceList = DOMCache.get("sourceList");
     const targetList = DOMCache.get("targetList");
     const mobileCombinedList = DOMCache.get("mobileCombinedList");
-    const isMobile = window.innerWidth < 768;
+    const isMobile = isMobileViewport();
 
     if (isMobile) {
       if (!mobileCombinedList) {
@@ -901,7 +901,7 @@ async function scrollToItem(index) {
 
     const tryScroll = () => {
       // 移动端：滚动合并列表
-      if (window.innerWidth < 768) {
+      if (isMobileViewport()) {
         const mobileCombinedList =
           DOMCache.get("mobileCombinedList");
         if (!mobileCombinedList) {
@@ -953,12 +953,12 @@ async function scrollToItem(index) {
 
 // 视口切换时自动重渲染（配合跳过不可见视图优化）
 (function () {
-  let lastIsMobile = window.innerWidth < 768;
+  let lastIsMobile = isMobileViewport();
   let resizeTimer = null;
   const handler = function () {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      const nowIsMobile = window.innerWidth < 768;
+      const nowIsMobile = isMobileViewport();
       if (nowIsMobile !== lastIsMobile) {
         lastIsMobile = nowIsMobile;
         if (typeof updateTranslationLists === "function") {

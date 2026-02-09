@@ -37,6 +37,20 @@ function throttle(func, limit) {
   };
 }
 
+/**
+ * 移动端断点阈值（px）
+ * 统一管理，避免分散硬编码
+ */
+var MOBILE_BREAKPOINT = 768;
+
+/**
+ * 判断当前视口是否为移动端
+ * @returns {boolean}
+ */
+function isMobileViewport() {
+  return window.innerWidth < MOBILE_BREAKPOINT;
+}
+
 function safeJsonParse(value, fallback) {
   if (value === null || value === undefined || value === "") return fallback;
   try {

@@ -3,7 +3,7 @@ function __syncTranslationHeightsImpl(afterSync) {
   try {
     const after = typeof afterSync === "function" ? afterSync : null;
     // 移动端使用合并列表，不需要双列高度同步
-    if (window.innerWidth < 768) {
+    if (isMobileViewport()) {
       if (after) requestAnimationFrame(after);
       return;
     }

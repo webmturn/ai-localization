@@ -141,7 +141,7 @@
                         <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs sm:text-sm"></i>
                     </div>
                     <!-- 搜索结果面板 -->
-                    <div id="searchResultsPanel" class="hidden absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg dark:shadow-dark-elevated z-20 max-h-60 overflow-y-auto scrollbar-thin">
+                    <div id="searchResultsPanel" class="hidden absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg dark:shadow-dark-elevated z-40 max-h-60 overflow-y-auto scrollbar-thin">
                         <div id="searchResultsList" class="py-1">
                             <!-- 搜索结果将通过JavaScript动态生成 -->
                         </div>
@@ -167,7 +167,7 @@
         <section class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden">
             <!-- 工具栏 -->
             <div class="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 min-w-0">
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 max-w-screen-2xl">
                     <!-- 语言选择器（移动端紧凑） -->
                     <div class="language-switcher toolbar-control flex-shrink-0">
                         <select id="sourceLanguage" name="source_language" title="选择源语言" aria-label="源语言选择">
@@ -225,7 +225,7 @@
                             <i class="fa fa-times"></i>
                         </button>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <button id="openFindReplaceBtn" class="px-3 py-2 text-sm bg-white border border-gray-300 dark:border-gray-600 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600" title="批量查找替换" aria-label="批量查找替换">
                             <i class="fa fa-exchange"></i>
                             <span>查找替换</span>
@@ -316,7 +316,7 @@
             </div>
             
             <!-- 统一的分页控件 -->
-            <div id="paginationContainer" class="responsive-pagination hidden min-h-14 sm:min-h-16 h-14 sm:h-16 flex items-center justify-center border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div id="paginationContainer" class="responsive-pagination hidden min-h-14 sm:min-h-16 lg:min-h-[4.5rem] h-14 sm:h-16 lg:h-[4.5rem] flex items-center justify-center border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div class="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 h-full flex flex-col sm:flex-row items-center justify-between py-2 sm:py-4">
                     <div class="pagination-info text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-0 sm:order-1">
                         显示 <span id="sourceStartRange" class="font-semibold text-gray-800 dark:text-gray-200">1</span>-<span id="sourceEndRange" class="font-semibold text-gray-800 dark:text-gray-200">20</span> 项，共 <span id="sourceTotalItems" class="font-semibold text-gray-800 dark:text-gray-200">49</span> 项

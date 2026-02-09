@@ -951,5 +951,23 @@ async function scrollToItem(index) {
   }
 }
 
+// 视口切换时自动重渲染（配合跳过不可见视图优化）
+(function () {
+  let lastIsMobile = window.innerWidth < 768;
+  let resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      const nowIsMobile = window.innerWidth < 768;
+      if (nowIsMobile !== lastIsMobile) {
+        lastIsMobile = nowIsMobile;
+        if (typeof updateTranslationLists === "function") {
+          updateTranslationLists();
+        }
+      }
+    }, 200);
+  });
+})();
+
 // 应用搜索过滤
 // 应用搜索过滤（优化版 - 添加缓存机制）

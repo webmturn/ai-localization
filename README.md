@@ -130,6 +130,7 @@ npm run update-cdn
 ### 必读入口
 - [快速开始](docs/QUICK-START.md)
 - [文档索引（全部文档）](docs/INDEX.md)
+- [更新日志](CHANGELOG.md)
 - [Node.js 安装指南](docs/NodeJS-Install-Guide.md)
 - [CDN 更新指南](docs/README-CDN-UPDATE.md)
 - [Tailwind CSS 指南](docs/README-TAILWIND.md)
@@ -164,11 +165,13 @@ npm run update-cdn
 | 功能 | 说明 |
 |------|------|
 | **精简顶栏** | 次要操作收入"更多"菜单，保持顶栏干净 |
-| **底部工具栏** | 文件、翻译、全选、设置四个快捷入口 |
+| **底部工具栏** | 文件、翻译、全选、设置四个快捷入口，44px 触控目标 |
 | **底部 Sheet 侧边栏** | 侧边栏从底部滑入，带遮罩层和手势关闭 |
+| **下滑手势关闭** | 侧边栏 Sheet 支持下滑手势关闭 |
 | **紧凑翻译卡片** | 自适应 textarea、更小间距和字号 |
 | **模态框适配** | 设置/质量报告/术语库/帮助等模态框全面适配移动端 |
-| **手势支持** | 左右滑动开关侧边栏、长按多选翻译项 |
+| **安全区域** | 底部工具栏、模态框、通知适配 iPhone X+ safe-area |
+| **手势支持** | 左右滑动开关侧边栏、下滑关闭 Sheet、长按多选翻译项 |
 
 ## 🔑 API Key 配置说明
 

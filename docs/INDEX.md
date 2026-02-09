@@ -9,6 +9,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [CHANGELOG.md](../CHANGELOG.md) | 更新日志（所有版本变更记录） |
 | [API-REFERENCE.md](API-REFERENCE.md) | 核心服务和工具 API 参考 |
 | [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | 项目目录结构说明 |
 | [APP-JS-Function-Guide.md](APP-JS-Function-Guide.md) | app 模块与函数说明 |

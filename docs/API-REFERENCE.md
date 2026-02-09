@@ -489,6 +489,22 @@ DOMCache.remove('elementId');
 DOMCache.clear();
 ```
 
+#### 常用 DOMCache ID
+
+| ID | 元素 | 用途 |
+|----|------|------|
+| `settingsPanel` | 右侧设置面板容器 | 标签页切换时隐藏/显示 |
+| `exportBtnContainer` | 右侧导出按钮容器 | 标签页切换时隐藏/显示 |
+| `searchResultsPanel` | 翻译搜索结果面板 | 搜索时显示/隐藏 |
+| `translationProgressModal` | 翻译进度模态框 | 翻译进度UI |
+| `progressBar` | 进度条 | 翻译进度百分比 |
+| `progressPercentage` | 进度百分比文本 | 翻译进度UI |
+| `progressStatus` | 进度状态文本 | 翻译进度UI |
+| `progressLog` | 进度日志容器 | 翻译进度UI |
+| `sidebarBackdrop` | 移动端侧边栏遮罩层 | z-[41]，覆盖底部工具栏 |
+
+> **注意**：使用 `DOMCache.get()` 返回值前应判空，避免元素不存在时的 TypeError。
+
 ### SettingsCache
 
 ```javascript

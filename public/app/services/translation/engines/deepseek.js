@@ -163,24 +163,9 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   }
 };
 
-function __deepseekGetItemKey(item) {
-  if (!item) return "";
-  return (
-    item?.metadata?.resourceId ||
-    item?.metadata?.key ||
-    item?.metadata?.path ||
-    item?.metadata?.unitId ||
-    item?.metadata?.contextName ||
-    item?.id ||
-    ""
-  );
-}
-
-function __deepseekGetFileType(item) {
-  const file = item?.metadata?.file || "";
-  const ext = file.split(".").pop() || "";
-  return (ext || "").toLowerCase();
-}
+// 使用 helpers.js 中的共享函数
+const __deepseekGetItemKey = translationGetItemKey;
+const __deepseekGetFileType = translationGetFileType;
 
 function __deepseekResolvePrimingSamples(sampleIds) {
   const ids = Array.isArray(sampleIds) ? sampleIds : [];

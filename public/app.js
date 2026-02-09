@@ -67,6 +67,7 @@
     "app/services/translation/compat.js",
     "app/services/translation/settings.js",
     "app/services/translation/terminology.js",
+    "app/services/translation/helpers.js",
     "app/services/translation/engines/deepseek.js",
     "app/services/translation/engines/openai.js",
     "app/services/translation/engines/google.js",

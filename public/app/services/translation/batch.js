@@ -28,38 +28,9 @@ TranslationService.prototype.translateBatch = async function (
 
   const normalizedEngine = (engine || "").toString().toLowerCase();
 
-  const getItemKey = (item) => {
-    try {
-      return String(
-        item?.metadata?.resourceId ||
-          item?.metadata?.key ||
-          item?.metadata?.path ||
-          item?.metadata?.unitId ||
-          item?.metadata?.contextName ||
-          item?.id ||
-          ""
-      );
-    } catch (_) {
-      return "";
-    }
-  };
-
-  const getFileBase = (item) => {
-    try {
-      const f = String(item?.metadata?.file || "");
-      if (!f) return "";
-      const parts = f.split(/\\|\//g);
-      return parts[parts.length - 1] || f;
-    } catch (_) {
-      return "";
-    }
-  };
-
-  const toSnippet = (text, maxLen) => {
-    const s = (text || "").toString().replace(/\s+/g, " ").trim();
-    if (!s) return "";
-    return s.length > maxLen ? s.substring(0, maxLen) + "..." : s;
-  };
+  const getItemKey = translationGetItemKey;
+  const getFileBase = translationGetFileBase;
+  const toSnippet = translationToSnippet;
 
   if (normalizedEngine === "deepseek") {
     try {

@@ -353,11 +353,24 @@ function registerEventListenersDataAndUi(ctx) {
         const dy = touch.clientY - touchStartY;
         const dt = Date.now() - touchStartTime;
 
-        // 要求：水平滑动 > 60px，垂直偏移 < 水平的一半，时间 < 400ms
-        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.5 || dt > 400) return;
-
         const leftOpen = leftSidebar?.classList.contains("show-sidebar");
         const rightOpen = rightSidebar?.classList.contains("show-sidebar");
+
+        // 下滑关闭底部Sheet：垂直滑动 > 80px，水平偏移 < 垂直的一半，时间 < 400ms
+        if (dy > 80 && Math.abs(dx) < dy * 0.5 && dt < 400 && (leftOpen || rightOpen)) {
+          if (leftOpen && leftSidebar) {
+            leftSidebar.classList.remove("show-sidebar");
+            hideBackdrop();
+          }
+          if (rightOpen && rightSidebar) {
+            rightSidebar.classList.remove("show-sidebar");
+            hideBackdrop();
+          }
+          return;
+        }
+
+        // 水平滑动：> 60px，垂直偏移 < 水平的一半，时间 < 400ms
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.5 || dt > 400) return;
 
         if (dx > 0) {
           // 右滑

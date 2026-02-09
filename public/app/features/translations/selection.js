@@ -165,7 +165,8 @@ function updateSelectionStyles() {
     scrollContainer && !shouldScroll ? scrollContainer.scrollTop : null;
 
   if (shouldScroll && scrollTargetEl) {
-    syncTranslationHeights(() => {
+    // 选择变更不会改变内容高度，跳过 syncTranslationHeights 避免高度重置导致屏闪
+    requestAnimationFrame(() => {
       if (!scrollTargetEl.isConnected) return;
       smartScrollToComfortZone(scrollTargetEl, "smooth");
     });
@@ -173,14 +174,13 @@ function updateSelectionStyles() {
   }
 
   if (scrollContainer && prevScrollTop !== null && !shouldScroll) {
-    syncTranslationHeights(() => {
+    // 非滚动场景：保持滚动位置不变
+    requestAnimationFrame(() => {
       if (!scrollContainer.isConnected) return;
       scrollContainer.scrollTop = prevScrollTop;
     });
     return;
   }
-
-  syncTranslationHeights();
 }
 
 function clearMultiSelection() {

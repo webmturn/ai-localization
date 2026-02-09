@@ -507,8 +507,9 @@ function registerAllServices() {
     // 注册事件管理器
     if (!window.diContainer.has('eventManager')) {
       window.diContainer.registerSingleton('eventManager', () => {
+        // EventManager 是对象字面量（单例），不是 class，不能 new
         if (!window.eventManager && typeof EventManager !== 'undefined') {
-          window.eventManager = new EventManager();
+          window.eventManager = EventManager;
         }
         return window.eventManager;
       }, {
@@ -715,8 +716,8 @@ async function initializeProjectData() {
  */
 function cleanupApplicationResources() {
   try {
-    // 清理事件管理器
-    const eventManager = window.getService ? window.getService('eventManager') : window.EventManager;
+    // 清理事件管理器（使用 getServiceSafely 避免抛异常中断后续清理）
+    const eventManager = window.getServiceSafely ? window.getServiceSafely('eventManager', 'EventManager') : window.EventManager;
     if (eventManager && typeof eventManager.removeAll === 'function') {
       eventManager.removeAll();
     }
@@ -726,8 +727,8 @@ function cleanupApplicationResources() {
       DOMCache.clear();
     }
 
-    // 取消所有正在进行的翻译请求
-    const translationService = window.getService ? window.getService('translationService') : window.translationService;
+    // 取消所有正在进行的翻译请求（使用 getServiceSafely 避免抛异常中断后续清理）
+    const translationService = window.getServiceSafely ? window.getServiceSafely('translationService', 'translationService') : window.translationService;
     if (translationService && typeof translationService.cancelAll === 'function') {
       translationService.cancelAll();
     }

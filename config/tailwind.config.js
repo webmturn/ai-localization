@@ -7,44 +7,14 @@ module.exports = {
     "./public/*.js",
     "./public/**/*.js"
   ],
+  // safelist: 仅保留 Tailwind content 扫描器无法从 HTML/JS 字面量中提取的类。
+  // 所有以完整字符串出现在 public/**/*.{html,js} 中的类会被 JIT 自动收集，
+  // 无需重复 safelist。之前的宽泛正则（~1400+ 类）已移除以大幅缩减 CSS 体积。
   safelist: [
-    'text-white',
-    'bg-white',
-    'text-gray-700',
-    'text-gray-500',
-    'border-gray-300',
-    'hover:bg-gray-50',
-    'bg-blue-50',
-    'text-primary',
-    'bg-primary',
-    'hover:bg-primary/90',
-    'focus:ring-2',
-    'focus:ring-offset-2',
-    'ring-1',
-    'ring-2',
-    'ring-offset-2',
-    'bg-primary-dark',
-    'hover:bg-primary-dark',
-    'border-primary',
-    'bg-red-50',
-    'bg-red-100',
-    'bg-red-600',
-    'hover:bg-red-100',
-    'hover:bg-red-700',
-    'border-red-200',
-    'text-red-600',
-    'text-red-700',
-    { pattern: /^(bg|text|border|ring)-(red|gray|blue|green|yellow|amber)-(50|100|200|300|400|500|600|700|800|900)$/ },
+    // custom color "primary" 的 opacity 变体（JS 中通过 bg-primary/90 等使用）
     { pattern: /^(bg|text|border|ring)-primary(\/(5|10|20|30|40|50|60|70|80|90|95))?$/ },
-    {
-      pattern: /^(bg|text|border|ring)-(red|gray|blue|green|yellow|amber)-(50|100|200|300|400|500|600|700|800|900)$/,
-      variants: ['hover', 'focus', 'active', 'disabled']
-    },
-    {
-      pattern: /^(bg|text|border|ring)-primary(\/(5|10|20|30|40|50|60|70|80|90|95))?$/,
-      variants: ['hover', 'focus', 'active', 'disabled']
-    },
-    { pattern: /^shadow-dark-elevated$/, variants: ['dark'] }
+    // custom shadow 的 dark 变体
+    { pattern: /^shadow-dark-elevated$/, variants: ['dark'] },
   ],
   theme: {
     extend: {

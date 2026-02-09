@@ -118,7 +118,7 @@ class AutoSaveManager {
       if (this.isDirty && AppState.project && !this.isPaused) {
         this.saveProject();
       }
-    }, this.quickSaveDebounceMs);
+    }, Math.max(delay, this.quickSaveDebounceMs));
   }
 
   // 保存项目（带重试机制）

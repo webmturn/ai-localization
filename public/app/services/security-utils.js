@@ -3,11 +3,30 @@
 // 简单的加密工具类（使用Web Crypto API）
 class SecurityUtils {
   constructor() {
-    this.salt = "xml-translator-v1"; // 固定盐值，生产环境应使用随机生成
+    this._legacySalt = "xml-translator-v1";
+    this._saltKey = "__secUtils_salt";
+    this._salt = null; // lazy-initialized
+  }
+
+  // 获取或生成每安装实例唯一的盐值（存储在 localStorage）
+  _getOrCreateSalt() {
+    if (this._salt) return this._salt;
+    try {
+      var stored = localStorage.getItem(this._saltKey);
+      if (stored && stored.length >= 16) {
+        this._salt = stored;
+        return this._salt;
+      }
+    } catch (_) {}
+    // 生成随机盐值
+    var arr = crypto.getRandomValues(new Uint8Array(16));
+    this._salt = Array.from(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+    try { localStorage.setItem(this._saltKey, this._salt); } catch (_) {}
+    return this._salt;
   }
 
   // 生成密钥
-  async deriveKey(password) {
+  async deriveKey(password, salt) {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
@@ -20,7 +39,7 @@ class SecurityUtils {
     return crypto.subtle.deriveKey(
       {
         name: "PBKDF2",
-        salt: enc.encode(this.salt),
+        salt: enc.encode(salt),
         iterations: 100000,
         hash: "SHA-256",
       },
@@ -31,56 +50,67 @@ class SecurityUtils {
     );
   }
 
-  // 加密文本
+  // 加密文本（使用每安装实例唯一的盐值）
   async encrypt(text, password = "default-key") {
-    try {
-      const key = await this.deriveKey(password);
-      const enc = new TextEncoder();
-      const iv = crypto.getRandomValues(new Uint8Array(12));
+    const salt = this._getOrCreateSalt();
+    const key = await this.deriveKey(password, salt);
+    const enc = new TextEncoder();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
 
-      const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        enc.encode(text)
-      );
+    const encrypted = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      enc.encode(text)
+    );
 
-      // 将IV和加密数据组合，转为Base64
-      const combined = new Uint8Array(iv.length + encrypted.byteLength);
-      combined.set(iv);
-      combined.set(new Uint8Array(encrypted), iv.length);
+    // 将IV和加密数据组合，转为Base64
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encrypted), iv.length);
 
-      return btoa(String.fromCharCode(...combined));
-    } catch (error) {
-      (loggers.services || console).error("加密失败:", error);
-      return text; // 加密失败时返回原文（降级处理）
-    }
+    return btoa(String.fromCharCode(...combined));
   }
 
-  // 解密文本
+  // 解密文本（先尝试当前盐值，失败后回退到旧固定盐值以兼容历史数据）
   async decrypt(encryptedText, password = "default-key") {
+    // 非 Base64 格式直接返回（未加密的旧数据）
+    try { atob(encryptedText); } catch (_) { return encryptedText; }
+
+    const salt = this._getOrCreateSalt();
+    // 尝试当前盐值解密
     try {
-      const key = await this.deriveKey(password);
-      const combined = new Uint8Array(
-        atob(encryptedText)
-          .split("")
-          .map((c) => c.charCodeAt(0))
-      );
-
-      const iv = combined.slice(0, 12);
-      const data = combined.slice(12);
-
-      const decrypted = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        data
-      );
-
-      const dec = new TextDecoder();
-      return dec.decode(decrypted);
-    } catch (error) {
-      (loggers.services || console).error("解密失败:", error);
-      return encryptedText; // 解密失败时返回原文（兼容旧数据）
+      return await this._decryptWithSalt(encryptedText, password, salt);
+    } catch (_) {}
+    // 回退到旧固定盐值（兼容升级前加密的数据）
+    if (salt !== this._legacySalt) {
+      try {
+        return await this._decryptWithSalt(encryptedText, password, this._legacySalt);
+      } catch (_) {}
     }
+    // 均失败：可能是未加密的旧数据
+    (loggers.services || console).warn("解密失败，返回原文（可能是未加密的旧数据）");
+    return encryptedText;
+  }
+
+  async _decryptWithSalt(encryptedText, password, salt) {
+    const key = await this.deriveKey(password, salt);
+    const combined = new Uint8Array(
+      atob(encryptedText)
+        .split("")
+        .map((c) => c.charCodeAt(0))
+    );
+
+    const iv = combined.slice(0, 12);
+    const data = combined.slice(12);
+
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      data
+    );
+
+    const dec = new TextDecoder();
+    return dec.decode(decrypted);
   }
 
   // 输入验证 - XSS防护

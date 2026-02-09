@@ -71,12 +71,14 @@ var SettingsCache = {
   _key: "translatorSettings",
   _cache: null,
   _dirty: true,
+  _storageListenerBound: false,
 
   /**
    * 读取设置（带缓存）
    * @returns {Object} 设置对象（永远返回普通对象，不返回null）
    */
   get: function () {
+    this._ensureStorageListener();
     if (!this._dirty && this._cache) return this._cache;
     var raw = localStorage.getItem(this._key);
     this._cache = raw ? safeJsonParse(raw, {}) : {};
@@ -85,13 +87,25 @@ var SettingsCache = {
   },
 
   /**
+   * 读取设置的安全副本（防止调用方意外修改内部缓存）
+   * 对于只读场景可直接使用 get()；需要修改时推荐使用 update() 或 getCopy()
+   * @returns {Object} 设置对象的深拷贝
+   */
+  getCopy: function () {
+    var obj = this.get();
+    try { return JSON.parse(JSON.stringify(obj)); } catch (_) { return {}; }
+  },
+
+  /**
    * 保存设置（写入 localStorage 并更新缓存）
    * @param {Object} settings - 完整的设置对象
    */
   save: function (settings) {
     if (!settings || typeof settings !== "object") return;
-    localStorage.setItem(this._key, JSON.stringify(settings));
-    this._cache = settings;
+    var json = JSON.stringify(settings);
+    localStorage.setItem(this._key, json);
+    // 存储深拷贝，防止调用方后续修改原对象导致缓存与 localStorage 不一致
+    this._cache = JSON.parse(json);
     this._dirty = false;
   },
 
@@ -111,6 +125,26 @@ var SettingsCache = {
   invalidate: function () {
     this._dirty = true;
     this._cache = null;
+  },
+
+  /**
+   * 监听其他标签页对 localStorage 的修改，自动失效缓存
+   * storage 事件仅在其他标签页修改时触发，不会在当前标签页触发
+   */
+  _ensureStorageListener: function () {
+    if (this._storageListenerBound) return;
+    this._storageListenerBound = true;
+    var self = this;
+    try {
+      window.addEventListener("storage", function (e) {
+        if (e.key === self._key) {
+          self._dirty = true;
+          self._cache = null;
+        }
+      });
+    } catch (_) {
+      // storage event not supported - safe to ignore
+    }
   },
 };
 
@@ -240,6 +274,8 @@ function filterItems(
           resolve();
         };
         s.onerror = function () {
+          // 移除失败的 script 元素，使后续重试能重新加载而非误判为已存在
+          try { s.remove(); } catch (_) {}
           reject(new Error("Failed to load script: " + s.src));
         };
 
@@ -247,8 +283,13 @@ function filterItems(
       } catch (e) {
         reject(e);
       }
-    }).finally(function () {
+    });
+
+    // 成功时保留 inflight 缓存（后续调用直接复用已 resolve 的 Promise）；
+    // 失败时清除 inflight 条目，允许后续重试创建新请求。
+    inflight[key] = inflight[key].catch(function (err) {
       delete inflight[key];
+      throw err;
     });
 
     return inflight[key];

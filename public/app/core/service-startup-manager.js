@@ -85,8 +85,9 @@ class ServiceStartupManager {
       priority: 70,
       dependencies: ['errorManager'],
       factory: () => {
+        // EventManager 是对象字面量（单例），不是 class，不能 new
         if (!window.eventManager && typeof EventManager !== 'undefined') {
-          window.eventManager = new EventManager();
+          window.eventManager = EventManager;
         }
         return window.eventManager;
       }

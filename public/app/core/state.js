@@ -43,6 +43,31 @@
  * @property {string|null} lastCheckTime - 最后检查时间
  */
 
+// 默认术语库数据（定义一次，避免 list/filtered 重复硬编码导致不一致）
+const __defaultTerminologyList = [
+  {
+    id: 1,
+    source: "API",
+    target: "应用程序接口",
+    partOfSpeech: "noun",
+    definition: "应用程序编程接口",
+  },
+  {
+    id: 2,
+    source: "XML",
+    target: "可扩展标记语言",
+    partOfSpeech: "noun",
+    definition: "用于存储和传输数据的标记语言",
+  },
+  {
+    id: 3,
+    source: "localization",
+    target: "本地化",
+    partOfSpeech: "noun",
+    definition: "使产品适应特定地区或市场的过程",
+  },
+];
+
 /**
  * 全局应用状态对象
  * @type {Object}
@@ -79,52 +104,8 @@ const AppState = {
     sourceSelectionIndicatorUnselectedStyle: "gray",
   },
   terminology: {
-    list: [
-      {
-        id: 1,
-        source: "API",
-        target: "应用程序接口",
-        partOfSpeech: "noun",
-        definition: "应用程序编程接口",
-      },
-      {
-        id: 2,
-        source: "XML",
-        target: "可扩展标记语言",
-        partOfSpeech: "noun",
-        definition: "用于存储和传输数据的标记语言",
-      },
-      {
-        id: 3,
-        source: "localization",
-        target: "本地化",
-        partOfSpeech: "noun",
-        definition: "使产品适应特定地区或市场的过程",
-      },
-    ],
-    filtered: [
-      {
-        id: 1,
-        source: "API",
-        target: "应用程序接口",
-        partOfSpeech: "noun",
-        definition: "应用程序编程接口",
-      },
-      {
-        id: 2,
-        source: "XML",
-        target: "可扩展标记语言",
-        partOfSpeech: "noun",
-        definition: "用于存储和传输数据的标记语言",
-      },
-      {
-        id: 3,
-        source: "localization",
-        target: "本地化",
-        partOfSpeech: "noun",
-        definition: "使产品适应特定地区或市场的过程",
-      },
-    ],
+    list: __defaultTerminologyList,
+    filtered: [...__defaultTerminologyList],
     currentPage: 1,
     perPage: 10,
   },

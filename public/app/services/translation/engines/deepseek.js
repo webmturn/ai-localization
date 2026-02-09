@@ -96,11 +96,7 @@ TranslationService.prototype.translateWithDeepSeek = async function (
   }
 
   try {
-    try {
-      await this.checkRateLimit("deepseek");
-    } catch (_) {
-      (loggers.translation || console).debug("deepseek rateLimit:", _);
-    }
+    // checkRateLimit 已由上层 translate() 统一调用，此处不再重复检查
 
     const response = await networkUtils.fetchWithDedupe(
       "https://api.deepseek.com/v1/chat/completions",

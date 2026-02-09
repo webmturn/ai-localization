@@ -11,8 +11,23 @@
  * @returns {Object} 格式化后的错误信息
  */
 function formatTranslationErrorV2(errorLike, engine) {
+  // 安全检查：如果错误管理系统不可用，回退到原始实现
+  const em = typeof errorManager !== 'undefined' ? errorManager : 
+             (window.getServiceSafely ? window.getServiceSafely('errorManager') : null);
+  
+  if (!em || typeof em.handleError !== 'function' || 
+      typeof ERROR_MESSAGES === 'undefined' || typeof ERROR_CODES === 'undefined') {
+    // 回退到原始版本（formatTranslationErrorOriginal 由覆盖逻辑保存）
+    if (typeof window.formatTranslationErrorOriginal === 'function') {
+      return window.formatTranslationErrorOriginal(errorLike, engine);
+    }
+    // 最终备用：返回基本格式
+    const msg = (errorLike && errorLike.message) ? errorLike.message : String(errorLike || '未知错误');
+    return { type: 'error', title: '翻译失败', message: msg, detail: msg };
+  }
+
   // 使用新的错误管理系统
-  const standardError = errorManager.handleError(errorLike, {
+  const standardError = em.handleError(errorLike, {
     engine,
     operation: 'translation',
     component: 'actions'

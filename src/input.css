@@ -1031,7 +1031,7 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     /* 分页控件留出底部工具栏空间 */
     #paginationContainer {
         padding-bottom: env(safe-area-inset-bottom, 0px);
-        margin-bottom: 3.5rem;
+        margin-bottom: 4.5rem;
     }
 
     /* 通知位置调整：不被底部工具栏遮挡，适配安全区域 */

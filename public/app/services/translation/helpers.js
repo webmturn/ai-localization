@@ -63,6 +63,65 @@ function translationToSnippet(text, maxLen) {
 }
 
 /**
+ * 检测错误是否为 API Key 相关错误
+ * @param {Error} error - 错误对象
+ * @returns {boolean}
+ */
+function translationIsApiKeyError(error) {
+  const code = error?.code;
+  if (code === "API_KEY_MISSING" || code === "API_KEY_INVALID") return true;
+
+  const msg = (error?.message ? String(error.message) : String(error || "")).trim();
+  const lower = msg.toLowerCase();
+  return (
+    (/api\s*key/.test(lower) &&
+      (/missing/.test(lower) || /not\s*configured/.test(lower) || /invalid/.test(lower))) ||
+    /密钥未配置/.test(msg) ||
+    /api密钥未配置/.test(lower) ||
+    /未配置.*密钥/.test(msg)
+  );
+}
+
+/**
+ * 检测错误是否为用户取消操作
+ * @param {Error} error - 错误对象
+ * @param {boolean} isInProgress - 当前是否仍在翻译中
+ * @returns {boolean}
+ */
+function translationIsUserCancelled(error, isInProgress) {
+  return (
+    error?.code === "USER_CANCELLED" ||
+    error?.message === "用户取消" ||
+    error?.message === "请求已取消或超时" ||
+    error?.message === "请求已取消" ||
+    (!isInProgress &&
+      (error?.name === "AbortError" ||
+        /aborted|abort|cancell/i.test(error?.message || "")))
+  );
+}
+
+/**
+ * 将批量翻译中所有项标记为错误
+ * @param {Array} items - 翻译项数组
+ * @param {Array} errorsArray - 错误结果数组（push 目标）
+ * @param {string} errorMsg - 错误消息
+ * @param {Object} [extra] - 附加字段 (status, code, provider, url)
+ */
+function translationMarkAllAsErrors(items, errorsArray, errorMsg, extra = {}) {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item) item.status = "pending";
+    errorsArray.push({
+      success: false,
+      index: i,
+      error: errorMsg,
+      ...extra,
+      item,
+    });
+  }
+}
+
+/**
  * 等待翻译暂停状态解除
  * @param {Object} options - 选项
  * @param {Object} options.state - AppState.translations 引用

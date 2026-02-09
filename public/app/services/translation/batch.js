@@ -148,27 +148,8 @@ TranslationService.prototype.translateBatch = async function (
     } catch (error) {
       const msg = (error && error.message ? String(error.message) : String(error || ""))
         .trim();
-      const msgLower = msg.toLowerCase();
-      const code = error?.code;
-      const isKeyError =
-        code === "API_KEY_MISSING" ||
-        code === "API_KEY_INVALID" ||
-        /api\s*key/.test(msgLower) &&
-          (/missing/.test(msgLower) || /not\s*configured/.test(msgLower) || /invalid/.test(msgLower)) ||
-        /密钥未配置/.test(msg) ||
-        /api密钥未配置/.test(msgLower) ||
-        /未配置.*密钥/.test(msg);
 
-      const isUserCancelled =
-        error?.code === "USER_CANCELLED" ||
-        error?.message === "用户取消" ||
-        error?.message === "请求已取消或超时" ||
-        error?.message === "请求已取消" ||
-        (!AppState.translations.isInProgress &&
-          (error?.name === "AbortError" ||
-            /aborted|abort|cancell/i.test(error?.message || "")));
-
-      if (isUserCancelled) {
+      if (translationIsUserCancelled(error, AppState.translations.isInProgress)) {
         const partial = Array.isArray(error?.partialOutputs)
           ? error.partialOutputs
           : [];
@@ -211,7 +192,7 @@ TranslationService.prototype.translateBatch = async function (
         return { results, errors };
       }
 
-      if (isKeyError) {
+      if (translationIsApiKeyError(error)) {
         if (typeof addProgressLog === "function") {
           addProgressLog({
             level: "error",
@@ -219,20 +200,12 @@ TranslationService.prototype.translateBatch = async function (
           });
         }
 
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item) item.status = "pending";
-          errors.push({
-            success: false,
-            index: i,
-            error: msg || "DeepSeek API密钥未配置",
-            status: error?.status,
-            code: error?.code,
-            provider: error?.provider,
-            url: error?.url,
-            item,
-          });
-        }
+        translationMarkAllAsErrors(items, errors, msg || "DeepSeek API密钥未配置", {
+          status: error?.status,
+          code: error?.code,
+          provider: error?.provider,
+          url: error?.url,
+        });
 
         if (onProgress) {
           onProgress(0, total, "DeepSeek API Key 未配置，已中止批量翻译");
@@ -279,18 +252,10 @@ TranslationService.prototype.translateBatch = async function (
         addProgressLog({ level: "error", message: msg });
       }
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item) item.status = "pending";
-        errors.push({
-          success: false,
-          index: i,
-          error: msg,
-          code: missing ? "API_KEY_MISSING" : "API_KEY_INVALID",
-          provider: normalizedEngine,
-          item,
-        });
-      }
+      translationMarkAllAsErrors(items, errors, msg, {
+        code: missing ? "API_KEY_MISSING" : "API_KEY_INVALID",
+        provider: normalizedEngine,
+      });
 
       if (onProgress) {
         onProgress(0, total, `${providerLabel} API Key 未配置/无效，已中止批量翻译`);

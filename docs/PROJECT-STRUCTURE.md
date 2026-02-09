@@ -136,10 +136,11 @@ html/
 │       │   ├── auto-save-manager.js         # 自动保存管理器
 │       │   ├── security-utils.js            # 加密/解密/API Key 验证
 │       │   │
-│       │   ├── translation/             # 翻译引擎（9个文件 + engines/）
+│       │   ├── translation/             # 翻译引擎（10个文件 + engines/）
 │       │   │   ├── service-class.js         # TranslationService 类定义
 │       │   │   ├── translate.js             # 统一翻译接口（带重试）
 │       │   │   ├── batch.js                 # 批量翻译调度
+│       │   │   ├── helpers.js               # 翻译共享工具函数（getItemKey/toSnippet/错误分类等）
 │       │   │   ├── settings.js              # SettingsCache + 翻译设置管理
 │       │   │   ├── business-logic.js        # TranslationBusinessLogic
 │       │   │   ├── terminology.js           # 翻译时术语匹配

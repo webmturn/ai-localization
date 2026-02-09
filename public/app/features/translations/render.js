@@ -56,6 +56,36 @@ function getStatusClass(status) {
   return __statusClassMap[status] || "text-gray-500 dark:text-gray-400";
 }
 
+// 预构建 DOM 模板骨架，使用 cloneNode(true) 加速批量创建
+var __sourceItemTemplate = (function () {
+  var div = document.createElement("div");
+  div.innerHTML =
+    '<div class="flex items-stretch w-full h-full">' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="item-content border border-transparent rounded flex flex-col">' +
+          '<p class="text-sm md:text-base font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100"></p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="flex flex-col items-end ml-2">' +
+        '<span class="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"></span>' +
+      '</div>' +
+    '</div>';
+  return div;
+})();
+
+var __targetItemTemplate = (function () {
+  var div = document.createElement("div");
+  div.innerHTML =
+    '<div class="flex items-stretch w-full h-full">' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="item-content h-full">' +
+          '<textarea class="w-full h-full border border-transparent rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none break-words bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" aria-label="译文编辑" title="译文编辑" style="font-family:inherit"></textarea>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  return div;
+})();
+
 // 创建翻译项 DOM 元素（使用事件委托，不再单独绑定）
 function createTranslationItemElement(
   item,
@@ -104,24 +134,12 @@ function createTranslationItemElement(
   const searchQuery = AppState.translations.searchQuery;
 
   if (isSource) {
-    // 源文列表
-    const wrapper = document.createElement("div");
-    wrapper.className = "flex items-stretch w-full h-full";
+    // 源文列表 — 使用模板 cloneNode 加速
+    const clone = __sourceItemTemplate.cloneNode(true);
+    const p = clone.querySelector("p");
+    p.appendChild(highlightText(sourceText, searchQuery));
 
-    const left = document.createElement("div");
-    left.className = "flex-1 min-w-0";
-
-    const contentEl = document.createElement("div");
-    contentEl.className =
-      "item-content border border-transparent rounded flex flex-col";
-
-    const p = document.createElement("p");
-    p.className =
-      "text-sm md:text-base font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100";
-    const highlighted = highlightText(sourceText, searchQuery);
-    p.appendChild(highlighted);
-    contentEl.appendChild(p);
-
+    const contentEl = clone.querySelector(".item-content");
     if (context) {
       const p2 = document.createElement("p");
       p2.className =
@@ -138,45 +156,26 @@ function createTranslationItemElement(
       contentEl.appendChild(p3);
     }
 
-    left.appendChild(contentEl);
-
-    const right = document.createElement("div");
-    right.className = "flex flex-col items-end ml-2";
-    const status = document.createElement("span");
-    status.className = `text-xs font-semibold ${statusClass} px-2 py-0.5 rounded-full whitespace-nowrap`;
+    const status = clone.querySelector("span");
+    status.className += ` ${statusClass}`;
     status.textContent = getStatusText(item.status);
-    right.appendChild(status);
 
-    wrapper.appendChild(left);
-    wrapper.appendChild(right);
-    div.appendChild(wrapper);
+    div.appendChild(clone.firstElementChild);
   } else {
-    // 译文列表
-    const textarea = document.createElement("textarea");
-    textarea.className = `w-full h-full border ${
-      isPrimarySelected ? "border-blue-500" : "border-transparent"
-    } rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none break-words bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400`;
-    textarea.setAttribute("aria-label", "译文编辑");
-    textarea.title = "译文编辑";
+    // 译文列表 — 使用模板 cloneNode 加速
+    const clone = __targetItemTemplate.cloneNode(true);
+    const textarea = clone.querySelector("textarea");
+    if (isPrimarySelected) {
+      textarea.classList.remove("border-transparent");
+      textarea.classList.add("border-blue-500");
+    }
     textarea.dataset.index = originalIndex;
     if (item && item.id !== undefined && item.id !== null) {
       textarea.dataset.id = String(item.id);
     }
-    textarea.style.fontFamily = "inherit";
     textarea.value = targetText;
 
-    // 不再单独绑定事件，使用事件委托
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "flex items-stretch w-full h-full";
-    const left = document.createElement("div");
-    left.className = "flex-1 min-w-0";
-    const contentEl = document.createElement("div");
-    contentEl.className = "item-content h-full";
-    contentEl.appendChild(textarea);
-    left.appendChild(contentEl);
-    wrapper.appendChild(left);
-    div.appendChild(wrapper);
+    div.appendChild(clone.firstElementChild);
   }
 
   // 不再单独绑定点击事件，使用事件委托

@@ -198,6 +198,12 @@ class NetworkUtilsV2 extends NetworkUtils {
     stats.total++;
     stats.lastRequest = Date.now();
     this.requestStats.set(url, stats);
+
+    // 限制统计条目数量，淘汰最旧的
+    if (this.requestStats.size > 200) {
+      const firstKey = this.requestStats.keys().next().value;
+      this.requestStats.delete(firstKey);
+    }
   }
   
   _recordRequestSuccess(url) {

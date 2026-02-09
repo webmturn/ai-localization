@@ -182,6 +182,17 @@ function idbGetFileContent(key) {
   });
 }
 
+const __projectLsFallbackPrefix = "__proj:";
+let __projectLsFallbackNotified = false;
+
+function __projectLsFallbackWarn(action) {
+  if (__projectLsFallbackNotified) return;
+  __projectLsFallbackNotified = true;
+  (window.loggers?.storage || console).warn(
+    `项目${action}：IndexedDB不可用，已降级到 localStorage（容量受限）`
+  );
+}
+
 function idbPutProject(key, projectJson) {
   return openFileContentDB().then(
     (db) =>
@@ -193,7 +204,15 @@ function idbPutProject(key, projectJson) {
         tx.onerror = () => reject(tx.error || new Error("IndexedDB写入失败"));
         tx.onabort = () => reject(tx.error || new Error("IndexedDB写入中止"));
       })
-  );
+  ).catch((e) => {
+    try {
+      localStorage.setItem(__projectLsFallbackPrefix + key, projectJson);
+      __projectLsFallbackWarn("保存");
+      return true;
+    } catch (lsErr) {
+      throw e;
+    }
+  });
 }
 
 function idbGetProject(key) {
@@ -207,7 +226,18 @@ function idbGetProject(key) {
           resolve(req.result ? req.result.projectJson : null);
         req.onerror = () => reject(req.error || new Error("IndexedDB读取失败"));
       })
-  );
+  ).catch((e) => {
+    try {
+      const val = localStorage.getItem(__projectLsFallbackPrefix + key);
+      if (val !== null) {
+        __projectLsFallbackWarn("读取");
+        return val;
+      }
+    } catch (_) {
+      (loggers.storage || console).debug("idb project localStorage fallback read:", _);
+    }
+    throw e;
+  });
 }
 
 function idbDeleteProject(key) {
@@ -220,7 +250,15 @@ function idbDeleteProject(key) {
         req.onsuccess = () => resolve(true);
         req.onerror = () => reject(req.error || new Error("IndexedDB删除失败"));
       })
-  );
+  ).catch((e) => {
+    try {
+      localStorage.removeItem(__projectLsFallbackPrefix + key);
+      __projectLsFallbackWarn("删除");
+      return true;
+    } catch (lsErr) {
+      throw e;
+    }
+  });
 }
 
 const __fsHandleStoreKey = "__fsDirectoryHandle";

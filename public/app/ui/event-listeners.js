@@ -65,7 +65,7 @@ function initEventListeners() {
         if (typeof ensure !== "function") return;
         ensure()
           .then(function () {
-            projectManagerBtn.removeEventListener("click", lazyHandler);
+            EventManager.remove(projectManagerBtn, "click");
             if (typeof registerEventListenersProjectManager === "function") {
               registerEventListenersProjectManager(ctx);
             }
@@ -77,7 +77,9 @@ function initEventListeners() {
             showNotification("error", "加载失败", "项目管理器模块加载失败");
           });
       };
-      projectManagerBtn.addEventListener("click", lazyHandler);
+      EventManager.add(projectManagerBtn, "click", lazyHandler, {
+        tag: "ui", scope: "project", label: "projectManagerBtn:lazyLoad"
+      });
     }
   }
 }

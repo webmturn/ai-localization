@@ -345,16 +345,19 @@ function updateTranslationLists() {
       return;
     }
 
-    // 构建 id -> index 映射（避免依赖 indexOf(item) 的引用相等）
-    const idToIndex = Object.create(null);
-    for (let i = 0; i < AppState.project.translationItems.length; i++) {
-      const item = AppState.project.translationItems[i];
-      if (!item) continue;
-      const id = item.id;
-      if (id === undefined || id === null) continue;
-      idToIndex[String(id)] = i;
+    // 构建 id -> index 映射（仅在数据源变化时重建，避免每次渲染都 O(n)）
+    if (AppState.translations._idToIndexSource !== AppState.project.translationItems) {
+      const idToIndex = Object.create(null);
+      for (let i = 0; i < AppState.project.translationItems.length; i++) {
+        const item = AppState.project.translationItems[i];
+        if (!item) continue;
+        const id = item.id;
+        if (id === undefined || id === null) continue;
+        idToIndex[String(id)] = i;
+      }
+      AppState.translations.idToIndex = idToIndex;
+      AppState.translations._idToIndexSource = AppState.project.translationItems;
     }
-    AppState.translations.idToIndex = idToIndex;
 
     // 计算分页（使用 AppState）
     const itemsPerPage = AppState.translations.itemsPerPage;
@@ -384,68 +387,72 @@ function updateTranslationLists() {
       endIndex
     );
 
-    // 使用 DocumentFragment 提高性能
-    const sourceFragment = document.createDocumentFragment();
-    const targetFragment = document.createDocumentFragment();
-    const mobileFragment = document.createDocumentFragment();
+    // 仅为当前可见视图创建 DOM，跳过不可见视图（减少 ~50% DOM 操作）
+    const sourceFragment = isMobile ? null : document.createDocumentFragment();
+    const targetFragment = isMobile ? null : document.createDocumentFragment();
+    const mobileFragment = isMobile ? document.createDocumentFragment() : null;
 
     if (itemsToShow.length === 0) {
-      sourceFragment.appendChild(
-        createEmptyStateElement("没有找到匹配的翻译项")
-      );
-      targetFragment.appendChild(
-        createEmptyStateElement("没有找到匹配的翻译项")
-      );
-      mobileFragment.appendChild(
-        createEmptyStateElement("没有找到匹配的翻译项")
-      );
+      const emptyEl = createEmptyStateElement("没有找到匹配的翻译项");
+      if (isMobile) {
+        mobileFragment.appendChild(emptyEl);
+      } else {
+        sourceFragment.appendChild(emptyEl);
+        targetFragment.appendChild(
+          createEmptyStateElement("没有找到匹配的翻译项")
+        );
+      }
     } else {
+      const idToIndex = AppState.translations.idToIndex;
+      const allItems = AppState.project.translationItems;
       itemsToShow.forEach((item) => {
         if (!item) return;
 
         const originalIndex =
           item.id !== undefined && item.id !== null
-            ? AppState.translations.idToIndex[String(item.id)] ??
-              AppState.project.translationItems.indexOf(item)
-            : AppState.project.translationItems.indexOf(item);
+            ? idToIndex[String(item.id)] ?? allItems.indexOf(item)
+            : allItems.indexOf(item);
         const isPrimarySelected =
           originalIndex === AppState.translations.selected;
 
-        sourceFragment.appendChild(
-          createTranslationItemElement(
-            item,
-            originalIndex,
-            isPrimarySelected,
-            true
-          )
-        );
-        targetFragment.appendChild(
-          createTranslationItemElement(
-            item,
-            originalIndex,
-            isPrimarySelected,
-            false
-          )
-        );
-        mobileFragment.appendChild(
-          createMobileCombinedTranslationItemElement(
-            item,
-            originalIndex,
-            isPrimarySelected
-          )
-        );
+        if (isMobile) {
+          mobileFragment.appendChild(
+            createMobileCombinedTranslationItemElement(
+              item,
+              originalIndex,
+              isPrimarySelected
+            )
+          );
+        } else {
+          sourceFragment.appendChild(
+            createTranslationItemElement(
+              item,
+              originalIndex,
+              isPrimarySelected,
+              true
+            )
+          );
+          targetFragment.appendChild(
+            createTranslationItemElement(
+              item,
+              originalIndex,
+              isPrimarySelected,
+              false
+            )
+          );
+        }
       });
     }
 
-    // 一次性更新 DOM（清空后添加）
+    // 一次性更新 DOM（仅更新可见视图）
     __devLog("DOM更新开始");
-    if (sourceList) {
+    if (!isMobile && sourceList) {
       sourceList.replaceChildren(sourceFragment);
     }
-    if (targetList) {
+    if (!isMobile && targetList) {
       targetList.replaceChildren(targetFragment);
     }
-    if (mobileCombinedList) {
+    if (isMobile && mobileCombinedList) {
       mobileCombinedList.replaceChildren(mobileFragment);
     }
 

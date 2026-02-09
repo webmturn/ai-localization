@@ -63,12 +63,14 @@ function updateSelectionStyles() {
   let scrollTargetEl = null;
 
   if (!isMobile) {
-    const sourceItems = document.querySelectorAll(
-      "#sourceList .responsive-translation-item"
-    );
-    const targetItems = document.querySelectorAll(
-      "#targetList .responsive-translation-item"
-    );
+    const sourceListEl = DOMCache.get("sourceList");
+    const targetListEl = DOMCache.get("targetList");
+    const sourceItems = sourceListEl
+      ? sourceListEl.querySelectorAll(".responsive-translation-item")
+      : [];
+    const targetItems = targetListEl
+      ? targetListEl.querySelectorAll(".responsive-translation-item")
+      : [];
 
     sourceItems.forEach((item) => {
       const idx = parseInt(item.dataset.index);
@@ -132,9 +134,10 @@ function updateSelectionStyles() {
       }
     });
   } else {
-    const mobileItems = document.querySelectorAll(
-      "#mobileCombinedList .responsive-translation-item"
-    );
+    const mobileListEl = DOMCache.get("mobileCombinedList");
+    const mobileItems = mobileListEl
+      ? mobileListEl.querySelectorAll(".responsive-translation-item")
+      : [];
     mobileItems.forEach((item) => {
       const idx = parseInt(item.dataset.index);
       const active = selectedSet.has(idx);
@@ -330,41 +333,29 @@ function updateStatusBadge(index, newStatus) {
   const mobileCombinedList = DOMCache.get("mobileCombinedList");
   if (!sourceList && !mobileCombinedList) return;
 
-  if (sourceList) {
-    const sourceItems = sourceList.querySelectorAll(
-      ".responsive-translation-item"
-    );
-    sourceItems.forEach((item) => {
-      if (parseInt(item.dataset.index) === index) {
-        const badge = item.querySelector("span.text-xs");
-        if (badge) {
-          // 更新文本
-          badge.textContent = getStatusText(newStatus);
+  const statusText = getStatusText(newStatus);
+  const statusClassName = `text-xs font-semibold ${getStatusClass(newStatus)} px-2 py-0.5 rounded-full whitespace-nowrap`;
 
-          // 更新颜色类
-          badge.className = `text-xs font-semibold ${getStatusClass(
-            newStatus
-          )} px-2 py-0.5 rounded-full whitespace-nowrap`;
-        }
+  if (sourceList) {
+    const item = sourceList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
+    if (item) {
+      const badge = item.querySelector("span.text-xs");
+      if (badge) {
+        badge.textContent = statusText;
+        badge.className = statusClassName;
       }
-    });
+    }
   }
 
   if (mobileCombinedList) {
-    const mobileItems = mobileCombinedList.querySelectorAll(
-      ".responsive-translation-item"
-    );
-    mobileItems.forEach((item) => {
-      if (parseInt(item.dataset.index) === index) {
-        const badge = item.querySelector("span.text-xs");
-        if (badge) {
-          badge.textContent = getStatusText(newStatus);
-          badge.className = `text-xs font-semibold ${getStatusClass(
-            newStatus
-          )} px-2 py-0.5 rounded-full whitespace-nowrap`;
-        }
+    const item = mobileCombinedList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
+    if (item) {
+      const badge = item.querySelector("span.text-xs");
+      if (badge) {
+        badge.textContent = statusText;
+        badge.className = statusClassName;
       }
-    });
+    }
   }
 }
 

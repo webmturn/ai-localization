@@ -38,8 +38,10 @@ function __syncQualityRuleCardsImpl() {
 }
 
 function __resetIssueFilterImpl() {
-  DOMCache.get("issueFilterSeverity").value = "all";
-  DOMCache.get("issueFilterType").value = "all";
+  const severity = DOMCache.get("issueFilterSeverity");
+  const type = DOMCache.get("issueFilterType");
+  if (severity) severity.value = "all";
+  if (type) type.value = "all";
   filterIssues();
 }
 
@@ -51,25 +53,22 @@ function __updateQualityReportUIImpl() {
     return;
   }
 
-  DOMCache.get(
-    "overallScore"
-  ).textContent = `${results.overallScore}/100`;
-  DOMCache.get(
-    "overallScoreBar"
-  ).style.width = `${results.overallScore}%`;
+  const elOverallScore = DOMCache.get("overallScore");
+  const elOverallScoreBar = DOMCache.get("overallScoreBar");
+  if (elOverallScore) elOverallScore.textContent = `${results.overallScore}/100`;
+  if (elOverallScoreBar) elOverallScoreBar.style.width = `${results.overallScore}%`;
 
   const translatedPercent =
     results.totalCount > 0
       ? Math.round((results.translatedCount / results.totalCount) * 100)
       : 0;
-  DOMCache.get(
-    "translatedCount"
-  ).textContent = `${results.translatedCount}/${results.totalCount}`;
-  DOMCache.get(
-    "translatedBar"
-  ).style.width = `${translatedPercent}%`;
+  const elTranslatedCount = DOMCache.get("translatedCount");
+  const elTranslatedBar = DOMCache.get("translatedBar");
+  if (elTranslatedCount) elTranslatedCount.textContent = `${results.translatedCount}/${results.totalCount}`;
+  if (elTranslatedBar) elTranslatedBar.style.width = `${translatedPercent}%`;
 
-  DOMCache.get("issuesCount").textContent = results.issues.length;
+  const elIssuesCount = DOMCache.get("issuesCount");
+  if (elIssuesCount) elIssuesCount.textContent = results.issues.length;
 
   const highIssues = results.issues.filter((i) => i.severity === "high").length;
   const mediumIssues = results.issues.filter(
@@ -77,19 +76,23 @@ function __updateQualityReportUIImpl() {
   ).length;
   const lowIssues = results.issues.filter((i) => i.severity === "low").length;
 
-  DOMCache.get("highIssues").textContent = highIssues;
-  DOMCache.get("mediumIssues").textContent = mediumIssues;
-  DOMCache.get("lowIssues").textContent = lowIssues;
+  const elHigh = DOMCache.get("highIssues");
+  const elMedium = DOMCache.get("mediumIssues");
+  const elLow = DOMCache.get("lowIssues");
+  if (elHigh) elHigh.textContent = highIssues;
+  if (elMedium) elMedium.textContent = mediumIssues;
+  if (elLow) elLow.textContent = lowIssues;
 
   const termConsistency = results.termMatches > 0 ? 100 : 0;
-  DOMCache.get(
-    "termConsistency"
-  ).textContent = `${termConsistency}%`;
-  DOMCache.get("termMatches").textContent = results.termMatches;
+  const elTermConsistency = DOMCache.get("termConsistency");
+  const elTermMatches = DOMCache.get("termMatches");
+  if (elTermConsistency) elTermConsistency.textContent = `${termConsistency}%`;
+  if (elTermMatches) elTermMatches.textContent = results.termMatches;
 
   if (results.lastCheckTime) {
     const timeStr = results.lastCheckTime.toLocaleString("zh-CN");
-    DOMCache.get("lastCheckTime").textContent = timeStr;
+    const elLastCheck = DOMCache.get("lastCheckTime");
+    if (elLastCheck) elLastCheck.textContent = timeStr;
   }
 
   __syncQualityRuleCardsImpl();

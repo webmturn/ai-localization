@@ -230,13 +230,13 @@
                             <i class="fa fa-exchange"></i>
                             <span>查找替换</span>
                         </button>
-                        <button id="clearSelectedTargetBtn" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600" title="清除选中项译文" aria-label="清除选中项译文">
+                        <button id="clearSelectedTargetBtn" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600" title="清除选中项译文" aria-label="清除选中项译文">
                             <i class="fa fa-eraser"></i>
                             <span>清除译文</span>
                         </button>
-                        <button id="clearAllSampleData" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600" title="清除所有示例数据" aria-label="清除所有示例数据">
+                        <button id="clearAllSampleData" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600" title="清除所有示例数据" aria-label="清除所有示例数据">
                             <i class="fa fa-trash-o"></i>
-                            <span class="text-red-600 dark:text-gray-50">清除示例</span>
+                            <span class="text-red-600 dark:text-red-400">清除示例</span>
                         </button>
                     </div>
                 </div>
@@ -361,7 +361,7 @@
             </div>
 
             <!-- 翻译设置面板 -->
-            <div class="flex-1 overflow-y-auto scrollbar-thin p-4">
+            <div id="settingsPanel" class="flex-1 overflow-y-auto scrollbar-thin p-4">
                 <div class="mb-6">
                     <h3 class="text-sm font-medium text-gray-700 dark:text-gray-100 mb-3">翻译引擎设置</h3>
                     <div class="space-y-3">
@@ -393,7 +393,7 @@
             </div>
 
             <!-- 底部操作按钮 -->
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div id="exportBtnContainer" class="p-4 border-t border-gray-200 dark:border-gray-700">
                 <button id="exportBtn" class="w-full py-2 bg-primary text-white dark:text-white rounded-md hover:bg-primary/90 transition-colors flex items-center justify-center" title="导出翻译文件">
                     <i class="fa fa-download mr-2"></i>导出翻译
                 </button>
@@ -892,7 +892,7 @@
 
     <!-- 质量检查报告模态框 -->
     <div id="qualityReportModal" role="dialog" aria-modal="true" aria-labelledby="qualityReportModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col fade-in">
+        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col fade-in">
             <!-- 头部（固定） -->
             <div class="flex items-center justify-between p-6 pb-4">
                 <h3 id="qualityReportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译质量报告</h3>
@@ -1168,7 +1168,7 @@
             <!-- 主体内容：移动端上下分栏 / 桌面端左右分栏 -->
             <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
                 <!-- 导航栏：移动端横向滚动 / 桌面端竖向列表 -->
-                <div class="sm:w-48 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
+                <div class="sm:w-52 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
                     <nav class="flex sm:flex-col sm:p-2 sm:space-y-1 p-1 gap-1 sm:gap-0">
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated active whitespace-nowrap" data-tab="appearance">
                             <i class="fa fa-paint-brush sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">外观设置</span><span class="sm:hidden ml-1">外观</span>

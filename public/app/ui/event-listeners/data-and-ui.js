@@ -527,11 +527,21 @@ function registerEventListenersDataAndUi(ctx) {
         sidebarTabs.forEach((t) => t.classList.remove("active"));
         tab.classList.add("active");
         
-        // 根据标签页打开相应的模态框或面板
+        // 切换设置面板和导出按钮的显示状态
+        const settingsPanel = DOMCache.get("settingsPanel");
+        const exportBtnContainer = DOMCache.get("exportBtnContainer");
+        if (tabName === "settings") {
+          if (settingsPanel) settingsPanel.classList.remove("hidden");
+          if (exportBtnContainer) exportBtnContainer.classList.remove("hidden");
+        } else {
+          if (settingsPanel) settingsPanel.classList.add("hidden");
+          if (exportBtnContainer) exportBtnContainer.classList.add("hidden");
+        }
+        
+        // 根据标签页打开相应的模态框
         if (tabName === "terminology") {
           const terminologyModal = DOMCache.get("terminologyModal");
           if (terminologyModal) terminologyModal.classList.remove("hidden");
-          // 刷新术语库列表
           if (typeof window.updateTerminologyList === "function") {
             window.updateTerminologyList();
           }
@@ -543,7 +553,6 @@ function registerEventListenersDataAndUi(ctx) {
           if (qualityReportModal) qualityReportModal.classList.remove("hidden");
           if (typeof window.syncQualityRuleCards === "function") window.syncQualityRuleCards();
         }
-        // settings 标签页不需要打开模态框，显示当前面板内容
       },
       { tag: "ui", scope: "tabs", label: "sidebarTab:click" }
     );

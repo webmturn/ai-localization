@@ -16,12 +16,18 @@ TranslationService.prototype.translateWithDeepSeek = async function (
     : 5;
 
   if (!apiKey) {
-    throw new Error("DeepSeek API密钥未配置");
+    const err = new Error("DeepSeek API密钥未配置");
+    err.code = "API_KEY_MISSING";
+    err.provider = "deepseek";
+    throw err;
   }
 
   // 验证API密钥
   if (!securityUtils.validateApiKey(apiKey, "deepseek")) {
-    throw new Error("DeepSeek API密钥格式不正确");
+    const err = new Error("DeepSeek API密钥格式不正确");
+    err.code = "API_KEY_INVALID";
+    err.provider = "deepseek";
+    throw err;
   }
 
   const langNames = {

@@ -64,7 +64,6 @@ class NetworkUtils {
     
     // 清理过期缓存（限制缓存大小）
     if (this.requestCache.size > 100) {
-      const now = Date.now();
       for (const [k, v] of this.requestCache) {
         if (!v || !v.expiresAt || now > v.expiresAt) {
           this.requestCache.delete(k);

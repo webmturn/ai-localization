@@ -247,12 +247,12 @@ class NetworkUtilsV2 extends NetworkUtils {
       cooldownPeriod: 60000 // 1分钟
     };
     
-    // 如果是可恢复的错误，增加失败计数
-    if (error.recoverable && [
+    const retryableCodes = [
       ERROR_CODES.NETWORK_ERROR,
       ERROR_CODES.TIMEOUT,
       ERROR_CODES.API_SERVER_ERROR
-    ].includes(error.code)) {
+    ];
+    if (error.code && retryableCodes.includes(error.code)) {
       breaker.failureCount++;
       breaker.lastFailure = now;
       
@@ -291,6 +291,8 @@ class NetworkUtilsV2 extends NetworkUtils {
  * @param {Object} retryOptions - 重试选项
  * @returns {Promise<Response>} 响应对象
  */
+const __sharedNetworkUtilsV2 = new NetworkUtilsV2();
+
 async function fetchWithRetry(url, options = {}, retryOptions = {}) {
   const {
     maxRetries = 3,
@@ -299,7 +301,7 @@ async function fetchWithRetry(url, options = {}, retryOptions = {}) {
     timeout = 30000
   } = retryOptions;
   
-  const utils = new NetworkUtilsV2();
+  const utils = __sharedNetworkUtilsV2;
   
   let lastError = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {

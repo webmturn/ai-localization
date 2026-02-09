@@ -73,7 +73,8 @@ function __syncTranslationHeightsImpl(afterSync) {
         if (r.tc.style) r.tc.style.minHeight = px;
       }
 
-      if (after) after();
+      // 将滚动回调推迟到下一帧，避免在高度写操作后立即读取布局属性导致强制重排
+      if (after) requestAnimationFrame(after);
     });
   } catch (error) {
     (loggers.app || console).error("同步高度时出错:", error);

@@ -90,12 +90,12 @@ function showNotification(type, title, message, options) {
   }
 
   // 设置图标
-  icon.className = `flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full ${bgClass} ${textClass} mr-3`;
-  iconInner.className = `fa ${iconClass}`;
+  if (icon) icon.className = `flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full ${bgClass} ${textClass} mr-3`;
+  if (iconInner) iconInner.className = `fa ${iconClass}`;
 
   // 设置标题和消息
-  notificationTitle.textContent = title;
-  notificationMessage.textContent = message;
+  if (notificationTitle) notificationTitle.textContent = title;
+  if (notificationMessage) notificationMessage.textContent = message;
 
   // 设置操作按钮
   if (actionsEl && actionBtn) {
@@ -202,8 +202,10 @@ function closeNotification() {
   const actionsEl = DOMCache.get("notificationActions");
   if (actionsEl) actionsEl.classList.add('hidden');
 
-  notification.classList.remove("translate-x-0", "opacity-100");
-  notification.classList.add("-translate-x-full", "opacity-0");
+  if (notification) {
+    notification.classList.remove("translate-x-0", "opacity-100");
+    notification.classList.add("-translate-x-full", "opacity-0");
+  }
 
   // 移除body类
   document.body.classList.remove("has-notification");

@@ -3,11 +3,14 @@
 
 // 显示翻译进度模态框
 function showTranslationProgress() {
-  DOMCache.get("translationProgressModal")
-    .classList.remove("hidden");
-  DOMCache.get("progressBar").style.width = "0%";
-  DOMCache.get("progressPercentage").textContent = "0%";
-  DOMCache.get("progressStatus").textContent = "准备翻译...";
+  const modal = DOMCache.get("translationProgressModal");
+  if (modal) modal.classList.remove("hidden");
+  const bar = DOMCache.get("progressBar");
+  if (bar) bar.style.width = "0%";
+  const pct = DOMCache.get("progressPercentage");
+  if (pct) pct.textContent = "0%";
+  const statusEl = DOMCache.get("progressStatus");
+  if (statusEl) statusEl.textContent = "准备翻译...";
   const log = DOMCache.get("progressLog");
   if (log) log.replaceChildren();
   updateTranslationControlState();
@@ -15,7 +18,8 @@ function showTranslationProgress() {
 
 // 隐藏翻译进度模态框
 function hideTranslationProgress() {
-  DOMCache.get("translationProgressModal").classList.add("hidden");
+  const modal = DOMCache.get("translationProgressModal");
+  if (modal) modal.classList.add("hidden");
 }
 
 function updateTranslationControlState() {
@@ -50,9 +54,12 @@ function updateProgress(current, total, status) {
     status: status || "",
   };
   const percentage = safeTotal > 0 ? Math.floor((safeCurrent / safeTotal) * 100) : 0;
-  DOMCache.get("progressBar").style.width = `${percentage}%`;
-  DOMCache.get("progressPercentage").textContent = `${percentage}%`;
-  DOMCache.get("progressStatus").textContent = status;
+  const bar = DOMCache.get("progressBar");
+  if (bar) bar.style.width = `${percentage}%`;
+  const pctEl = DOMCache.get("progressPercentage");
+  if (pctEl) pctEl.textContent = `${percentage}%`;
+  const statusEl = DOMCache.get("progressStatus");
+  if (statusEl) statusEl.textContent = status;
   updateTranslationControlState();
 }
 

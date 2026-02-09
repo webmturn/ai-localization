@@ -14,7 +14,7 @@ class ServiceStartupManager {
     this.retryAttempts = new Map();
     this.maxRetries = 3;
     this.startupTimeout = 10000; // 10秒超时
-    this.eventListeners = new Set();
+    this.eventListeners = new Map();
   }
 
   /**

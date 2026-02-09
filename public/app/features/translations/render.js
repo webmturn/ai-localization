@@ -763,7 +763,7 @@ function navigateToSearchResult(index) {
 
     // 隐藏搜索结果面板
     const searchResultsPanel = DOMCache.get("searchResultsPanel");
-    searchResultsPanel.classList.add("hidden");
+    if (searchResultsPanel) searchResultsPanel.classList.add("hidden");
 
     // 选择对应的翻译项
     selectTranslationItem(index);

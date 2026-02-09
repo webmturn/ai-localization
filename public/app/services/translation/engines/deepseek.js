@@ -116,7 +116,7 @@ TranslationService.prototype.translateWithDeepSeek = async function (
               content: cleanText,
             },
           ],
-          temperature: settings.temperature || 0.1,
+          temperature: settings.temperature != null ? Number(settings.temperature) : 0.1,
         }),
       },
       {
@@ -146,7 +146,11 @@ TranslationService.prototype.translateWithDeepSeek = async function (
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    const text = data?.choices?.[0]?.message?.content;
+    if (!text && text !== '') {
+      throw new Error('DeepSeek API 返回数据结构异常：缺少 choices[0].message.content');
+    }
+    return text.trim();
   } catch (error) {
     (loggers.translation || console).error("DeepSeek翻译失败:", error);
     throw error;
@@ -587,7 +591,7 @@ TranslationService.prototype.translateBatchWithDeepSeek = async function (
           body: JSON.stringify({
             model,
             messages,
-            temperature: settings.temperature || 0.1,
+            temperature: settings.temperature != null ? Number(settings.temperature) : 0.1,
             response_format: { type: "json_object" },
           }),
         },

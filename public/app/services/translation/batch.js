@@ -402,11 +402,13 @@ TranslationService.prototype.translateBatch = async function (
         item: item,
       });
 
-      const logText =
-        item.sourceText.length > 30
-          ? item.sourceText.substring(0, 30) + "..."
-          : item.sourceText;
-      addProgressLog(`已翻译: ${logText}`);
+      if (typeof addProgressLog === "function") {
+        const logText =
+          item.sourceText.length > 30
+            ? item.sourceText.substring(0, 30) + "..."
+            : item.sourceText;
+        addProgressLog(`已翻译: ${logText}`);
+      }
     } catch (error) {
       item.status = "pending";
       errors.push({
@@ -420,11 +422,13 @@ TranslationService.prototype.translateBatch = async function (
         item: item,
       });
 
-      const logText =
-        item.sourceText.length > 30
-          ? item.sourceText.substring(0, 30) + "..."
-          : item.sourceText;
-      addProgressLog(`失败: ${logText} - ${(error && error.message) || error}`);
+      if (typeof addProgressLog === "function") {
+        const logText =
+          item.sourceText.length > 30
+            ? item.sourceText.substring(0, 30) + "..."
+            : item.sourceText;
+        addProgressLog(`失败: ${logText} - ${(error && error.message) || error}`);
+      }
     } finally {
       completed++;
       if (onProgress) {

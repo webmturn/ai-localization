@@ -147,7 +147,11 @@ TranslationService.prototype.translateWithOpenAI = async function (
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    const text = data?.choices?.[0]?.message?.content;
+    if (!text && text !== '') {
+      throw new Error('OpenAI API 返回数据结构异常：缺少 choices[0].message.content');
+    }
+    return text.trim();
   } catch (error) {
     (loggers.translation || console).error("OpenAI翻译失败:", error);
     throw error;

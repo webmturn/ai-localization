@@ -74,7 +74,11 @@ TranslationService.prototype.translateWithGoogle = async function (
     }
 
     const data = await response.json();
-    return data.data.translations[0].translatedText;
+    const translated = data?.data?.translations?.[0]?.translatedText;
+    if (translated === undefined || translated === null) {
+      throw new Error('Google Translate API 返回数据结构异常：缺少 data.translations[0].translatedText');
+    }
+    return translated;
   } catch (error) {
     (loggers.translation || console).error("Google翻译失败:", error);
     throw error;

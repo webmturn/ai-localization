@@ -135,7 +135,7 @@
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto scrollbar-thin">
-                <div class="p-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="relative p-2 border-b border-gray-200 dark:border-gray-700">
                     <div class="relative">
                         <input type="text" id="searchInput" placeholder="搜索文件..." class="w-full pl-8 pr-2 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索文件" aria-label="搜索文件">
                         <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs sm:text-sm"></i>
@@ -279,7 +279,7 @@
                     </div>
                 </div>
                 <!-- 可滚动区域：仅此处滚动，原文/译文同行对齐（scrollIntoView 会使用此容器） -->
-                <div id="translationScrollWrapper" class="translation-scroll-wrapper flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+                <div id="translationScrollWrapper" class="translation-scroll-wrapper flex-1 min-h-0 overflow-y-auto scrollbar-thin">
                     <div class="translation-columns flex flex-1 md:flex-none overflow-visible min-h-0">
                         <!-- 原文列 -->
                         <div class="translation-column flex flex-col min-h-0">

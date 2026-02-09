@@ -117,53 +117,7 @@ function registerEventListenersDataAndUi(ctx) {
       label: "closeNotificationBtn:click",
     });
 
-  // 标签页切换（仅右侧面板的 .sidebar-tab，避免影响“浏览文件”“导出翻译”等按钮）
-  const tabs = DOMCache.queryAll(".sidebar-tab");
-  tabs.forEach((tab) => {
-    EventManager.add(
-      tab,
-      "click",
-      () => {
-        // 移除所有标签页的活动状态
-        tabs.forEach((t) => {
-          t.classList.remove("border-b-2", "border-primary", "text-primary");
-          t.classList.add(
-            "text-gray-500",
-            "hover:text-gray-700",
-            "dark:text-gray-400",
-            "dark:hover:text-gray-200"
-          );
-        });
-
-        // 添加当前标签页的活动状态
-        tab.classList.add("border-b-2", "border-primary", "text-primary");
-        tab.classList.remove(
-          "text-gray-500",
-          "hover:text-gray-700",
-          "dark:text-gray-400",
-          "dark:hover:text-gray-200"
-        );
-
-        // 根据标签页切换内容
-        if (tab.textContent.trim() === "术语库") {
-          const terminologyModal = DOMCache.get("terminologyModal");
-          if (terminologyModal) terminologyModal.classList.remove("hidden");
-          // 刷新术语库列表
-          if (typeof window.updateTerminologyList === "function") {
-            window.updateTerminologyList();
-          }
-          if (typeof window.updateTerminologyPagination === "function") {
-            window.updateTerminologyPagination();
-          }
-        } else if (tab.textContent.trim() === "质量检查") {
-          const qualityReportModal = DOMCache.get("qualityReportModal");
-          if (qualityReportModal) qualityReportModal.classList.remove("hidden");
-          if (typeof window.syncQualityRuleCards === "function") window.syncQualityRuleCards();
-        }
-      },
-      { tag: "ui", scope: "tabs", label: "asideTab:click" }
-    );
-  });
+  // 标签页切换已在下方"右侧面板标签页增强"统一处理，此处不再重复绑定
 
   // 移动端侧边栏切换
   const toggleLeftSidebar = DOMCache.get("toggleLeftSidebar");

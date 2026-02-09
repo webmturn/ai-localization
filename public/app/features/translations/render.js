@@ -464,47 +464,7 @@ function updateTranslationLists() {
         `.responsive-translation-item[data-index="${AppState.translations.selected}"]`
       );
       if (selectedEl) {
-        const container =
-          DOMCache.get("translationScrollWrapper") ||
-          selectedEl.closest(".translation-scroll-wrapper");
-        if (!container) {
-          selectedEl.scrollIntoView({ block: "nearest" });
-        } else {
-          const containerHeight = container.clientHeight || 0;
-          if (!containerHeight) {
-            selectedEl.scrollIntoView({ block: "nearest" });
-          } else {
-            let offsetTop = 0;
-            let node = selectedEl;
-            while (node && node !== container) {
-              offsetTop += node.offsetTop || 0;
-              node = node.offsetParent;
-            }
-            const itemHeight = selectedEl.offsetHeight || 0;
-            const current = container.scrollTop;
-            const maxScroll = Math.max(
-              0,
-              container.scrollHeight - containerHeight
-            );
-            const margin = Math.min(80, containerHeight * 0.15);
-            const itemTop = offsetTop;
-            const itemBottom = offsetTop + itemHeight;
-            const visibleTop = current + margin;
-            const visibleBottom = current + containerHeight - margin;
-            let target = current;
-            if (itemBottom > visibleBottom) {
-              target = itemBottom - containerHeight + margin;
-            } else if (itemTop < visibleTop) {
-              target = itemTop - margin;
-            } else {
-              return;
-            }
-            target = Math.max(0, Math.min(maxScroll, target));
-            if (Math.abs(target - current) >= 2) {
-              container.scrollTo({ top: target, behavior: "smooth" });
-            }
-          }
-        }
+        scrollToComfortZone(selectedEl, { behavior: "smooth" });
       }
     }
 
@@ -848,55 +808,6 @@ function handleSearchEnter() {
 // 滚动到指定的翻译项
 async function scrollToItem(index) {
   try {
-    const smartScrollToComfortZone = (el, behavior = "smooth") => {
-      if (!el) return;
-      const container =
-        DOMCache.get("translationScrollWrapper") ||
-        el.closest(".translation-scroll-wrapper");
-      if (!container) {
-        el.scrollIntoView({ behavior, block: "nearest" });
-        return;
-      }
-
-      const containerHeight = container.clientHeight || 0;
-      if (!containerHeight) {
-        el.scrollIntoView({ behavior, block: "nearest" });
-        return;
-      }
-
-      let offsetTop = 0;
-      let node = el;
-      while (node && node !== container) {
-        offsetTop += node.offsetTop || 0;
-        node = node.offsetParent;
-      }
-
-      const itemHeight = el.offsetHeight || 0;
-      const current = container.scrollTop;
-      const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-      const margin = Math.min(80, containerHeight * 0.15);
-
-      const itemTop = offsetTop;
-      const itemBottom = offsetTop + itemHeight;
-
-      const visibleTop = current + margin;
-      const visibleBottom = current + containerHeight - margin;
-
-      let target = current;
-
-      if (itemBottom > visibleBottom) {
-        target = itemBottom - containerHeight + margin;
-      } else if (itemTop < visibleTop) {
-        target = itemTop - margin;
-      } else {
-        return;
-      }
-
-      target = Math.max(0, Math.min(maxScroll, target));
-      if (Math.abs(target - current) < 2) return;
-
-      container.scrollTo({ top: target, behavior });
-    };
 
     const tryScroll = () => {
       // 移动端：滚动合并列表
@@ -912,7 +823,7 @@ async function scrollToItem(index) {
           `.responsive-translation-item[data-index="${index}"]`
         );
         if (mobileItem) {
-          smartScrollToComfortZone(mobileItem, "smooth");
+          scrollToComfortZone(mobileItem, { behavior: "smooth" });
           return true;
         }
 
@@ -931,10 +842,10 @@ async function scrollToItem(index) {
       const targetItem = targetList.querySelector(`[data-index="${index}"]`);
 
       if (sourceItem) {
-        smartScrollToComfortZone(sourceItem, "smooth");
+        scrollToComfortZone(sourceItem, { behavior: "smooth" });
       }
       if (targetItem) {
-        smartScrollToComfortZone(targetItem, "smooth");
+        scrollToComfortZone(targetItem, { behavior: "smooth" });
       }
 
       return !!(sourceItem || targetItem);

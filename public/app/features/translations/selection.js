@@ -4,57 +4,6 @@ function updateSelectionStyles() {
   const shouldScroll = options.shouldScroll === true;
   const shouldFocusTextarea = options.shouldFocusTextarea !== false;
 
-  // 更简单、稳定的滚动算法：尽量居中 + 夹紧到顶部/底部，保证整行可见
-  const smartScrollToComfortZone = (el, behavior = "smooth") => {
-    if (!el) return;
-
-    const container =
-      DOMCache.get("translationScrollWrapper") ||
-      el.closest(".translation-scroll-wrapper");
-    if (!container) {
-      el.scrollIntoView({ behavior, block: "center" });
-      return;
-    }
-
-    const containerHeight = container.clientHeight || 0;
-    if (!containerHeight) {
-      el.scrollIntoView({ behavior, block: "center" });
-      return;
-    }
-
-    // 计算 el 相对容器顶部的偏移（使用 offsetTop 链，避免多重 transform 带来的误差）
-    let offset = 0;
-    let node = el;
-    let foundContainer = false;
-    while (node && node !== container) {
-      offset += node.offsetTop || 0;
-      node = node.offsetParent;
-      if (node === container) foundContainer = true;
-    }
-    if (!foundContainer) {
-      el.scrollIntoView({ behavior, block: "center" });
-      return;
-    }
-
-    const itemHeight = el.offsetHeight || 0;
-    const current = container.scrollTop;
-    const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-
-    // 如果当前整行已经完全可见，就不滚动，避免抖动
-    const visibleTop = current;
-    const visibleBottom = current + containerHeight;
-    if (offset >= visibleTop && offset + itemHeight <= visibleBottom) return;
-
-    // 理想位置：尽量让条目靠中间
-    let target = offset - (containerHeight - itemHeight) / 2;
-
-    // 夹紧到可滚动范围，保证末尾几行不会被压在最下面
-    target = Math.max(0, Math.min(maxScroll, target));
-
-    if (Math.abs(target - current) < 2) return;
-    container.scrollTo({ top: target, behavior });
-  };
-
   const isMobile = isMobileViewport();
   const primaryIndex = AppState.translations.selected;
   const selectedSet = new Set(AppState.translations.multiSelected || []);
@@ -167,7 +116,7 @@ function updateSelectionStyles() {
   if (shouldScroll && scrollTargetEl) {
     syncTranslationHeights(() => {
       if (!scrollTargetEl.isConnected) return;
-      smartScrollToComfortZone(scrollTargetEl, "smooth");
+      scrollToComfortZoneDebounced(scrollTargetEl, { behavior: "smooth" });
     });
     return;
   }

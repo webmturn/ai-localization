@@ -427,62 +427,13 @@ async function __focusTranslationItemImpl(itemId) {
   const selectorByIndex = `.responsive-translation-item[data-index="${index}"]`;
 
   const isMobile = isMobileViewport();
-  const smartScrollToComfortZone = (el, behavior = "smooth") => {
-    if (!el) return;
-    const container =
-      DOMCache.get("translationScrollWrapper") ||
-      el.closest(".translation-scroll-wrapper");
-    if (!container) {
-      el.scrollIntoView({ behavior, block: "nearest" });
-      return;
-    }
-
-    const containerHeight = container.clientHeight || 0;
-    if (!containerHeight) {
-      el.scrollIntoView({ behavior, block: "nearest" });
-      return;
-    }
-
-    let offsetTop = 0;
-    let node = el;
-    while (node && node !== container) {
-      offsetTop += node.offsetTop || 0;
-      node = node.offsetParent;
-    }
-
-    const itemHeight = el.offsetHeight || 0;
-    const current = container.scrollTop;
-    const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-    const margin = Math.min(80, containerHeight * 0.15);
-
-    const itemTop = offsetTop;
-    const itemBottom = offsetTop + itemHeight;
-
-    const visibleTop = current + margin;
-    const visibleBottom = current + containerHeight - margin;
-
-    let target = current;
-
-    if (itemBottom > visibleBottom) {
-      target = itemBottom - containerHeight + margin;
-    } else if (itemTop < visibleTop) {
-      target = itemTop - margin;
-    } else {
-      return;
-    }
-
-    target = Math.max(0, Math.min(maxScroll, target));
-    if (Math.abs(target - current) < 2) return;
-
-    container.scrollTo({ top: target, behavior });
-  };
   if (isMobile) {
     const mobileCombinedList = DOMCache.get("mobileCombinedList");
     const mobileItem = mobileCombinedList
       ? mobileCombinedList.querySelector(selectorById || selectorByIndex)
       : null;
     if (mobileItem) {
-      smartScrollToComfortZone(mobileItem, "smooth");
+      scrollToComfortZone(mobileItem, { behavior: "smooth" });
       highlight(mobileItem);
       return;
     }
@@ -498,7 +449,7 @@ async function __focusTranslationItemImpl(itemId) {
     : null;
 
   if (sourceItem && targetItem) {
-    smartScrollToComfortZone(sourceItem, "smooth");
+    scrollToComfortZone(sourceItem, { behavior: "smooth" });
     highlight(sourceItem);
     highlight(targetItem);
     return;

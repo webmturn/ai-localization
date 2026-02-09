@@ -261,8 +261,8 @@
     if (!Number.isFinite(idx) || idx < 0) return;
     var isMobile = window.innerWidth < 768;
     var container = isMobile
-      ? document.getElementById("mobileCombinedList")
-      : document.getElementById("targetList");
+      ? DOMCache.get("mobileCombinedList")
+      : DOMCache.get("targetList");
     if (!container) return;
     var textarea = container.querySelector('textarea[data-index="' + idx + '"]');
     if (textarea) {
@@ -275,8 +275,8 @@
   function _navigateTextarea(currentIndex, direction) {
     var isMobile = window.innerWidth < 768;
     var container = isMobile
-      ? document.getElementById("mobileCombinedList")
-      : document.getElementById("targetList");
+      ? DOMCache.get("mobileCombinedList")
+      : DOMCache.get("targetList");
     if (!container) return;
     var textareas = Array.from(container.querySelectorAll("textarea[data-index]"));
     var currentPos = textareas.findIndex(function (ta) {

@@ -516,8 +516,8 @@ function registerAllServices() {
       });
     }
 
-    // 注册事件绑定管理器
-    if (!window.diContainer.has('eventBindingManager')) {
+    // 注册事件绑定管理器（已移至可选加载，仅在存在时注册）
+    if (!window.diContainer.has('eventBindingManager') && typeof window.eventBindingManager !== 'undefined') {
       window.diContainer.registerSingleton('eventBindingManager', () => window.eventBindingManager, {
         dependencies: ['eventManager'],
         tags: ['events', 'binding']

@@ -44,7 +44,7 @@
     // 核心服务
     "app/services/security-utils.js",
     "app/core/event-manager.js",
-    "app/core/event-binding-manager.js",              // 新增：事件绑定管理器
+    // event-binding-manager.js 已移至开发模式按需加载（未被业务代码引用，仅在DI注册中备用）
     "app/core/dom-optimization-manager.js",           // P1新增：DOM优化管理器
     "app/utils/dom-cache-integration.js",             // DOM缓存集成（被 service-startup-manager 引用）
     "app/core/architecture/architecture-integration-helpers.js",   // 架构集成助手（被 bootstrap 引用）

@@ -955,7 +955,7 @@ async function scrollToItem(index) {
 (function () {
   let lastIsMobile = window.innerWidth < 768;
   let resizeTimer = null;
-  window.addEventListener("resize", function () {
+  const handler = function () {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       const nowIsMobile = window.innerWidth < 768;
@@ -966,7 +966,16 @@ async function scrollToItem(index) {
         }
       }
     }, 200);
-  });
+  };
+  if (typeof EventManager !== "undefined") {
+    EventManager.add(window, "resize", handler, {
+      tag: "translation",
+      scope: "render",
+      label: "window:resize:mobileBreakpoint",
+    });
+  } else {
+    window.addEventListener("resize", handler);
+  }
 })();
 
 // 应用搜索过滤

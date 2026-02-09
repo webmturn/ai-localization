@@ -695,11 +695,15 @@ function registerCoreServices() {
     );
   }
   
-  // 注册事件绑定管理器
-  diContainer.registerFactory('eventBindingManager', () => window.eventBindingManager || window.EventBindingManager);
+  // 注册事件绑定管理器（已移至可选加载，仅在存在时注册）
+  if (typeof window.eventBindingManager !== 'undefined' || typeof window.EventBindingManager !== 'undefined') {
+    diContainer.registerFactory('eventBindingManager', () => window.eventBindingManager || window.EventBindingManager);
+  }
   
-  // 注册事件绑定便捷方法
-  diContainer.registerFactory('eventBindings', () => window.eventBindings);
+  // 注册事件绑定便捷方法（仅在存在时注册）
+  if (typeof window.eventBindings !== 'undefined') {
+    diContainer.registerFactory('eventBindings', () => window.eventBindings);
+  }
   
   // 注册P1新增的分层架构服务
   diContainer.registerFactory('translationBusinessLogic', () => window.translationBusinessLogic || null);

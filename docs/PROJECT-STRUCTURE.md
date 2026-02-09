@@ -1,7 +1,7 @@
 # 项目目录结构
 
 > 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-> 最后更新：2026-02-08
+> 最后更新：2026-02-09
 
 ## 📁 完整目录树
 
@@ -26,6 +26,8 @@ html/
 │   ├── QUICK-START.md                   # 快速上手指南
 │   ├── README-CDN-UPDATE.md             # CDN 更新指南
 │   ├── README-TAILWIND.md               # Tailwind CSS 使用说明
+│   ├── RELEASE-v1.0.0.md                # v1.0.0 发布说明
+│   ├── RELEASE-v1.1.0.md                # v1.1.0 发布说明
 │   ├── TESTING-AND-PRODUCTION.md        # 测试与生产环境
 │   └── history/                         # 归档/过程文档（修复报告等）
 │

@@ -75,11 +75,11 @@ npm run build-prod
 ```
 
 构建脚本会：
-- ✅ 自动排除测试文件
-- ✅ 生成精简版本
-- ✅ 构建CSS文件
-- ✅ 创建生产环境标识
-- ✅ 生成构建信息
+- 自动排除测试文件
+- 生成精简版本
+- 构建CSS文件
+- 创建生产环境标识
+- 生成构建信息
 
 ### 方法2：手动部署
 1. **复制核心文件**
@@ -87,6 +87,13 @@ npm run build-prod
    # 复制public目录，排除测试文件
    cp -r public/ dist/public/
    rm -rf dist/public/app/dev-tools/
+   ```
+
+   ```powershell
+   # Windows / PowerShell 等价命令
+   New-Item -ItemType Directory -Force -Path dist\public | Out-Null
+   Copy-Item -Recurse -Force public\* dist\public\
+   Remove-Item -Recurse -Force dist\public\app\dev-tools -ErrorAction SilentlyContinue
    ```
 
 2. **设置生产环境标识**

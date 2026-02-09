@@ -499,25 +499,31 @@ function registerEventListenersDataAndUi(ctx) {
       }
     };
     
+    let rafPending = false;
     const onMouseMove = (e) => {
       if (!isResizing || !sidebar) return;
-      
-      const sidebarType = resizer.dataset.sidebar;
-      let newWidth;
-      
-      if (sidebarType === "left") {
-        newWidth = startWidth + (e.clientX - startX);
-      } else {
-        newWidth = startWidth - (e.clientX - startX);
-      }
-      
-      // 应用最小/最大宽度限制
-      const minWidth = sidebarType === "left" ? 200 : 280;
-      const maxWidth = sidebarType === "left" ? 500 : 600;
-      newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      
-      sidebar.style.width = newWidth + "px";
-      sidebar.style.setProperty("--sidebar-width", newWidth + "px");
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        rafPending = false;
+        if (!isResizing || !sidebar) return;
+
+        const sidebarType = resizer.dataset.sidebar;
+        let newWidth;
+
+        if (sidebarType === "left") {
+          newWidth = startWidth + (e.clientX - startX);
+        } else {
+          newWidth = startWidth - (e.clientX - startX);
+        }
+
+        const minWidth = sidebarType === "left" ? 200 : 280;
+        const maxWidth = sidebarType === "left" ? 500 : 600;
+        newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+
+        sidebar.style.width = newWidth + "px";
+        sidebar.style.setProperty("--sidebar-width", newWidth + "px");
+      });
     };
     
     const onMouseUp = () => {

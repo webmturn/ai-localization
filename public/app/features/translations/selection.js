@@ -72,6 +72,10 @@ function updateSelectionStyles() {
       ? targetListEl.querySelectorAll(".responsive-translation-item")
       : [];
 
+    const indicatorEnabled = AppState.ui.sourceSelectionIndicatorEnabled;
+    const unselectedIsTransparent = indicatorEnabled &&
+      AppState.ui.sourceSelectionIndicatorUnselectedStyle === "transparent";
+
     sourceItems.forEach((item) => {
       const idx = parseInt(item.dataset.index);
       const active = selectedSet.has(idx);
@@ -79,33 +83,20 @@ function updateSelectionStyles() {
       item.classList.toggle("bg-blue-50", active);
       item.classList.toggle("dark:bg-blue-900/20", active);
 
-      item.classList.remove(
-        "border-l-4",
-        "border-l-blue-600",
-        "dark:border-l-blue-500",
-        "border-l-gray-300",
-        "dark:border-l-gray-600",
-        "border-l-transparent",
-        "dark:border-l-transparent"
-      );
-
-      if (AppState.ui.sourceSelectionIndicatorEnabled) {
-        const unselectedIsTransparent =
-          AppState.ui.sourceSelectionIndicatorUnselectedStyle === "transparent";
-        item.classList.add("border-l-4");
-
-        if (active) {
-          item.classList.add("border-l-blue-600", "dark:border-l-blue-500");
-        } else {
-          if (unselectedIsTransparent) {
-            item.classList.add(
-              "border-l-transparent",
-              "dark:border-l-transparent"
-            );
-          } else {
-            item.classList.add("border-l-gray-300", "dark:border-l-gray-600");
-          }
-        }
+      if (indicatorEnabled) {
+        item.classList.toggle("border-l-4", true);
+        item.classList.toggle("border-l-blue-600", active);
+        item.classList.toggle("dark:border-l-blue-500", active);
+        item.classList.toggle("border-l-transparent", !active && unselectedIsTransparent);
+        item.classList.toggle("dark:border-l-transparent", !active && unselectedIsTransparent);
+        item.classList.toggle("border-l-gray-300", !active && !unselectedIsTransparent);
+        item.classList.toggle("dark:border-l-gray-600", !active && !unselectedIsTransparent);
+      } else {
+        item.classList.remove(
+          "border-l-4", "border-l-blue-600", "dark:border-l-blue-500",
+          "border-l-gray-300", "dark:border-l-gray-600",
+          "border-l-transparent", "dark:border-l-transparent"
+        );
       }
       if (active && idx === primaryIndex && shouldScroll) {
         scrollTargetEl = item;

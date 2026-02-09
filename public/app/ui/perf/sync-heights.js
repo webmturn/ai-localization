@@ -8,12 +8,14 @@ function __syncTranslationHeightsImpl(afterSync) {
       return;
     }
 
-    const sourceItems = document.querySelectorAll(
-      "#sourceList .responsive-translation-item"
-    );
-    const targetItems = document.querySelectorAll(
-      "#targetList .responsive-translation-item"
-    );
+    const sourceListEl = DOMCache.get("sourceList");
+    const targetListEl = DOMCache.get("targetList");
+    if (!sourceListEl || !targetListEl) {
+      if (after) requestAnimationFrame(after);
+      return;
+    }
+    const sourceItems = sourceListEl.querySelectorAll(".responsive-translation-item");
+    const targetItems = targetListEl.querySelectorAll(".responsive-translation-item");
 
     if (sourceItems.length !== targetItems.length || sourceItems.length === 0) {
       if (after) requestAnimationFrame(after);

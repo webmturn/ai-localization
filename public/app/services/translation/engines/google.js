@@ -32,13 +32,14 @@ TranslationService.prototype.translateWithGoogle = async function (
   const cleanText = securityUtils.sanitizeForApi(text);
 
   try {
-    const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
+    const url = `https://translation.googleapis.com/language/translate/v2`;
     const response = await networkUtils.fetchWithDedupe(
       url,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
         },
         body: JSON.stringify({
           q: cleanText,

@@ -6,10 +6,16 @@ function registerEventListenersDataAndUi(ctx) {
 
   // 密码显示/隐藏切换
   DOMCache.queryAll(".toggle-password").forEach((btn) => {
+    let lastToggleTime = 0;
     EventManager.add(
       btn,
       "click",
-      function () {
+      function (e) {
+        e.stopPropagation();
+        const now = Date.now();
+        if (now - lastToggleTime < 300) return;
+        lastToggleTime = now;
+
         const targetId = this.getAttribute("data-target");
         const input = DOMCache.get(targetId);
         const icon = this.querySelector("i");

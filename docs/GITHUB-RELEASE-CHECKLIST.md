@@ -26,6 +26,7 @@
 | 项目 | 状态 |
 |------|------|
 | `styles.css` | ✅ 已在 .gitignore，构建出的 CSS 不会被提交 |
+| `app.bundle.js` | ✅ 已在 .gitignore，构建出的 JS Bundle 不会被提交 |
 | `node_modules/` | ✅ 已忽略 |
 | `package-lock.json` | ⚠️ 当前被忽略 | 若希望他人复现依赖版本，可考虑**不**忽略 `package-lock.json` 并提交 |
 
@@ -80,7 +81,7 @@
 
 ## 四、发布前快速自检
 
-- [ ] `npm install` 与 `npm run build-css` 在全新目录下可成功执行。
+- [ ] `npm install` 与 `npm run build` 在全新目录下可成功执行。
 - [ ] 在浏览器中打开 `public/index.html`，核心功能（打开文件、翻译、导出）可用。
 - [ ] 移动端视图（DevTools 模拟或真机）下，顶栏、底部工具栏、侧边栏、模态框显示正常。
 - [ ] README 中的安装与运行步骤与当前仓库一致。
@@ -95,7 +96,7 @@
 |--------|------|------|
 | 高 | package.json 的 author、keywords；README 中提醒勿泄露 API Key | ✅ 已完成 |
 | 高 | CONTRIBUTING.md | ✅ 已存在 |
-| 高 | README 快速开始中强调 `npm install` + `npm run build-css` | ✅ 已完成 |
+| 高 | README 快速开始中强调 `npm install` + `npm run build` | ✅ 已完成 |
 | 中 | README 增加截图/徽章；文档链接（QUICK-START、Node.js 安装指南等） | ✅ 链接已齐全；截图/徽章按需 |
 | 中 | .github Issue/PR 模板 | ✅ 已存在 |
 | 低 | 英文 README、CODE_OF_CONDUCT、SECURITY.md、CHANGELOG | 按需 |

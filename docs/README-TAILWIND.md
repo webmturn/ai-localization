@@ -73,7 +73,8 @@ npm run watch-css
 html/
 ├── public/
 │   ├── index.html          # HTML 文件
-│   ├── app.js              # 应用入口（按顺序加载 public/app/**）
+│   ├── app.js              # 开发模式入口（按顺序加载 106 个脚本）
+│   ├── app.bundle.js       # 生产 bundle（构建生成，npm run build-bundle）
 │   ├── app/                # 应用核心逻辑（模块化代码）
 │   └── styles.css          # 构建后的 CSS 文件（由 Tailwind 生成）
 ├── src/
@@ -136,9 +137,10 @@ html/
 
 3. **部署文件**：
    - `public/index.html`
-   - `public/styles.css`（构建后的）
-   - `public/app.js`
-   - `public/app/`
+   - `public/styles.css`（构建后的 CSS）
+   - `public/app.bundle.js`（构建后的 JS Bundle）
+   - `public/app.js`（回退用，可选）
+   - `public/app/`（回退用，可选）
    - 其他资源文件
 
 ## ⚠️ 注意事项

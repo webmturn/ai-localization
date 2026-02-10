@@ -19,7 +19,7 @@
 3. 在本地安装依赖并构建：
    ```bash
    npm install
-   npm run build-css
+   npm run build
    ```
 4. 修改代码后，确认在浏览器中打开 `public/index.html` 能正常使用相关功能。
 5. 提交时请写清 commit 信息，PR 描述中说明改动目的和测试情况。
@@ -28,6 +28,7 @@
 ### 开发相关
 
 - **CSS**：使用 Tailwind CSS，源文件在 `src/input.css`，构建输出到 `public/styles.css`。开发时可使用 `npm run watch-css` 监听变化。
+- **JS Bundle**：`npm run build-bundle` 合并 106 个 JS 为 `public/app.bundle.js`。修改 JS 后需重新构建。
 - **脚本**：项目中有 PowerShell 脚本（`scripts/*.ps1`），主要在 Windows 下使用；其他平台可参考文档或自行改写等效命令。
 - **文档**：重要逻辑或配置变更请同步更新 `docs/` 下相关文档或 README。
 

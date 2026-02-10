@@ -1,7 +1,7 @@
 # 项目目录结构
 
 > 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-> 最后更新：2026-02-09
+> 最后更新：2026-02-10
 
 ## 📁 完整目录树
 
@@ -31,7 +31,8 @@ html/
 │   ├── TESTING-AND-PRODUCTION.md        # 测试与生产环境
 │   └── history/                         # 归档/过程文档（修复报告等）
 │
-├── scripts/                         # PowerShell 脚本
+├── scripts/                         # 构建与工具脚本
+│   ├── build-bundle.js                  # JS 打包脚本（合并 106 个 JS 为 app.bundle.js）
 │   ├── tools.ps1                        # 整合脚本（Node检查/版本检查/CDN更新）
 │   ├── update-cdn.ps1                   # CDN 更新入口
 │   ├── check-latest-versions.ps1        # 版本检查入口
@@ -45,7 +46,8 @@ html/
 │
 ├── public/                          # 发布目录（浏览器打开/部署）
 │   ├── index.html                       # 主 HTML 文件
-│   ├── app.js                           # 应用入口（按顺序加载 app/** 模块）
+│   ├── app.js                           # 开发模式入口（按顺序加载 106 个脚本）
+│   ├── app.bundle.js                    # 生产 bundle（构建生成，勿手动编辑）
 │   ├── styles.css                       # 构建后的 CSS（Tailwind 生成，勿手动编辑）
 │   │
 │   ├── lib/                             # 第三方库（本地化）
@@ -146,10 +148,17 @@ html/
 │       │   │   ├── terminology.js           # 翻译时术语匹配
 │       │   │   ├── rate-limit.js            # API 速率限制
 │       │   │   ├── compat.js                # 兼容层
-│       │   │   └── engines/             # 翻译引擎实现
-│       │   │       ├── deepseek.js              # DeepSeek（单条+批量+上下文）
-│       │   │       ├── openai.js                # OpenAI
-│       │   │       └── google.js                # Google Translate
+│       │   │   └── engines/             # 翻译引擎系统
+│       │   │       ├── engine-registry.js       # EngineRegistry 引擎注册表
+│       │   │       ├── base/                    # 引擎基类
+│       │   │       │   ├── ai-engine-base.js        # AI 引擎基类（单条+批量+钩子）
+│       │   │       │   └── traditional-engine-base.js # 传统引擎基类
+│       │   │       └── providers/               # 引擎提供者
+│       │   │           ├── deepseek.js              # DeepSeek
+│       │   │           ├── openai.js                # OpenAI (GPT-4o)
+│       │   │           ├── gemini.js                # Gemini (Google AI)
+│       │   │           ├── claude.js                # Claude (Anthropic)
+│       │   │           └── google-translate.js      # Google Translate
 │       │   │
 │       │   └── storage/                 # 存储管理（5个文件）
 │       │       ├── storage-manager.js       # 存储管理器（多后端调度）
@@ -172,7 +181,7 @@ html/
 │       │   │
 │       │   └── event-listeners/         # 事件监听器模块（11个文件）
 │       │       ├── settings.js                  # 设置保存/加载
-│       │       ├── settings-deepseek.js         # DeepSeek 高级设置（Priming/会话/上下文）
+│       │       ├── settings-ai-engine.js        # AI 引擎高级设置（Priming/会话/上下文）
 │       │       ├── settings-prompt-templates.js # Prompt 模板管理
 │       │       ├── data-and-ui.js               # UI 交互监听器
 │       │       ├── data-management.js           # 数据管理（导入/导出/清空）
@@ -244,11 +253,11 @@ html/
 ### `docs/` — 文档
 核心文档和归档文档。入口为 `INDEX.md`。
 
-### `scripts/` — 脚本
-PowerShell 脚本，用于自动化任务。除 `split-app-js.ps1` 和 `build-production.ps1` 外，其余逻辑已整合到 `tools.ps1`。
+### `scripts/` — 构建与工具脚本
 
 | 脚本 | 说明 |
 |------|------|
+| `build-bundle.js` | **JS 打包脚本**：合并 106 个 JS 为 `app.bundle.js`（`npm run build-bundle`） |
 | `tools.ps1` | 整合脚本，`-Action NodeCheck\|CheckVersions\|UpdateConfig\|UpdateCdn\|All` |
 | `update-cdn.ps1` | CDN 更新入口（可传 `-CheckOnly`） |
 | `check-latest-versions.ps1` | 检查第三方库最新版本 |
@@ -267,7 +276,7 @@ PowerShell 脚本，用于自动化任务。除 `split-app-js.ps1` 和 `build-pr
 | `features/files/` | 4 | 文件读取、解析、处理 |
 | `features/projects/` | 1 | 项目管理 |
 | `features/terminology/` | 1 | 术语库初始化 |
-| `services/` | 3 + 9 + 3 + 5 = 20 | 翻译引擎、存储、安全、自动保存 |
+| `services/` | 3 + 9 + 8 + 5 = 25 | 翻译引擎（EngineRegistry + 5 providers）、存储、安全、自动保存 |
 | `ui/` | 7 + 1 + 11 = 19 | 设置、文件树、通知、事件监听器 |
 | `parsers/` | 12 | 12种文件格式解析器 |
 | `network/` | 2 | 网络请求工具 |
@@ -280,7 +289,9 @@ PowerShell 脚本，用于自动化任务。除 `split-app-js.ps1` 和 `build-pr
 
 ```bash
 npm install            # 安装依赖
+npm run build          # 一键构建（CSS + JS Bundle）
 npm run build-css      # 构建 CSS（生产）
+npm run build-bundle   # 合并 106 个 JS 为 bundle
 npm run watch-css      # 监听 CSS 变化（开发）
 npm run update-cdn     # 更新 CDN 资源
 npm run check-versions # 检查第三方库最新版本
@@ -300,12 +311,12 @@ npm run auto-update    # 自动更新版本号
    - `npm run auto-update` 自动更新
 
 3. **生产构建**:
-   - `npm run build-css` 生成优化后的 CSS
-   - 部署 `public/` 目录
+   - `npm run build` 生成 CSS + JS Bundle
+   - 部署 `public/` 目录（包含 `app.bundle.js` 和 `styles.css`）
 
 ## 📌 注意事项
 
-1. **不要手动编辑 `public/styles.css`** — 自动生成，下次构建时覆盖
+1. **不要手动编辑 `public/styles.css` 和 `public/app.bundle.js`** — 自动生成，下次构建时覆盖
 2. **自定义样式写在 `src/input.css`**
 3. **配置文件在 `config/`**，脚本在 `scripts/`
 4. **`public/app/legacy/`** — 遗留代码目录，不再使用，仅保留备查

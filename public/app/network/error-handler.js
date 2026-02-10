@@ -436,9 +436,9 @@ const requestInterceptor = new RequestInterceptor();
 // 添加默认拦截器：API密钥验证
 requestInterceptor.addRequestInterceptor(async (url, options) => {
   // 如果是翻译API请求，验证API密钥
-  if (url.includes('openai.com') || url.includes('deepseek.com') || url.includes('googleapis.com')) {
+  if (url.includes('openai.com') || url.includes('deepseek.com') || url.includes('googleapis.com') || url.includes('anthropic.com') || url.includes('generativelanguage.googleapis.com')) {
     const headers = options.headers || {};
-    const authHeader = headers.Authorization || headers.authorization;
+    const authHeader = headers.Authorization || headers.authorization || headers['x-api-key'] || headers['X-Goog-Api-Key'];
     
     if (!authHeader) {
       throw errorManager.createError(ERROR_CODES.API_KEY_MISSING,

@@ -1,6 +1,6 @@
 # Node.js 安装指南
 
-本指南用于在本项目中运行 `npm install` 与 `npm run build-css` 前安装 Node.js。  
+本指南用于在本项目中运行 `npm install` 与 `npm run build` 前安装 Node.js。  
 **仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
 
 ## 🚀 方法一：官方安装程序（推荐）
@@ -83,8 +83,8 @@ cd 你的项目目录
 # 安装依赖
 npm install
 
-# 构建 CSS（必须，否则页面无样式）
-npm run build-css
+# 构建 CSS + JS Bundle（必须，否则页面无样式且加载缓慢）
+npm run build
 ```
 
 然后在浏览器中打开 `public/index.html` 即可使用。
@@ -124,4 +124,4 @@ npm run build-css
 
 ---
 
-安装完成后，请按 [快速开始](QUICK-START.md) 完成依赖安装与 CSS 构建，再在浏览器中打开 `public/index.html` 使用应用。
+安装完成后，请按 [快速开始](QUICK-START.md) 完成依赖安装与构建（`npm run build`），再在浏览器中打开 `public/index.html` 使用应用。

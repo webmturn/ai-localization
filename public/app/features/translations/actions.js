@@ -57,14 +57,8 @@ function formatTranslationError(errorLike, engine) {
     (errorLike && typeof errorLike === "object" && errorLike.code) || null;
 
   const normalizedEngine = (engine || "").toString().toLowerCase();
-  const engineLabel =
-    normalizedEngine === "openai"
-      ? "OpenAI"
-      : normalizedEngine === "deepseek"
-        ? "DeepSeek"
-        : normalizedEngine === "google"
-          ? "Google"
-          : (engine || "").toString().toUpperCase();
+  const engineConfig = typeof EngineRegistry !== "undefined" ? EngineRegistry.get(normalizedEngine) : null;
+  const engineLabel = engineConfig ? engineConfig.name : (engine || "").toString();
 
   const isAuthMessage =
     msgLower.includes("api密钥") ||
@@ -324,7 +318,7 @@ async function translateSelectedFallback() {
       settings.translationEngine ||
       settings.defaultEngine ||
       DOMCache.get("translationEngine")?.value ||
-      "deepseek";
+      EngineRegistry.getDefaultEngineId();
 
     // 显示进度
     showTranslationProgress();
@@ -492,7 +486,7 @@ async function translateAllFallback() {
     const targetLang = appState.project.targetLanguage || "zh";
     const settings = SettingsCache.get();
     const engine = settings.translationEngine || settings.defaultEngine || 
-                  DOMCache.get("translationEngine")?.value || "deepseek";
+                  DOMCache.get("translationEngine")?.value || EngineRegistry.getDefaultEngineId();
 
     // 显示进度
     showTranslationProgress();
@@ -746,7 +740,7 @@ async function retryFailedTranslations() {
   const engine =
     ctx.engine ||
     DOMCache.get("translationEngine")?.value ||
-    "deepseek";
+    EngineRegistry.getDefaultEngineId();
   const selectedFile = ctx.selectedFile || AppState?.translations?.selectedFile;
 
   showTranslationProgress();
@@ -893,7 +887,7 @@ async function translateText(
     return text;
   }
 
-  let engine = "deepseek";
+  let engine = EngineRegistry.getDefaultEngineId();
   try {
     // 获取翻译引擎
     const settings = SettingsCache.get();
@@ -901,7 +895,7 @@ async function translateText(
       settings.translationEngine ||
       settings.defaultEngine ||
       DOMCache.get("translationEngine")?.value ||
-      "deepseek"
+      EngineRegistry.getDefaultEngineId()
     ).toLowerCase();
 
     // 调用翻译服务（传递上下文）

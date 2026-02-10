@@ -63,14 +63,22 @@
     "app/network/network-utils.js",
     "app/network/error-handler.js",
     // request-deduplication.js 已移至开发模式按需加载（未被业务代码引用）
+    // 翻译引擎注册表和基类（必须在 providers 和 service-class 之前加载）
+    "app/services/translation/engines/engine-registry.js",
+    "app/services/translation/engines/base/ai-engine-base.js",
+    "app/services/translation/engines/base/traditional-engine-base.js",
+    // 翻译引擎 providers（注册到 EngineRegistry）
+    "app/services/translation/engines/providers/deepseek.js",
+    "app/services/translation/engines/providers/openai.js",
+    "app/services/translation/engines/providers/gemini.js",
+    "app/services/translation/engines/providers/claude.js",
+    "app/services/translation/engines/providers/google-translate.js",
+    // 翻译服务核心
     "app/services/translation/service-class.js",
     "app/services/translation/compat.js",
     "app/services/translation/settings.js",
     "app/services/translation/terminology.js",
     "app/services/translation/helpers.js",
-    "app/services/translation/engines/deepseek.js",
-    "app/services/translation/engines/openai.js",
-    "app/services/translation/engines/google.js",
     "app/services/translation/rate-limit.js",
     "app/services/translation/translate.js",
     "app/services/translation/batch.js",
@@ -133,7 +141,7 @@
     "app/ui/event-listeners/file-panels.js",
     "app/ui/event-listeners/terminology.js",
     "app/ui/event-listeners/settings-prompt-templates.js", // Prompt模板管理（从 settings.js 拆分）
-    "app/ui/event-listeners/settings-deepseek.js",       // DeepSeek高级设置（从 settings.js 拆分）
+    "app/ui/event-listeners/settings-ai-engine.js",      // AI引擎高级设置（从 settings.js 拆分）
     "app/ui/event-listeners/settings.js",
     "app/ui/event-listeners/translations-search.js",
     "app/ui/event-listeners/data-management.js", // 数据管理监听器（从 data-and-ui.js 拆分）

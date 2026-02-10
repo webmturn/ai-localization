@@ -236,16 +236,13 @@ function processTranslationResponse(response, engine) {
   let translatedText = '';
   
   try {
-    switch (engine.toLowerCase()) {
-      case 'openai':
-      case 'deepseek':
-        translatedText = response.choices?.[0]?.message?.content || '';
-        break;
-      case 'google':
-        translatedText = response.data?.translations?.[0]?.translatedText || '';
-        break;
-      default:
-        translatedText = response.translatedText || response.result || String(response);
+    const errEngineConfig = typeof EngineRegistry !== 'undefined' ? EngineRegistry.get(engine.toLowerCase()) : null;
+    if (errEngineConfig && errEngineConfig.category === 'ai') {
+      translatedText = response.choices?.[0]?.message?.content || '';
+    } else if (errEngineConfig && errEngineConfig.category === 'traditional') {
+      translatedText = response.data?.translations?.[0]?.translatedText || '';
+    } else {
+      translatedText = response.translatedText || response.result || String(response);
     }
     
     if (!translatedText || typeof translatedText !== 'string') {

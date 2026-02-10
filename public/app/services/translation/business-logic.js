@@ -125,10 +125,10 @@ class TranslationBusinessLogic {
     const targetLang = this.appState?.project?.targetLanguage || 'zh';
     
     // 获取翻译引擎设置
-    let engine = 'deepseek';
+    let engine = typeof EngineRegistry !== 'undefined' ? EngineRegistry.getDefaultEngineId() : 'deepseek';
     try {
       const settings = SettingsCache.get();
-      engine = settings.translationEngine || settings.defaultEngine || 'deepseek';
+      engine = settings.translationEngine || settings.defaultEngine || (typeof EngineRegistry !== 'undefined' ? EngineRegistry.getDefaultEngineId() : 'deepseek');
     } catch (error) {
       // 使用默认引擎
     }

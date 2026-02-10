@@ -206,17 +206,26 @@ function validateApiKey(apiKey, engine) {
       `${engine}的API密钥不能为空`, { engine });
   }
   
-  // 基本格式验证
-  const formatValidators = {
-    openai: /^sk-[a-zA-Z0-9]{48,}$/,
-    deepseek: /^sk-[a-zA-Z0-9]{48,}$/,
-    google: /^[a-zA-Z0-9_-]{20,}$/
-  };
-  
-  const validator = formatValidators[engine.toLowerCase()];
-  if (validator && !validator.test(trimmedKey)) {
-    return errorManager.createError(ERROR_CODES.API_KEY_INVALID, 
-      `${engine}的API密钥格式不正确`, { engine, keyLength: trimmedKey.length });
+  // 基本格式验证（优先使用 securityUtils，回退到正则）
+  const engineLower = engine.toLowerCase();
+  if (typeof securityUtils !== 'undefined' && typeof securityUtils.validateApiKey === 'function') {
+    const engineCfg = typeof EngineRegistry !== 'undefined' ? EngineRegistry.get(engineLower) : null;
+    const validationType = engineCfg ? (engineCfg.apiKeyValidationType || engineLower) : engineLower;
+    if (!securityUtils.validateApiKey(trimmedKey, validationType)) {
+      return errorManager.createError(ERROR_CODES.API_KEY_INVALID,
+        `${engine}的API密钥格式不正确`, { engine, keyLength: trimmedKey.length });
+    }
+  } else {
+    const formatValidators = {
+      openai: /^sk-[a-zA-Z0-9]{48,}$/,
+      deepseek: /^sk-[a-zA-Z0-9]{48,}$/,
+      google: /^[a-zA-Z0-9_-]{20,}$/
+    };
+    const validator = formatValidators[engineLower];
+    if (validator && !validator.test(trimmedKey)) {
+      return errorManager.createError(ERROR_CODES.API_KEY_INVALID,
+        `${engine}的API密钥格式不正确`, { engine, keyLength: trimmedKey.length });
+    }
   }
   
   return null;

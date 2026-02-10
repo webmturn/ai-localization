@@ -192,19 +192,19 @@ function registerEventListenersSettings(ctx) {
         );
         if (autosaveInput) autosaveInput.value = autosaveIntervalSeconds;
 
-        const deepseekPrimingSampleCountInput = DOMCache.get(
-          "deepseekPrimingSampleCount",
+        const aiPrimingSampleCountInput = DOMCache.get(
+          "aiPrimingSampleCount",
         );
-        const rawDeepseekPrimingSampleCount = parseInt(
-          deepseekPrimingSampleCountInput?.value,
+        const rawAiPrimingSampleCount = parseInt(
+          aiPrimingSampleCountInput?.value,
         );
-        const deepseekPrimingSampleCount = Number.isFinite(
-          rawDeepseekPrimingSampleCount,
+        const aiPrimingSampleCount = Number.isFinite(
+          rawAiPrimingSampleCount,
         )
-          ? Math.max(1, Math.min(20, rawDeepseekPrimingSampleCount))
+          ? Math.max(1, Math.min(20, rawAiPrimingSampleCount))
           : 3;
-        if (deepseekPrimingSampleCountInput)
-          deepseekPrimingSampleCountInput.value = deepseekPrimingSampleCount;
+        if (aiPrimingSampleCountInput)
+          aiPrimingSampleCountInput.value = aiPrimingSampleCount;
 
         const apiTimeoutInput = DOMCache.get("apiTimeout");
         const rawApiTimeout = parseInt(apiTimeoutInput?.value);
@@ -231,25 +231,14 @@ function registerEventListenersSettings(ctx) {
 
         // 保存设置到 localStorage
         const rawDefaultEngine =
-          DOMCache.get("defaultEngine")?.value || "deepseek";
-        const defaultEngine = ["deepseek", "openai", "google"].includes(
-          String(rawDefaultEngine),
-        )
+          DOMCache.get("defaultEngine")?.value || EngineRegistry.getDefaultEngineId();
+        const defaultEngine = EngineRegistry.has(String(rawDefaultEngine))
           ? String(rawDefaultEngine)
-          : "deepseek";
+          : EngineRegistry.getDefaultEngineId();
 
         const rawModel =
-          DOMCache.get("translationModel")?.value || "deepseek-chat";
+          DOMCache.get("translationModel")?.value || (typeof EngineRegistry !== "undefined" ? (EngineRegistry.get(defaultEngine)?.defaultModel || "deepseek-chat") : "deepseek-chat");
         let normalizedModel = String(rawModel);
-        if (defaultEngine === "deepseek") {
-          if (!/^deepseek-/.test(normalizedModel)) {
-            normalizedModel = "deepseek-chat";
-          }
-        } else if (defaultEngine === "openai") {
-          if (/^deepseek-/.test(normalizedModel)) {
-            normalizedModel = "gpt-4o-mini";
-          }
-        }
 
         const settings = {
           // 外观设置
@@ -281,29 +270,29 @@ function registerEventListenersSettings(ctx) {
           translationRequestCacheEnabled,
           translationRequestCacheTTLSeconds,
 
-          deepseekUseKeyContext:
-            DOMCache.get("deepseekUseKeyContext")?.checked || false,
-          deepseekContextAwareEnabled:
-            DOMCache.get("deepseekContextAwareEnabled")?.checked || false,
-          deepseekContextWindowSize:
-            parseInt(DOMCache.get("deepseekContextWindowSize")?.value) || 3,
-          deepseekPrimingEnabled:
-            DOMCache.get("deepseekPrimingEnabled")?.checked || false,
-          deepseekPrimingSampleCount,
-          deepseekPrimingSampleIds: safeJsonParse(
-            DOMCache.get("deepseekPrimingSampleIds")?.value,
+          aiUseKeyContext:
+            DOMCache.get("aiUseKeyContext")?.checked || false,
+          aiContextAwareEnabled:
+            DOMCache.get("aiContextAwareEnabled")?.checked || false,
+          aiContextWindowSize:
+            parseInt(DOMCache.get("aiContextWindowSize")?.value) || 3,
+          aiPrimingEnabled:
+            DOMCache.get("aiPrimingEnabled")?.checked || false,
+          aiPrimingSampleCount,
+          aiPrimingSampleIds: safeJsonParse(
+            DOMCache.get("aiPrimingSampleIds")?.value,
             [],
           ),
-          deepseekConversationEnabled:
-            DOMCache.get("deepseekConversationEnabled")?.checked ||
+          aiConversationEnabled:
+            DOMCache.get("aiConversationEnabled")?.checked ||
             false,
-          deepseekConversationScope:
-            DOMCache.get("deepseekConversationScope")?.value ||
+          aiConversationScope:
+            DOMCache.get("aiConversationScope")?.value ||
             "project",
-          deepseekBatchMaxItems:
-            parseInt(DOMCache.get("deepseekBatchMaxItems")?.value) || 40,
-          deepseekBatchMaxChars:
-            parseInt(DOMCache.get("deepseekBatchMaxChars")?.value) || 6000,
+          aiBatchMaxItems:
+            parseInt(DOMCache.get("aiBatchMaxItems")?.value) || 40,
+          aiBatchMaxChars:
+            parseInt(DOMCache.get("aiBatchMaxChars")?.value) || 6000,
 
           // 质量检查设置（开关：未勾选为 false，须原样保存）
           checkTerminology:
@@ -353,12 +342,16 @@ function registerEventListenersSettings(ctx) {
           deepseekApiKey: "",
           openaiApiKey: "",
           googleApiKey: "",
+          geminiApiKey: "",
+          claudeApiKey: "",
         };
 
         // 加密API密钥
         const deepseekKey = DOMCache.get("deepseekApiKey")?.value;
         const openaiKey = DOMCache.get("openaiApiKey")?.value;
         const googleKey = DOMCache.get("googleApiKey")?.value;
+        const geminiKey = DOMCache.get("geminiApiKey")?.value;
+        const claudeKey = DOMCache.get("claudeApiKey")?.value;
 
         if (deepseekKey) {
           settings.deepseekApiKey = await securityUtils.encrypt(deepseekKey);
@@ -368,6 +361,12 @@ function registerEventListenersSettings(ctx) {
         }
         if (googleKey) {
           settings.googleApiKey = await securityUtils.encrypt(googleKey);
+        }
+        if (geminiKey) {
+          settings.geminiApiKey = await securityUtils.encrypt(geminiKey);
+        }
+        if (claudeKey) {
+          settings.claudeApiKey = await securityUtils.encrypt(claudeKey);
         }
 
         try {
@@ -432,8 +431,8 @@ function registerEventListenersSettings(ctx) {
     );
   }
 
-  // DeepSeek 高级设置已拆分到 settings-deepseek.js
-  if (typeof registerEventListenersSettingsDeepseek === "function") {
-    registerEventListenersSettingsDeepseek(ctx);
+  // AI 引擎高级设置已拆分到 settings-ai-engine.js
+  if (typeof registerEventListenersSettingsAiEngine === "function") {
+    registerEventListenersSettingsAiEngine(ctx);
   }
 }

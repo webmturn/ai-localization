@@ -467,6 +467,10 @@ console.log('  - runErrorHandlingDemo() // 运行完整演示');
 
 // 辅助函数
 function getTranslationApiUrl(engine) {
+  if (typeof EngineRegistry !== 'undefined') {
+    const config = EngineRegistry.get(engine.toLowerCase());
+    if (config && config.apiUrl) return config.apiUrl;
+  }
   const urls = {
     openai: 'https://api.openai.com/v1/chat/completions',
     deepseek: 'https://api.deepseek.com/v1/chat/completions',

@@ -5,6 +5,7 @@ package-lock.json
 # Build outputs
 styles.css
 *.css.map
+public/app.bundle.js
 
 # OS files
 .DS_Store

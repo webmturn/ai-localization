@@ -21,6 +21,16 @@ TranslationService.prototype.getSettings = async function () {
         settings.deepseekApiKey
       );
     }
+    if (settings.geminiApiKey && settings.geminiApiKey.length > 50) {
+      settings.geminiApiKey = await securityUtils.decrypt(
+        settings.geminiApiKey
+      );
+    }
+    if (settings.claudeApiKey && settings.claudeApiKey.length > 50) {
+      settings.claudeApiKey = await securityUtils.decrypt(
+        settings.claudeApiKey
+      );
+    }
 
     return settings;
   } catch (error) {
@@ -81,19 +91,19 @@ try {
 __DEFAULT_PROJECT_PROMPT_TEMPLATES.general =
   __DEFAULT_PROJECT_PROMPT_TEMPLATES.openai || "";
 
-const __PROJECT_PROMPT_TEMPLATE_DEEPSEEK_BATCH_SUFFIX =
+const __AI_BATCH_PROMPT_SUFFIX =
   "\n\n批量翻译额外要求：" +
   "\n- 严格保留原文中的占位符、标记与格式（例如 %s, %d, {0}, {{var}}, <b>...</b> 等），不得丢失、不得新增" +
   "\n- key/字段名仅作为上下文参考：严禁翻译、严禁改写、严禁改变大小写" +
   "\n- 你必须使用 JSON 格式输出。只输出 JSON，不要输出任何解释。";
 
-function __projectPromptTemplateEnsureDeepseekBatchSuffix(base) {
+function __ensureAiBatchSuffix(base) {
   const s = base == null ? "" : String(base);
   const hasPlaceholders = /严格保留原文中的占位符/.test(s);
   const hasKeyRule = /key\/字段名仅作为上下文参考/.test(s);
   const hasJsonRule = /JSON\s*格式输出/.test(s) || /只输出\s*JSON/.test(s);
   if (hasPlaceholders && hasKeyRule && hasJsonRule) return s;
-  return s + __PROJECT_PROMPT_TEMPLATE_DEEPSEEK_BATCH_SUFFIX;
+  return s + __AI_BATCH_PROMPT_SUFFIX;
 }
 
 TranslationService.prototype.getDefaultProjectPromptTemplate = function (
@@ -111,7 +121,7 @@ TranslationService.prototype.getProjectPromptTemplate = function (engineKey) {
   if (!pt) return "";
 
   if (typeof pt === "string") {
-    if (key === "deepseekBatch") return "";
+    if (key.endsWith("Batch")) return "";
     return pt;
   }
 
@@ -120,8 +130,10 @@ TranslationService.prototype.getProjectPromptTemplate = function (engineKey) {
     return typeof v === "string" ? v : "";
   }
 
-  if (key === "deepseekBatch") {
-    const v = pt.deepseekBatch ?? pt.deepseek_batch ?? pt.batch;
+  // 批量翻译 key（如 deepseekBatch, openaiBatch, geminiBatch 等）
+  // 先查精确 key，再查通用 aiBatch，再查旧 deepseekBatch 兼容
+  if (key.endsWith("Batch")) {
+    const v = pt[key] ?? pt.aiBatch ?? pt.deepseekBatch ?? pt.deepseek_batch ?? pt.batch;
     return typeof v === "string" ? v : "";
   }
 
@@ -133,26 +145,26 @@ TranslationService.prototype.getEffectiveProjectPromptTemplate = function (
   engineKey
 ) {
   const key = (engineKey || "").toString();
+  const isBatch = key.endsWith("Batch");
 
   const raw = this.getProjectPromptTemplate(key);
   if (raw && raw.trim()) {
-    if (key === "deepseekBatch") {
-      return __projectPromptTemplateEnsureDeepseekBatchSuffix(raw);
-    }
-    return raw;
+    return isBatch ? __ensureAiBatchSuffix(raw) : raw;
   }
 
   const general = this.getProjectPromptTemplate("general");
-  if (key === "deepseekBatch") {
-    const deepseekBase = this.getProjectPromptTemplate("deepseek");
+  if (isBatch) {
+    // 尝试找引擎单条覆盖 -> 通用 -> 默认
+    const engineBase = key.replace(/Batch$/, "");
+    const engineOverride = this.getProjectPromptTemplate(engineBase);
     const base =
-      deepseekBase && deepseekBase.trim()
-        ? deepseekBase
+      engineOverride && engineOverride.trim()
+        ? engineOverride
         : general && general.trim()
           ? general
           : "";
     if (base && base.trim()) {
-      return __projectPromptTemplateEnsureDeepseekBatchSuffix(base);
+      return __ensureAiBatchSuffix(base);
     }
   }
 
@@ -204,9 +216,12 @@ TranslationService.prototype.getNormalizedProjectPromptTemplate = function () {
 
   if (typeof pt.openai === "string") out.openai = pt.openai;
   if (typeof pt.deepseek === "string") out.deepseek = pt.deepseek;
-  if (typeof pt.deepseekBatch === "string") out.deepseekBatch = pt.deepseekBatch;
-  else if (typeof pt.deepseek_batch === "string") out.deepseekBatch = pt.deepseek_batch;
-  else if (typeof pt.batch === "string") out.deepseekBatch = pt.batch;
+
+  // aiBatch 通用批量模板（向后兼容 deepseekBatch）
+  if (typeof pt.aiBatch === "string") out.aiBatch = pt.aiBatch;
+  else if (typeof pt.deepseekBatch === "string") out.aiBatch = pt.deepseekBatch;
+  else if (typeof pt.deepseek_batch === "string") out.aiBatch = pt.deepseek_batch;
+  else if (typeof pt.batch === "string") out.aiBatch = pt.batch;
 
   return out;
 };

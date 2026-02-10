@@ -1,4 +1,4 @@
-// ==================== DeepSeek 高级设置 ====================
+// ==================== AI 引擎高级设置 ====================
 // 从 settings.js 拆分出来的独立模块
 // 提供 Priming 样本选择、会话上下文查看器等
 
@@ -47,20 +47,20 @@ function __getDefaultPrimingSampleIds(items, count) {
 
 function __updatePrimingSelectedCountLabel() {
   try {
-    const idsEl = DOMCache.get("deepseekPrimingSampleIds");
-    const countEl = DOMCache.get("deepseekPrimingSelectedCount");
+    const idsEl = DOMCache.get("aiPrimingSampleIds");
+    const countEl = DOMCache.get("aiPrimingSelectedCount");
     if (!idsEl || !countEl) return;
     const ids = safeJsonParse(idsEl.value, []);
     countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
   } catch (_) {
-    (loggers.app || console).debug("deepseek updatePrimingCount:", _);
+    (loggers.app || console).debug("ai updatePrimingCount:", _);
   }
 }
 
 function __renderPrimingSamplesModal() {
-  const listEl = DOMCache.get("deepseekPrimingSamplesList");
-  const idsEl = DOMCache.get("deepseekPrimingSampleIds");
-  const countInput = DOMCache.get("deepseekPrimingSampleCount");
+  const listEl = DOMCache.get("aiPrimingSamplesList");
+  const idsEl = DOMCache.get("aiPrimingSampleIds");
+  const countInput = DOMCache.get("aiPrimingSampleCount");
   if (!listEl || !idsEl) return;
 
   const items = __getPrimingBaseItems();
@@ -133,11 +133,13 @@ function __renderPrimingSamplesModal() {
   listEl.replaceChildren(fragment);
 }
 
-function __buildDeepseekConversationKey(scope) {
+function __buildAiConversationKey(scope) {
   const projectId = AppState?.project?.id || "";
   if (!projectId) return "";
+  const settings = typeof SettingsCache !== "undefined" ? SettingsCache.get() : {};
+  const engineId = settings.translationEngine || settings.defaultEngine || (typeof EngineRegistry !== "undefined" ? EngineRegistry.getDefaultEngineId() : "deepseek");
   const normalizedScope = scope || "project";
-  if (normalizedScope === "project") return `deepseek:${projectId}`;
+  if (normalizedScope === "project") return `${engineId}:${projectId}`;
 
   const selectedFile = AppState?.translations?.selectedFile || "";
   const all = Array.isArray(AppState?.project?.translationItems)
@@ -147,11 +149,11 @@ function __buildDeepseekConversationKey(scope) {
   const file = selectedFile || first?.metadata?.file || "";
 
   if (normalizedScope === "file") {
-    return `deepseek:${projectId}:file:${file}`;
+    return `${engineId}:${projectId}:file:${file}`;
   }
 
   const ext = (file.split(".").pop() || "").toLowerCase();
-  return `deepseek:${projectId}:type:${ext}`;
+  return `${engineId}:${projectId}:type:${ext}`;
 }
 
 function __normalizeConversationToFlatMessages(messages) {
@@ -174,8 +176,8 @@ function __normalizeConversationToFlatMessages(messages) {
   return out;
 }
 
-function __renderDeepseekConversationMessages(messages) {
-  const listEl = DOMCache.get("deepseekConversationMessages");
+function __renderAiConversationMessages(messages) {
+  const listEl = DOMCache.get("aiConversationMessages");
   if (!listEl) return;
   listEl.replaceChildren();
 
@@ -220,10 +222,10 @@ function __renderDeepseekConversationMessages(messages) {
   }
 }
 
-function __getDeepseekConversationSnapshot() {
+function __getAiConversationSnapshot() {
   const out = {};
   try {
-    const map = translationService?.deepseekConversations;
+    const map = translationService?.aiConversations;
     if (!map || typeof map.entries !== "function") return out;
     for (const [key, value] of map.entries()) {
       out[String(key)] = Array.isArray(value) ? value : [];
@@ -234,9 +236,9 @@ function __getDeepseekConversationSnapshot() {
   }
 }
 
-function registerEventListenersSettingsDeepseek(ctx) {
+function registerEventListenersSettingsAiEngine(ctx) {
   const selectPrimingBtn = DOMCache.get(
-    "selectDeepseekPrimingSamples",
+    "selectAiPrimingSamples",
   );
   if (selectPrimingBtn) {
     EventManager.add(
@@ -244,26 +246,26 @@ function registerEventListenersSettingsDeepseek(ctx) {
       "click",
       () => {
         __renderPrimingSamplesModal();
-        openModal("deepseekPrimingSamplesModal");
+        openModal("aiPrimingSamplesModal");
       },
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "selectDeepseekPrimingSamples:click",
+        label: "selectAiPrimingSamples:click",
       },
     );
   }
 
-  const savePrimingBtn = DOMCache.get("saveDeepseekPrimingSamples");
+  const savePrimingBtn = DOMCache.get("saveAiPrimingSamples");
   if (savePrimingBtn) {
     EventManager.add(
       savePrimingBtn,
       "click",
       () => {
-        const listEl = DOMCache.get("deepseekPrimingSamplesList");
-        const idsEl = DOMCache.get("deepseekPrimingSampleIds");
+        const listEl = DOMCache.get("aiPrimingSamplesList");
+        const idsEl = DOMCache.get("aiPrimingSampleIds");
         const countInput = DOMCache.get(
-          "deepseekPrimingSampleCount",
+          "aiPrimingSampleCount",
         );
         if (!listEl || !idsEl) return;
 
@@ -294,18 +296,18 @@ function registerEventListenersSettingsDeepseek(ctx) {
           idsEl.value = "[]";
         }
         __updatePrimingSelectedCountLabel();
-        closeModal("deepseekPrimingSamplesModal");
+        closeModal("aiPrimingSamplesModal");
       },
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "saveDeepseekPrimingSamples:click",
+        label: "saveAiPrimingSamples:click",
       },
     );
   }
 
   const clearConversationBtn = DOMCache.get(
-    "clearDeepseekConversation",
+    "clearAiConversation",
   );
   if (clearConversationBtn) {
     EventManager.add(
@@ -315,26 +317,26 @@ function registerEventListenersSettingsDeepseek(ctx) {
         try {
           if (
             translationService &&
-            translationService.deepseekConversations &&
-            typeof translationService.deepseekConversations.clear === "function"
+            translationService.aiConversations &&
+            typeof translationService.aiConversations.clear === "function"
           ) {
-            translationService.deepseekConversations.clear();
+            translationService.aiConversations.clear();
           }
         } catch (_) {
-          (loggers.app || console).debug("deepseek clearConversations:", _);
+          (loggers.app || console).debug("ai clearConversations:", _);
         }
-        showNotification("success", "已清空会话", "DeepSeek 会话上下文已清空");
+        showNotification("success", "已清空会话", "AI 会话上下文已清空");
       },
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "clearDeepseekConversation:click",
+        label: "clearAiConversation:click",
       },
     );
   }
 
   const viewConversationBtn = DOMCache.get(
-    "viewDeepseekConversation",
+    "viewAiConversation",
   );
   if (viewConversationBtn) {
     EventManager.add(
@@ -342,17 +344,17 @@ function registerEventListenersSettingsDeepseek(ctx) {
       "click",
       () => {
         const keySelect = DOMCache.get(
-          "deepseekConversationKeySelect",
+          "aiConversationKeySelect",
         );
-        const metaEl = DOMCache.get("deepseekConversationMeta");
-        const copyBtn = DOMCache.get("copyDeepseekConversation");
+        const metaEl = DOMCache.get("aiConversationMeta");
+        const copyBtn = DOMCache.get("copyAiConversation");
 
         const scope =
-          DOMCache.get("deepseekConversationScope")?.value ||
+          DOMCache.get("aiConversationScope")?.value ||
           "project";
-        const defaultKey = __buildDeepseekConversationKey(scope);
+        const defaultKey = __buildAiConversationKey(scope);
 
-        const snapshot = __getDeepseekConversationSnapshot();
+        const snapshot = __getAiConversationSnapshot();
         const keys = Object.keys(snapshot);
         const selectedKey =
           defaultKey && snapshot[defaultKey]
@@ -384,21 +386,20 @@ function registerEventListenersSettingsDeepseek(ctx) {
           const messages = snapshot[k] || [];
           if (metaEl) {
             const enabled = !!DOMCache.get(
-              "deepseekConversationEnabled",
+              "aiConversationEnabled",
             )?.checked;
             const rawKey = String(k || "");
-            const prefix = rawKey.startsWith("deepseek:") ? "deepseek:" : "";
-            const rest = prefix ? rawKey.slice(prefix.length) : rawKey;
-            const parts = rest
-              ? rest
+            const parts = rawKey
+              ? rawKey
                   .split(":")
                   .map((p) => String(p || "").trim())
                   .filter(Boolean)
               : [];
+            const engineName = parts.length > 0 ? parts[0] : "";
             const lines = [
               `范围: ${scope}`,
               `启用记忆: ${enabled ? "是" : "否"}`,
-              `Key: ${prefix ? "deepseek" : rawKey ? rawKey.split(":")[0] : ""}`,
+              `Key: ${engineName}`,
             ];
 
             for (let i = 0; i < parts.length; i += 2) {
@@ -414,7 +415,7 @@ function registerEventListenersSettingsDeepseek(ctx) {
 
             metaEl.textContent = lines.filter(Boolean).join("\n");
           }
-          __renderDeepseekConversationMessages(messages);
+          __renderAiConversationMessages(messages);
           if (copyBtn) {
             copyBtn.onclick = async () => {
               try {
@@ -449,21 +450,21 @@ function registerEventListenersSettingsDeepseek(ctx) {
           keySelect.onchange = renderSelected;
         }
         renderSelected();
-        openModal("deepseekConversationViewerModal");
+        openModal("aiConversationViewerModal");
       },
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "viewDeepseekConversation:click",
+        label: "viewAiConversation:click",
       },
     );
   }
 
   // ===== 上下文感知翻译 =====
-  const ctxToggle = DOMCache.get("deepseekContextAwareEnabled");
-  const ctxOptions = DOMCache.get("deepseekContextAwareOptions");
-  const ctxSlider = DOMCache.get("deepseekContextWindowSize");
-  const ctxLabel = DOMCache.get("deepseekContextWindowSizeValue");
+  const ctxToggle = DOMCache.get("aiContextAwareEnabled");
+  const ctxOptions = DOMCache.get("aiContextAwareOptions");
+  const ctxSlider = DOMCache.get("aiContextWindowSize");
+  const ctxLabel = DOMCache.get("aiContextWindowSizeValue");
 
   // 初始化可见性
   if (ctxOptions) {
@@ -475,14 +476,70 @@ function registerEventListenersSettingsDeepseek(ctx) {
       if (ctxOptions) {
         ctxOptions.style.display = ctxToggle.checked ? "" : "none";
       }
-    }, { tag: "settings", scope: "settingsModal", label: "deepseekContextAware:toggle" });
+    }, { tag: "settings", scope: "settingsModal", label: "aiContextAware:toggle" });
   }
 
   if (ctxSlider && ctxLabel) {
     EventManager.add(ctxSlider, "input", () => {
       ctxLabel.textContent = `前后 ${ctxSlider.value} 条`;
-    }, { tag: "settings", scope: "settingsModal", label: "deepseekContextWindowSize:input" });
+    }, { tag: "settings", scope: "settingsModal", label: "aiContextWindowSize:input" });
   }
 
   __updatePrimingSelectedCountLabel();
+
+  // ===== 引擎类别切换（AI / 传统） =====
+  const categoryFilter = DOMCache.get("engineCategoryFilter");
+  const aiSection = DOMCache.get("aiEngineSettingsSection");
+  const traditionalSection = DOMCache.get("traditionalEngineSettingsSection");
+  const defaultEngineSelect = DOMCache.get("defaultEngine");
+
+  function __syncEngineCategorySections(category) {
+    if (aiSection) aiSection.style.display = category === "ai" ? "" : "none";
+    if (traditionalSection) traditionalSection.style.display = category === "traditional" ? "" : "none";
+
+    // 重建默认翻译引擎下拉框：只显示当前类别的引擎（无 optgroup 标题）
+    if (defaultEngineSelect && typeof EngineRegistry !== "undefined") {
+      const prevValue = defaultEngineSelect.value;
+      defaultEngineSelect.replaceChildren();
+
+      const engines = EngineRegistry.getByCategory(category);
+      for (let i = 0; i < engines.length; i++) {
+        const opt = document.createElement("option");
+        opt.value = engines[i].id;
+        opt.textContent = engines[i].name;
+        defaultEngineSelect.appendChild(opt);
+      }
+
+      // 恢复之前的选中值，或使用第一个选项
+      const hasOld = Array.from(defaultEngineSelect.options).some(o => o.value === prevValue);
+      if (hasOld) {
+        defaultEngineSelect.value = prevValue;
+      } else if (defaultEngineSelect.options.length > 0) {
+        defaultEngineSelect.value = defaultEngineSelect.options[0].value;
+      }
+      // 触发模型下拉框联动（按引擎过滤模型 optgroup）
+      defaultEngineSelect.dispatchEvent(new Event("change"));
+    }
+  }
+
+  if (categoryFilter) {
+    // 根据当前选中引擎自动设置初始值
+    try {
+      const settings = typeof SettingsCache !== "undefined" ? SettingsCache.get() : {};
+      const currentEngine = settings.translationEngine || settings.defaultEngine || EngineRegistry.getDefaultEngineId();
+      const engineConfig = typeof EngineRegistry !== "undefined" ? EngineRegistry.get(currentEngine) : null;
+      if (engineConfig && engineConfig.category === "traditional") {
+        categoryFilter.value = "traditional";
+      } else {
+        categoryFilter.value = "ai";
+      }
+    } catch (_) {
+      categoryFilter.value = "ai";
+    }
+    __syncEngineCategorySections(categoryFilter.value);
+
+    EventManager.add(categoryFilter, "change", () => {
+      __syncEngineCategorySections(categoryFilter.value);
+    }, { tag: "settings", scope: "settingsModal", label: "engineCategoryFilter:change" });
+  }
 }

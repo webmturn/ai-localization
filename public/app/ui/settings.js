@@ -59,10 +59,9 @@ async function loadSettings() {
       // 加载翻译引擎设置
       const rawSavedEngine =
         settings.defaultEngine || settings.translationEngine;
-      const allowedEngines = ["deepseek", "openai", "google"];
-      const savedEngine = allowedEngines.includes(String(rawSavedEngine))
+      const savedEngine = (typeof EngineRegistry !== "undefined" && EngineRegistry.has(String(rawSavedEngine)))
         ? String(rawSavedEngine)
-        : "deepseek";
+        : (typeof EngineRegistry !== "undefined" ? EngineRegistry.getDefaultEngineId() : "deepseek");
       if (savedEngine !== rawSavedEngine) {
         settings.defaultEngine = savedEngine;
         settings.translationEngine = savedEngine;
@@ -70,7 +69,11 @@ async function loadSettings() {
       }
       if (savedEngine) {
         const engine = DOMCache.get("defaultEngine");
-        if (engine) engine.value = savedEngine;
+        if (engine) {
+          engine.value = savedEngine;
+          // 触发模型下拉框联动：重建模型列表后恢复保存的模型
+          engine.dispatchEvent(new Event("change"));
+        }
       }
       const savedModel = settings.translationModel || settings.model;
       if (savedModel) {
@@ -101,72 +104,86 @@ async function loadSettings() {
         if (el) el.value = ttl;
       }
 
-      if (settings.deepseekUseKeyContext !== undefined) {
-        const el = DOMCache.get("deepseekUseKeyContext");
-        if (el) el.checked = !!settings.deepseekUseKeyContext;
-      }
+      // AI 翻译增强设置（向后兼容 deepseek* → ai*）
+      {
+        const _v = (aiKey, dsKey) => settings[aiKey] ?? settings[dsKey];
+        const _useKey = _v("aiUseKeyContext", "deepseekUseKeyContext");
+        if (_useKey !== undefined) {
+          const el = DOMCache.get("aiUseKeyContext");
+          if (el) el.checked = !!_useKey;
+        }
 
-      if (settings.deepseekContextAwareEnabled !== undefined) {
-        const el = DOMCache.get("deepseekContextAwareEnabled");
-        if (el) el.checked = !!settings.deepseekContextAwareEnabled;
-      }
-      if (settings.deepseekContextWindowSize !== undefined) {
-        const el = DOMCache.get("deepseekContextWindowSize");
-        const val = Math.max(1, Math.min(10, Number(settings.deepseekContextWindowSize) || 3));
-        if (el) el.value = val;
-        const label = DOMCache.get("deepseekContextWindowSizeValue");
-        if (label) label.textContent = `前后 ${val} 条`;
-      }
+        const _ctxAware = _v("aiContextAwareEnabled", "deepseekContextAwareEnabled");
+        if (_ctxAware !== undefined) {
+          const el = DOMCache.get("aiContextAwareEnabled");
+          if (el) el.checked = !!_ctxAware;
+        }
+        const _ctxWin = _v("aiContextWindowSize", "deepseekContextWindowSize");
+        if (_ctxWin !== undefined) {
+          const el = DOMCache.get("aiContextWindowSize");
+          const val = Math.max(1, Math.min(10, Number(_ctxWin) || 3));
+          if (el) el.value = val;
+          const label = DOMCache.get("aiContextWindowSizeValue");
+          if (label) label.textContent = `前后 ${val} 条`;
+        }
 
-      if (settings.deepseekPrimingEnabled !== undefined) {
-        const el = DOMCache.get("deepseekPrimingEnabled");
-        if (el) el.checked = !!settings.deepseekPrimingEnabled;
-      }
+        const _priming = _v("aiPrimingEnabled", "deepseekPrimingEnabled");
+        if (_priming !== undefined) {
+          const el = DOMCache.get("aiPrimingEnabled");
+          if (el) el.checked = !!_priming;
+        }
 
-      if (settings.deepseekPrimingSampleCount !== undefined) {
-        const el = DOMCache.get("deepseekPrimingSampleCount");
-        if (el) el.value = settings.deepseekPrimingSampleCount;
-      }
+        const _primCount = _v("aiPrimingSampleCount", "deepseekPrimingSampleCount");
+        if (_primCount !== undefined) {
+          const el = DOMCache.get("aiPrimingSampleCount");
+          if (el) el.value = _primCount;
+        }
 
-      if (settings.deepseekPrimingSampleIds !== undefined) {
-        const el = DOMCache.get("deepseekPrimingSampleIds");
-        if (el) {
-          try {
-            el.value = JSON.stringify(settings.deepseekPrimingSampleIds || []);
-          } catch (_) {
-            el.value = "[]";
+        const _primIds = _v("aiPrimingSampleIds", "deepseekPrimingSampleIds");
+        if (_primIds !== undefined) {
+          const el = DOMCache.get("aiPrimingSampleIds");
+          if (el) {
+            try {
+              el.value = JSON.stringify(_primIds || []);
+            } catch (_) {
+              el.value = "[]";
+            }
           }
         }
-      }
 
-      if (settings.deepseekConversationEnabled !== undefined) {
-        const el = DOMCache.get("deepseekConversationEnabled");
-        if (el) el.checked = !!settings.deepseekConversationEnabled;
-      }
-
-      if (settings.deepseekConversationScope) {
-        const el = DOMCache.get("deepseekConversationScope");
-        if (el) el.value = settings.deepseekConversationScope;
-      }
-
-      if (settings.deepseekBatchMaxItems !== undefined) {
-        const el = DOMCache.get("deepseekBatchMaxItems");
-        if (el) el.value = Math.min(100, Math.max(5, Number(settings.deepseekBatchMaxItems) || 40));
-      }
-      if (settings.deepseekBatchMaxChars !== undefined) {
-        const el = DOMCache.get("deepseekBatchMaxChars");
-        if (el) el.value = Math.min(20000, Math.max(1000, Number(settings.deepseekBatchMaxChars) || 6000));
-      }
-
-      try {
-        const idsEl = DOMCache.get("deepseekPrimingSampleIds");
-        const countEl = DOMCache.get("deepseekPrimingSelectedCount");
-        if (idsEl && countEl) {
-          const ids = safeJsonParse(idsEl.value, []);
-          countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
+        const _convEnabled = _v("aiConversationEnabled", "deepseekConversationEnabled");
+        if (_convEnabled !== undefined) {
+          const el = DOMCache.get("aiConversationEnabled");
+          if (el) el.checked = !!_convEnabled;
         }
-      } catch (_) {
-        (loggers.app || console).debug("settings loadPrimingCount:", _);
+
+        const _convScope = _v("aiConversationScope", "deepseekConversationScope") || "";
+        if (_convScope) {
+          const el = DOMCache.get("aiConversationScope");
+          if (el) el.value = _convScope;
+        }
+
+        const _batchItems = _v("aiBatchMaxItems", "deepseekBatchMaxItems");
+        if (_batchItems !== undefined) {
+          const el = DOMCache.get("aiBatchMaxItems");
+          if (el) el.value = Math.min(100, Math.max(5, Number(_batchItems) || 40));
+        }
+        const _batchChars = _v("aiBatchMaxChars", "deepseekBatchMaxChars");
+        if (_batchChars !== undefined) {
+          const el = DOMCache.get("aiBatchMaxChars");
+          if (el) el.value = Math.min(20000, Math.max(1000, Number(_batchChars) || 6000));
+        }
+
+        try {
+          const idsEl = DOMCache.get("aiPrimingSampleIds");
+          const countEl = DOMCache.get("aiPrimingSelectedCount");
+          if (idsEl && countEl) {
+            const ids = safeJsonParse(idsEl.value, []);
+            countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
+          }
+        } catch (_) {
+          (loggers.app || console).debug("settings loadPrimingCount:", _);
+        }
       }
 
       // 加载质量检查设置
@@ -286,6 +303,20 @@ async function loadSettings() {
         if (googleKey) {
           const decrypted = await securityUtils.decrypt(settings.googleApiKey);
           googleKey.value = decrypted;
+        }
+      }
+      if (settings.geminiApiKey) {
+        const geminiKey = DOMCache.get("geminiApiKey");
+        if (geminiKey) {
+          const decrypted = await securityUtils.decrypt(settings.geminiApiKey);
+          geminiKey.value = decrypted;
+        }
+      }
+      if (settings.claudeApiKey) {
+        const claudeKey = DOMCache.get("claudeApiKey");
+        if (claudeKey) {
+          const decrypted = await securityUtils.decrypt(settings.claudeApiKey);
+          claudeKey.value = decrypted;
         }
       }
 

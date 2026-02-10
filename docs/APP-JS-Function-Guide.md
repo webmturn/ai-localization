@@ -2,7 +2,7 @@
 
 本文档用于解释 `public/app/**` 下主要模块、类与函数的职责、输入输出、关键副作用与调用关系，便于维护与二次开发。
 
-`public/app.js` 为应用入口加载器（按顺序加载 `public/app/**` 下脚本），通常不承载业务逻辑。
+`public/app.js` 为开发模式入口加载器（按顺序加载 106 个脚本），生产环境使用 `app.bundle.js`（合并为 1 个文件）。均不承载业务逻辑。
 
 ## 1. 总体结构（按模块）
 
@@ -206,7 +206,14 @@
 
 ### 7.1 `TranslationService`
 
-- **用途**：对外提供统一翻译接口与批量翻译，内部支持引擎选择、速率限制、重试与术语库提示。
+- **用途**：对外提供统一翻译接口与批量翻译，内部通过 `EngineRegistry` 支持多引擎选择、速率限制、重试与术语库提示。
+
+#### 引擎架构（v1.2.0+）
+
+- **`EngineRegistry`**（`engines/engine-registry.js`）：引擎注册表，管理所有引擎配置（id、name、apiUrl、rateLimitPerSecond、authHeaderBuilder 等）。
+- **`AIEngineBase`**（`engines/base/ai-engine-base.js`）：AI 引擎基类，提供 `translateSingle` 和 `translateBatch`，支持 `_transformRequestBody`/`_parseResponseText` 钩子。
+- **`TraditionalEngineBase`**（`engines/base/traditional-engine-base.js`）：传统引擎基类（Google Translate）。
+- **Providers**：`deepseek.js`、`openai.js`、`gemini.js`、`claude.js`、`google-translate.js`，各自注册到 EngineRegistry。
 
 #### 主要方法
 
@@ -214,33 +221,33 @@
   - **用途**：读取 `localStorage.translatorSettings`，并对疑似加密的 key 做解密。
   - **返回**：`Promise<object>`。
 
-- **`translateWithDeepSeek(text, sourceLang, targetLang, context=null)`**
-  - **用途**：调用 DeepSeek Chat Completions，并注入上下文/术语库提示。
-  - **依赖**：`networkUtils.fetchWithTimeout()`、`securityUtils.sanitizeInput()`、`findTerminologyMatches()`。
-
-- **`translateWithOpenAI(text, sourceLang, targetLang, context=null)`**
-  - **用途**：调用 OpenAI Chat Completions（注意：代码里使用 `settings.openaiModel || 'gpt-4o-mini'`）。
-
 - **`findTerminologyMatches(text)`**
   - **用途**：从 `AppState.terminology.list` 中找出与输入文本匹配的术语，供提示词使用。
 
 - **`checkRateLimit(engine)`**
-  - **用途**：按引擎控制最小请求间隔，避免过频。
+  - **用途**：按引擎控制最小请求间隔，避免过频。使用 Promise 队列串行化 + 共享冷却机制。
+
+- **`reportRateLimit(engine, cooldownSeconds)`**
+  - **用途**：429 错误时触发全局冷却，阻止同引擎后续请求直到冷却结束。
 
 - **`translate(text, sourceLang, targetLang, engine='deepseek', context=null, maxRetries=3)`**
   - **用途**：统一翻译入口；包含重试与指数退避。
-  - **注意**：API Key 错误（未配置/401/403）会提前停止重试。
+  - **错误分类**：
+    - auth 错误（401/403）→ 停止重试，提示“密钥无效或未配置”
+    - quota 错误 → 停止重试，提示“配额已用完”
+    - rate-limit（429）→ 触发共享冷却，继续重试
 
 - **`translateBatch(items, sourceLang, targetLang, engine='deepseek', onProgress=null)`**
-  - **用途**：批量翻译并通过回调上报进度。
-  - **DeepSeek 引擎**：使用 `translateBatchWithDeepSeek()`，支持自动分块、JSON格式输出、暂停/取消。
-  - **DeepSeek 增强功能**（通过 SettingsCache 配置）：
-    - **上下文感知翻译** (`deepseekContextAwareEnabled`)：自动收集前后N条相邻条目注入 system prompt
-    - **多轮会话记忆** (`deepseekConversationEnabled`)：跨批次保持翻译风格一致
-    - **Priming 样本** (`deepseekPrimingEnabled`)：手选样本让模型先理解命名风格
-    - **Key/字段名参考** (`deepseekUseKeyContext`)：翻译时参考 key 辅助判断语义
+  - **用途**：批量翻译并通过回调上报进度（含 ETA 预估）。
+  - **AI 引擎**：通过 `AIEngineBase.translateBatch()` 支持自动分块、JSON 格式输出、暂停/取消。
+  - **并发控制**：受限于引擎 `rateLimitPerSecond`（如 Gemini 0.25 RPS 则强制串行）。
+  - **AI 翻译增强功能**（通过 SettingsCache 配置，适用于所有 AI 引擎）：
+    - **上下文感知翻译** (`aiContextAwareEnabled`)：自动收集前后N条相邻条目注入 system prompt
+    - **多轮会话记忆** (`aiConversationEnabled`)：跨批次保持翻译风格一致
+    - **Priming 样本** (`aiPrimingEnabled`)：手选样本让模型先理解命名风格
+    - **Key/字段名参考** (`aiUseKeyContext`)：翻译时参考 key 辅助判断语义
     - **请求缓存** (`translationRequestCacheEnabled`)：相同请求复用结果
-  - **其他引擎**（OpenAI/Google）：逐项翻译并汇总结果。
+  - **传统引擎**（Google Translate）：逐项翻译并汇总结果。
   - **取消机制**：依赖 `AppState.translations.isInProgress`。
   - **副作用**：直接修改传入 `items` 的 `targetText/status/qualityScore`。
   - **API Key 严格模式**：引擎缺少 API Key 或 Key 格式不正确时，批量翻译会立即中止并提示。

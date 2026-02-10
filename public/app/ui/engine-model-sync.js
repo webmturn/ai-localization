@@ -15,7 +15,7 @@ function initEngineModelSync() {
   const sidebarEngineSelect = DOMCache.get(
     "sidebarTranslationEngine",
   );
-  const modelDiv = DOMCache.get("openaiModelDiv");
+  const modelDiv = DOMCache.get("aiModelDiv");
   const temperatureDiv = DOMCache.get("temperatureDiv");
   const temperatureInput = DOMCache.get("temperature");
   const temperatureValue = DOMCache.get("temperatureValue");
@@ -28,12 +28,47 @@ function initEngineModelSync() {
 
   if (!engineSelect || !sidebarEngineSelect) return;
 
+  const toolbarCategoryFilter = DOMCache.get("toolbarEngineCategoryFilter");
+  const sidebarCategoryFilter = DOMCache.get("sidebarEngineCategoryFilter");
+
+  // 按类别重建引擎下拉框为扁平选项
+  function rebuildEngineSelectByCategory(selectEl, category, selectedValue) {
+    if (!selectEl) return;
+    var engines = EngineRegistry.getByCategory(category);
+    var prevValue = selectedValue || selectEl.value;
+    selectEl.replaceChildren();
+    for (var ei = 0; ei < engines.length; ei++) {
+      var opt = document.createElement("option");
+      opt.value = engines[ei].id;
+      opt.textContent = engines[ei].name;
+      selectEl.appendChild(opt);
+    }
+    var hasOld = Array.from(selectEl.options).some(function (o) { return o.value === prevValue; });
+    if (hasOld) {
+      selectEl.value = prevValue;
+    } else if (selectEl.options.length > 0) {
+      selectEl.value = selectEl.options[0].value;
+    }
+  }
+
+  // 同步所有类别下拉和引擎下拉
+  function syncToolbarCategory(category, selectedEngine) {
+    rebuildEngineSelectByCategory(engineSelect, category, selectedEngine);
+    rebuildEngineSelectByCategory(sidebarEngineSelect, category, selectedEngine);
+    if (toolbarCategoryFilter) toolbarCategoryFilter.value = category;
+    if (sidebarCategoryFilter) sidebarCategoryFilter.value = category;
+    updateEngineUI(engineSelect.value);
+  }
+
   // 更新UI显示的函数
   function updateEngineUI(selectedEngine) {
     const modelSelect = DOMCache.get("modelSelect");
 
-    // 根据引擎显示/隐藏对应选项
-    if (selectedEngine === "openai" || selectedEngine === "deepseek") {
+    // 根据引擎分类显示/隐藏模型和温度选项
+    var engineConfig = EngineRegistry.get(selectedEngine);
+    var isAI = engineConfig && engineConfig.category === "ai";
+
+    if (isAI) {
       modelDiv?.classList.remove("hidden");
       temperatureDiv?.classList.remove("hidden");
 
@@ -41,21 +76,41 @@ function initEngineModelSync() {
       if (modelSelect) {
         modelSelect.replaceChildren();
 
-        const optionDefs =
-          selectedEngine === "openai"
-            ? [
-                { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
-                { value: "gpt-4o", label: "GPT-4o (推荐)" },
-                { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-                { value: "gpt-4.1", label: "GPT-4.1" },
-                { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-                { value: "gpt-4", label: "GPT-4 (经典)" },
-                { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-              ]
-            : [
-                { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
-                { value: "deepseek-reasoner", label: "DeepSeek Reasoner (推理)" },
-              ];
+        var modelDefs = {
+          deepseek: [
+            { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
+            { value: "deepseek-reasoner", label: "DeepSeek Reasoner (推理)" },
+          ],
+          openai: [
+            { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
+            { value: "gpt-4o", label: "GPT-4o (推荐)" },
+            { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
+            { value: "gpt-4.1", label: "GPT-4.1" },
+            { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+            { value: "gpt-4", label: "GPT-4 (经典)" },
+            { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+          ],
+          gemini: [
+            { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
+            { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
+            { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+            { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+          ],
+          claude: [
+            { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
+            { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
+            { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
+          ],
+        };
+
+        var optionDefs = modelDefs[selectedEngine];
+        // 自定义引擎：显示一个可编辑的默认模型
+        if (!optionDefs && engineConfig) {
+          optionDefs = engineConfig.defaultModel
+            ? [{ value: engineConfig.defaultModel, label: engineConfig.defaultModel }]
+            : [];
+        }
+        if (!optionDefs) optionDefs = [];
 
         optionDefs.forEach(({ value, label }) => {
           const opt = document.createElement("option");
@@ -99,7 +154,10 @@ function initEngineModelSync() {
 
     const engine = String(selectedEngine || "").toLowerCase();
 
-    if (engine === "google") {
+    var settingsConfig = EngineRegistry.get(engine);
+    var settingsIsAI = settingsConfig && settingsConfig.category === "ai";
+
+    if (!settingsIsAI) {
       if (settingsModelContainer)
         settingsModelContainer.classList.add("hidden");
       return;
@@ -108,45 +166,57 @@ function initEngineModelSync() {
     if (settingsModelContainer)
       settingsModelContainer.classList.remove("hidden");
 
+    // 动态重建模型下拉框：只显示当前引擎的模型（无 optgroup 标题）
+    var modelDefs = {
+      deepseek: [
+        { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
+        { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
+      ],
+      openai: [
+        { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
+        { value: "gpt-4o", label: "GPT-4o (推荐)" },
+        { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
+        { value: "gpt-4.1", label: "GPT-4.1" },
+        { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+        { value: "gpt-4", label: "GPT-4" },
+        { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+      ],
+      gemini: [
+        { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
+        { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
+        { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+        { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+      ],
+      claude: [
+        { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
+        { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
+        { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
+      ],
+    };
+
+    var models = modelDefs[engine];
+    if (!models && settingsConfig && settingsConfig.defaultModel) {
+      models = [{ value: settingsConfig.defaultModel, label: settingsConfig.defaultModel }];
+    }
+    if (!models) models = [];
+
+    var prevModel = settingsModelSelect.value;
     settingsModelSelect.replaceChildren();
-
-    const optionDefs =
-      engine === "openai"
-        ? [
-            { value: "gpt-4o-mini", label: "GPT-4o mini" },
-            { value: "gpt-4o", label: "GPT-4o" },
-            { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-            { value: "gpt-4.1", label: "GPT-4.1" },
-            { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-            { value: "gpt-4", label: "GPT-4" },
-            { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-          ]
-        : [
-            { value: "deepseek-chat", label: "DeepSeek Chat" },
-            { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
-          ];
-
-    optionDefs.forEach(({ value, label }) => {
-      const opt = document.createElement("option");
-      opt.value = value;
-      opt.textContent = label;
+    for (var mi = 0; mi < models.length; mi++) {
+      var opt = document.createElement("option");
+      opt.value = models[mi].value;
+      opt.textContent = models[mi].label;
       settingsModelSelect.appendChild(opt);
-    });
+    }
 
-    const current = String(settingsModelSelect.value || "");
-    const hasCurrent = Array.from(settingsModelSelect.options).some(
-      (opt) => opt.value === current,
-    );
-
-    if (!hasCurrent) {
-      const fallback = engine === "openai" ? "gpt-4o-mini" : "deepseek-chat";
-      if (
-        Array.from(settingsModelSelect.options).some(
-          (opt) => opt.value === fallback,
-        )
-      ) {
-        settingsModelSelect.value = fallback;
-      }
+    // 恢复之前的选中值，或使用引擎默认模型
+    var hasPrev = Array.from(settingsModelSelect.options).some(function (o) { return o.value === prevModel; });
+    if (hasPrev) {
+      settingsModelSelect.value = prevModel;
+    } else if (settingsConfig && settingsConfig.defaultModel) {
+      settingsModelSelect.value = settingsConfig.defaultModel;
+    } else if (settingsModelSelect.options.length > 0) {
+      settingsModelSelect.value = settingsModelSelect.options[0].value;
     }
   }
 
@@ -156,6 +226,43 @@ function initEngineModelSync() {
       target.value = value;
     }
     updateEngineUI(value);
+    // 引擎切换 toast 反馈
+    var cfg = EngineRegistry.get(value);
+    if (cfg && typeof showNotification === "function") {
+      showNotification("info", "翻译引擎已切换", cfg.name + (cfg.defaultModel ? " · " + cfg.defaultModel : ""), { duration: 2000 });
+    }
+  }
+
+  // 工具栏类别选择器变更事件
+  if (toolbarCategoryFilter) {
+    EventManager.add(
+      toolbarCategoryFilter,
+      "change",
+      function () {
+        syncToolbarCategory(this.value);
+      },
+      {
+        tag: "engine",
+        scope: "engineModel",
+        label: "toolbarEngineCategoryFilter:change",
+      },
+    );
+  }
+
+  // 侧边栏类别选择器变更事件
+  if (sidebarCategoryFilter) {
+    EventManager.add(
+      sidebarCategoryFilter,
+      "change",
+      function () {
+        syncToolbarCategory(this.value);
+      },
+      {
+        tag: "engine",
+        scope: "engineModel",
+        label: "sidebarEngineCategoryFilter:change",
+      },
+    );
   }
 
   // 工具栏选择器变更事件
@@ -192,6 +299,10 @@ function initEngineModelSync() {
       "change",
       function () {
         updateSettingsEngineUI(this.value);
+        var cfg = EngineRegistry.get(this.value);
+        if (cfg && typeof showNotification === "function") {
+          showNotification("info", "默认引擎已更改", cfg.name, { duration: 2000 });
+        }
       },
       {
         tag: "engine",
@@ -217,7 +328,7 @@ function initEngineModelSync() {
     );
   }
 
-  // 温度滑块：更新显示并持久化到 localStorage（DeepSeek/OpenAI 翻译时使用）
+  // 温度滑块：更新显示并持久化到 localStorage（AI 引擎翻译时使用）
   if (temperatureInput && temperatureValue) {
     EventManager.add(
       temperatureInput,
@@ -243,21 +354,21 @@ function initEngineModelSync() {
   const rawInitialEngine =
     savedSettings.translationEngine ||
     savedSettings.defaultEngine ||
-    "deepseek";
-  const allowedEngines = ["deepseek", "openai", "google"];
-  const initialEngine = allowedEngines.includes(String(rawInitialEngine))
+    EngineRegistry.getDefaultEngineId();
+  const initialEngine = EngineRegistry.has(String(rawInitialEngine))
     ? String(rawInitialEngine)
-    : "deepseek";
+    : EngineRegistry.getDefaultEngineId();
   if (initialEngine !== rawInitialEngine) {
     savedSettings.translationEngine = initialEngine;
     savedSettings.defaultEngine = initialEngine;
     SettingsCache.save(savedSettings);
   }
-  engineSelect.value = initialEngine;
-  sidebarEngineSelect.value = initialEngine;
-  updateEngineUI(initialEngine);
+  // 根据初始引擎类别重建工具栏和侧边栏引擎下拉
+  var initialConfig = EngineRegistry.get(initialEngine);
+  var initialCategory = (initialConfig && initialConfig.category) || "ai";
+  syncToolbarCategory(initialCategory, initialEngine);
 
-  // 加载保存的温度并同步到侧栏滑块（DeepSeek/OpenAI 支持 0–2）
+  // 加载保存的温度并同步到侧栏滑块（AI 引擎支持 0–2）
   if (temperatureInput && temperatureValue) {
     const savedTemp = savedSettings.temperature;
     const num = parseFloat(savedTemp);

@@ -158,12 +158,15 @@ class UniversalValidators {
 
     // 验证API密钥等配置
     if (this.requiresApiKey(engine)) {
-      const apiKey = settings[`${engine}ApiKey`] || settings.apiKey;
+      var engineConfig = typeof EngineRegistry !== 'undefined' ? EngineRegistry.get(engine) : null;
+      var apiKeyField = engineConfig ? engineConfig.apiKeyField : (engine + 'ApiKey');
+      const apiKey = settings[apiKeyField] || settings.apiKey;
       if (!apiKey) {
+        var engineName = engineConfig ? engineConfig.name : engine;
         throw this.createValidationError(
           'MISSING_API_KEY',
-          `${engine} API密钥未配置`,
-          `请在设置中配置 ${engine} 的API密钥`
+          `${engineName} API密钥未配置`,
+          `请在设置中配置 ${engineName} 的API密钥`
         );
       }
     }
@@ -175,7 +178,12 @@ class UniversalValidators {
    * @returns {boolean} 是否需要API密钥
    */
   requiresApiKey(engine) {
-    const apiKeyEngines = ['openai', 'deepseek', 'anthropic', 'google'];
+    // 通过 EngineRegistry 判断：所有注册的引擎都需要 API Key
+    if (typeof EngineRegistry !== 'undefined' && EngineRegistry.has(engine)) {
+      return true;
+    }
+    // 向后兼容硬编码列表
+    const apiKeyEngines = ['openai', 'deepseek', 'anthropic', 'google', 'gemini', 'claude'];
     return apiKeyEngines.includes(engine.toLowerCase());
   }
 

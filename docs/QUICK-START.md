@@ -2,7 +2,7 @@
 
 > 仓库：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)
 
-> **⚠️ 首次使用必读**：必须先执行 `npm install` 和 `npm run build-css`，否则打开页面将无样式。`public/styles.css` 由构建生成，未提交到仓库。
+> **⚠️ 首次使用必读**：必须先执行 `npm install` 和 `npm run build`，否则打开页面将无样式且加载缓慢。`public/styles.css` 和 `public/app.bundle.js` 由构建生成，未提交到仓库。
 
 ## 🚀 5 分钟快速上手
 
@@ -25,21 +25,30 @@ npm --version
 npm install
 ```
 
-### 3. 构建 CSS
+### 3. 构建（CSS + JS Bundle）
 
 ```bash
-npm run build-css
+npm run build
+```
+或分别构建：
+```bash
+npm run build-css      # 构建 Tailwind CSS
+npm run build-bundle   # 合并 106 个 JS 为 1 个 bundle
 ```
 
 ### 4. 打开应用
 
 直接在浏览器中打开 `public/index.html` 文件即可使用！
 
+> 如果存在 `app.bundle.js` 则自动加载（快），否则回退到 `app.js` 逐个加载（慢）。
+
 ## 📋 常用命令速查
 
 | 命令 | 说明 |
 |------|------|
+| `npm run build` | 一键构建（CSS + JS Bundle） |
 | `npm run build-css` | 构建生产版本的 CSS |
+| `npm run build-bundle` | 合并 106 个 JS 为 1 个 bundle |
 | `npm run watch-css` | 监听 CSS 变化（开发模式） |
 | `npm run check-versions` | 检查第三方库最新版本 |
 | `npm run auto-update` | 自动更新到最新版本 |
@@ -79,7 +88,8 @@ npm run build-css
 ## 📁 重要文件说明
 
 - **`public/index.html`** - 主页面文件
-- **`public/app.js`** - 应用入口（按顺序加载 `public/app/**`）
+- **`public/app.js`** - 开发模式入口（按顺序加载 106 个脚本）
+- **`public/app.bundle.js`** - 生产 bundle（构建生成，1 个文件，加载更快）
 - **`public/app/`** - 应用核心逻辑（模块化代码）
 - **`src/input.css`** - 样式源文件（在这里添加自定义样式）
 - **`public/styles.css`** - 构建后的 CSS（自动生成，不要手动编辑）

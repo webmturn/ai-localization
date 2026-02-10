@@ -32,12 +32,12 @@ function __getDefaultProjectPromptTemplate(engineKey) {
 function __loadProjectPromptTemplatesToUI() {
   const generalEl = DOMCache.get("projectPromptTemplateGeneral");
   const openaiEl = DOMCache.get("projectPromptTemplateOpenAI");
-  const deepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
-  const deepseekBatchEl = DOMCache.get(
-    "projectPromptTemplateDeepSeekBatch",
+  const engineDeepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
+  const aiBatchEl = DOMCache.get(
+    "projectPromptTemplateAiBatch",
   );
 
-  if (!generalEl && !openaiEl && !deepseekEl && !deepseekBatchEl) return;
+  if (!generalEl && !openaiEl && !engineDeepseekEl && !aiBatchEl) return;
 
   let normalized = {};
   try {
@@ -59,23 +59,25 @@ function __loadProjectPromptTemplatesToUI() {
 
   const defGeneral = __getDefaultProjectPromptTemplate("general");
   const defOpenai = __getDefaultProjectPromptTemplate("openai");
-  const defDeepseek = __getDefaultProjectPromptTemplate("deepseek");
-  const defDeepseekBatch = __getDefaultProjectPromptTemplate("deepseekBatch");
+  const defEngineDeepseek = __getDefaultProjectPromptTemplate("deepseek");
+  const defAiBatch = __getDefaultProjectPromptTemplate("deepseekBatch");
 
   const generalValue =
     typeof normalized.general === "string" ? normalized.general : "";
   const openaiValue =
     typeof normalized.openai === "string" ? normalized.openai : "";
-  const deepseekValue =
+  const engineDeepseekValue =
     typeof normalized.deepseek === "string" ? normalized.deepseek : "";
-  const deepseekBatchValue =
-    typeof normalized.deepseekBatch === "string"
-      ? normalized.deepseekBatch
-      : typeof normalized.deepseek_batch === "string"
-        ? normalized.deepseek_batch
-        : typeof normalized.batch === "string"
-          ? normalized.batch
-          : "";
+  const aiBatchValue =
+    typeof normalized.aiBatch === "string"
+      ? normalized.aiBatch
+      : typeof normalized.deepseekBatch === "string"
+        ? normalized.deepseekBatch
+        : typeof normalized.deepseek_batch === "string"
+          ? normalized.deepseek_batch
+          : typeof normalized.batch === "string"
+            ? normalized.batch
+            : "";
 
   if (generalEl) {
     generalEl.value = generalValue;
@@ -89,16 +91,16 @@ function __loadProjectPromptTemplatesToUI() {
       openaiEl.placeholder = "留空表示继承通用模板";
     }
   }
-  if (deepseekEl) {
-    deepseekEl.value = deepseekValue;
-    if (defDeepseek && defDeepseek.trim()) {
-      deepseekEl.placeholder = "留空表示继承通用模板";
+  if (engineDeepseekEl) {
+    engineDeepseekEl.value = engineDeepseekValue;
+    if (defEngineDeepseek && defEngineDeepseek.trim()) {
+      engineDeepseekEl.placeholder = "留空表示继承通用模板";
     }
   }
-  if (deepseekBatchEl) {
-    deepseekBatchEl.value = deepseekBatchValue;
-    if (defDeepseekBatch && defDeepseekBatch.trim()) {
-      deepseekBatchEl.placeholder =
+  if (aiBatchEl) {
+    aiBatchEl.value = aiBatchValue;
+    if (defAiBatch && defAiBatch.trim()) {
+      aiBatchEl.placeholder =
         "留空表示继承通用模板（会自动补充 JSON 输出要求）";
     }
   }
@@ -110,24 +112,24 @@ async function __saveProjectPromptTemplatesFromUI() {
 
   const generalEl = DOMCache.get("projectPromptTemplateGeneral");
   const openaiEl = DOMCache.get("projectPromptTemplateOpenAI");
-  const deepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
-  const deepseekBatchEl = DOMCache.get(
-    "projectPromptTemplateDeepSeekBatch",
+  const engineDeepseekEl = DOMCache.get("projectPromptTemplateDeepSeek");
+  const aiBatchEl = DOMCache.get(
+    "projectPromptTemplateAiBatch",
   );
 
-  if (!generalEl && !openaiEl && !deepseekEl && !deepseekBatchEl) return;
+  if (!generalEl && !openaiEl && !engineDeepseekEl && !aiBatchEl) return;
 
   const generalRaw = generalEl ? String(generalEl.value || "") : "";
   const openaiRaw = openaiEl ? String(openaiEl.value || "") : "";
-  const deepseekRaw = deepseekEl ? String(deepseekEl.value || "") : "";
-  const deepseekBatchRaw = deepseekBatchEl
-    ? String(deepseekBatchEl.value || "")
+  const engineDeepseekRaw = engineDeepseekEl ? String(engineDeepseekEl.value || "") : "";
+  const aiBatchRaw = aiBatchEl
+    ? String(aiBatchEl.value || "")
     : "";
 
   const defGeneral = __getDefaultProjectPromptTemplate("general");
   const defOpenai = __getDefaultProjectPromptTemplate("openai");
-  const defDeepseek = __getDefaultProjectPromptTemplate("deepseek");
-  const defDeepseekBatch = __getDefaultProjectPromptTemplate("deepseekBatch");
+  const defEngineDeepseek = __getDefaultProjectPromptTemplate("deepseek");
+  const defAiBatch = __getDefaultProjectPromptTemplate("deepseekBatch");
 
   const next = {};
   if (
@@ -143,16 +145,16 @@ async function __saveProjectPromptTemplatesFromUI() {
     next.openai = openaiRaw;
   }
   if (
-    deepseekRaw.trim() &&
-    deepseekRaw.trim() !== String(defDeepseek || "").trim()
+    engineDeepseekRaw.trim() &&
+    engineDeepseekRaw.trim() !== String(defEngineDeepseek || "").trim()
   ) {
-    next.deepseek = deepseekRaw;
+    next.deepseek = engineDeepseekRaw;
   }
   if (
-    deepseekBatchRaw.trim() &&
-    deepseekBatchRaw.trim() !== String(defDeepseekBatch || "").trim()
+    aiBatchRaw.trim() &&
+    aiBatchRaw.trim() !== String(defAiBatch || "").trim()
   ) {
-    next.deepseekBatch = deepseekBatchRaw;
+    next.aiBatch = aiBatchRaw;
   }
 
   let existing = {};
@@ -177,22 +179,24 @@ async function __saveProjectPromptTemplatesFromUI() {
     typeof existing.general === "string" ? existing.general : "";
   const existingOpenai =
     typeof existing.openai === "string" ? existing.openai : "";
-  const existingDeepseek =
+  const existingEngineDeepseek =
     typeof existing.deepseek === "string" ? existing.deepseek : "";
   const existingBatch =
-    typeof existing.deepseekBatch === "string"
-      ? existing.deepseekBatch
-      : typeof existing.deepseek_batch === "string"
-        ? existing.deepseek_batch
-        : typeof existing.batch === "string"
-          ? existing.batch
-          : "";
+    typeof existing.aiBatch === "string"
+      ? existing.aiBatch
+      : typeof existing.deepseekBatch === "string"
+        ? existing.deepseekBatch
+        : typeof existing.deepseek_batch === "string"
+          ? existing.deepseek_batch
+          : typeof existing.batch === "string"
+            ? existing.batch
+            : "";
 
   const changed =
     existingGeneral !== (next.general || "") ||
     existingOpenai !== (next.openai || "") ||
-    existingDeepseek !== (next.deepseek || "") ||
-    existingBatch !== (next.deepseekBatch || "");
+    existingEngineDeepseek !== (next.deepseek || "") ||
+    existingBatch !== (next.aiBatch || "");
 
   if (!changed) return;
 
@@ -282,23 +286,23 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     );
   }
 
-  const resetProjectPromptTemplateDeepSeekBatch = DOMCache.get(
-    "resetProjectPromptTemplateDeepSeekBatch",
+  const resetProjectPromptTemplateAiBatch = DOMCache.get(
+    "resetProjectPromptTemplateAiBatch",
   );
-  if (resetProjectPromptTemplateDeepSeekBatch) {
+  if (resetProjectPromptTemplateAiBatch) {
     EventManager.add(
-      resetProjectPromptTemplateDeepSeekBatch,
+      resetProjectPromptTemplateAiBatch,
       "click",
       () => {
         const el = DOMCache.get(
-          "projectPromptTemplateDeepSeekBatch",
+          "projectPromptTemplateAiBatch",
         );
         if (el) el.value = "";
       },
       {
         tag: "settings",
         scope: "settingsModal",
-        label: "resetProjectPromptTemplateDeepSeekBatch:click",
+        label: "resetProjectPromptTemplateAiBatch:click",
       },
     );
   }

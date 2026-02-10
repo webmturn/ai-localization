@@ -14,8 +14,8 @@
 ### 2. 系统启动流程
 
 ```javascript
-// 1. public/index.html 仅加载 public/app.js
-// 2. public/app.js 按分层顺序加载脚本
+// 1. public/index.html 优先加载 app.bundle.js（生产），不存在则回退到 app.js（开发）
+// 2. app.js 按分层顺序加载脚本（开发模式），app.bundle.js 已内联所有脚本（生产模式）
 architectureScripts → coreScripts → serviceScripts → parserScripts → featureScripts → uiScripts → compatScripts → bootstrapScripts
 
 // 3. 架构系统初始化（由 public/app.js 触发）

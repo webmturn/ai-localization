@@ -206,10 +206,15 @@
                     <!-- 翻译引擎选择（仅桌面端） -->
                     <div class="toolbar-engine-select toolbar-control hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
                         <i class="fa fa-cog text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
+                        <select id="toolbarEngineCategoryFilter" title="引擎类别" aria-label="引擎类别" class="text-sm bg-transparent border-none focus:outline-none cursor-pointer text-gray-600 dark:text-gray-300">
+                            <option value="ai">AI</option>
+                            <option value="traditional">传统</option>
+                        </select>
                         <select id="translationEngine" name="translation_engine" title="选择翻译引擎" aria-label="翻译引擎选择">
-                            <option value="openai">OpenAI</option>
                             <option value="deepseek">DeepSeek</option>
-                            <option value="google">Google</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="claude">Claude</option>
                         </select>
                     </div>
                 </div>
@@ -366,15 +371,23 @@
                     <h3 class="text-sm font-medium text-gray-700 dark:text-gray-100 mb-3">翻译引擎设置</h3>
                     <div class="space-y-3">
                         <div>
+                            <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">引擎类别</label>
+                            <select id="sidebarEngineCategoryFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="引擎类别" aria-label="引擎类别">
+                                <option value="ai" selected>AI 翻译</option>
+                                <option value="traditional">传统翻译</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="sidebarTranslationEngine" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">选择翻译引擎</label>
                             <select id="sidebarTranslationEngine" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="选择翻译引擎" aria-label="选择翻译引擎">
-                                <option value="openai">OpenAI</option>
                                 <option value="deepseek">DeepSeek</option>
-                                <option value="google">Google</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="claude">Claude</option>
                             </select>
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">在设置中配置对应的API密钥</p>
                         </div>
-                        <div id="openaiModelDiv" class="hidden">
+                        <div id="aiModelDiv" class="hidden">
                             <label for="modelSelect" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">模型</label>
                             <select id="modelSelect" name="model" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="选择AI模型" aria-label="AI模型选择">
                                 <!-- 模型选项将根据引擎动态生成 -->
@@ -1274,26 +1287,55 @@
                             <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">翻译引擎设置</h4>
                             <div class="space-y-5">
                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">引擎类别</label>
+                                    <select id="engineCategoryFilter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="引擎类别" aria-label="引擎类别筛选">
+                                        <option value="ai" selected>AI 翻译</option>
+                                        <option value="traditional">传统翻译</option>
+                                    </select>
+                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">切换查看 AI 引擎或传统引擎的专属设置</p>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">默认翻译引擎</label>
                                     <select id="defaultEngine" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="默认翻译引擎" aria-label="默认翻译引擎">
-                                        <option value="deepseek" selected>DeepSeek</option>
-                                        <option value="openai">OpenAI</option>
-                                        <option value="google">Google Translate</option>
+                                        <optgroup label="AI 翻译">
+                                            <option value="deepseek" selected>DeepSeek</option>
+                                            <option value="openai">OpenAI</option>
+                                            <option value="gemini">Gemini</option>
+                                            <option value="claude">Claude</option>
+                                        </optgroup>
+                                        <optgroup label="传统翻译">
+                                            <option value="google">Google Translate</option>
+                                        </optgroup>
                                     </select>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">选择默认使用的翻译引擎</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">翻译模型</label>
                                     <select id="translationModel" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="翻译模型" aria-label="翻译模型">
-                                        <option value="deepseek-chat" selected>DeepSeek Chat</option>
-                                        <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-                                        <option value="gpt-4o-mini">GPT-4o mini</option>
-                                        <option value="gpt-4o">GPT-4o</option>
-                                        <option value="gpt-4.1-mini">GPT-4.1 mini</option>
-                                        <option value="gpt-4.1">GPT-4.1</option>
-                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                                        <option value="gpt-4">GPT-4</option>
-                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        <optgroup label="DeepSeek">
+                                            <option value="deepseek-chat" selected>DeepSeek Chat</option>
+                                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                                        </optgroup>
+                                        <optgroup label="OpenAI">
+                                            <option value="gpt-4o-mini">GPT-4o mini</option>
+                                            <option value="gpt-4o">GPT-4o</option>
+                                            <option value="gpt-4.1-mini">GPT-4.1 mini</option>
+                                            <option value="gpt-4.1">GPT-4.1</option>
+                                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                            <option value="gpt-4">GPT-4</option>
+                                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        </optgroup>
+                                        <optgroup label="Gemini">
+                                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                        </optgroup>
+                                        <optgroup label="Claude">
+                                            <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                                            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                                            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                                        </optgroup>
                                     </select>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">选择使用的AI模型</p>
                                 </div>
@@ -1348,8 +1390,9 @@
                                 </div>
 
                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-5">
-                                    <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-100">DeepSeek 准确度增强（可选）</h5>
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">通过 key/字段名与 priming 样本提升短词与结构化文件的翻译准确度</p>
+                                    <div id="aiEngineSettingsSection">
+                                    <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-100">AI 翻译增强设置（可选）</h5>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">通过 key/字段名、上下文感知、priming 样本与会话记忆提升所有 AI 引擎的翻译准确度</p>
                                     <div class="mt-4 space-y-4">
                                         <div class="flex items-center justify-between">
                                             <div>
@@ -1357,7 +1400,7 @@
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">适用于 Android strings、iOS .strings、JSON/RESX 等 key/value 结构</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="deepseekUseKeyContext" class="sr-only peer" title="翻译时参考 key/字段名" aria-label="翻译时参考 key/字段名">
+                                                <input type="checkbox" id="aiUseKeyContext" class="sr-only peer" title="翻译时参考 key/字段名" aria-label="翻译时参考 key/字段名">
                                                 <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                             </label>
                                         </div>
@@ -1368,17 +1411,17 @@
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">翻译时自动附带前后相邻条目，帮助 AI 理解语境、保持术语和语气一致</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="deepseekContextAwareEnabled" class="sr-only peer" title="启用上下文感知翻译" aria-label="启用上下文感知翻译">
+                                                <input type="checkbox" id="aiContextAwareEnabled" class="sr-only peer" title="启用上下文感知翻译" aria-label="启用上下文感知翻译">
                                                 <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                             </label>
                                         </div>
 
-                                        <div id="deepseekContextAwareOptions" class="pl-4 border-l-2 border-primary/30 space-y-3">
+                                        <div id="aiContextAwareOptions" class="pl-4 border-l-2 border-primary/30 space-y-3">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">上下文窗口大小</label>
                                                 <div class="flex items-center gap-3">
-                                                    <input type="range" id="deepseekContextWindowSize" min="1" max="10" value="3" class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary" title="上下文窗口大小" aria-label="上下文窗口大小">
-                                                    <span id="deepseekContextWindowSizeValue" class="text-sm font-mono text-gray-600 dark:text-gray-400 w-16 text-right">前后 3 条</span>
+                                                    <input type="range" id="aiContextWindowSize" min="1" max="10" value="3" class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary" title="上下文窗口大小" aria-label="上下文窗口大小">
+                                                    <span id="aiContextWindowSizeValue" class="text-sm font-mono text-gray-600 dark:text-gray-400 w-16 text-right">前后 3 条</span>
                                                 </div>
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">每个翻译批次附带前后各 N 条已翻译/待翻译条目作为参考</p>
                                             </div>
@@ -1390,7 +1433,7 @@
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">由你选择少量样本（默认 3）让模型先理解文件语境与命名风格</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="deepseekPrimingEnabled" class="sr-only peer" title="启用 Priming" aria-label="启用 Priming">
+                                                <input type="checkbox" id="aiPrimingEnabled" class="sr-only peer" title="启用 Priming" aria-label="启用 Priming">
                                                 <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                             </label>
                                         </div>
@@ -1398,12 +1441,12 @@
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priming 样本数</label>
-                                                <input type="number" id="deepseekPrimingSampleCount" value="3" min="1" max="20" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="Priming 样本数" aria-label="Priming 样本数">
+                                                <input type="number" id="aiPrimingSampleCount" value="3" min="1" max="20" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="Priming 样本数" aria-label="Priming 样本数">
                                             </div>
 
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">会话范围</label>
-                                                <select id="deepseekConversationScope" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="会话范围" aria-label="会话范围">
+                                                <select id="aiConversationScope" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="会话范围" aria-label="会话范围">
                                                     <option value="project" selected>项目全局</option>
                                                     <option value="fileType">按文件类型</option>
                                                     <option value="file">按文件</option>
@@ -1417,25 +1460,25 @@
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">同一范围内的翻译请求会共享上下文（可手动清空）</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="deepseekConversationEnabled" class="sr-only peer" title="启用多轮会话记忆" aria-label="启用多轮会话记忆">
+                                                <input type="checkbox" id="aiConversationEnabled" class="sr-only peer" title="启用多轮会话记忆" aria-label="启用多轮会话记忆">
                                                 <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                             </label>
                                         </div>
 
-                                        <input type="hidden" id="deepseekPrimingSampleIds" value="[]">
+                                        <input type="hidden" id="aiPrimingSampleIds" value="[]">
 
                                         <div class="flex items-center justify-between gap-3">
                                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                已选择 <span id="deepseekPrimingSelectedCount" class="font-semibold text-primary">0</span> 条样本
+                                                已选择 <span id="aiPrimingSelectedCount" class="font-semibold text-primary">0</span> 条样本
                                             </div>
                                             <div class="flex items-center gap-2">
-                                                <button id="selectDeepseekPrimingSamples" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="选择 Priming 样本" aria-label="选择 Priming 样本">
+                                                <button id="selectAiPrimingSamples" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="选择 Priming 样本" aria-label="选择 Priming 样本">
                                                     选择样本
                                                 </button>
-                                                <button id="viewDeepseekConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="查看 DeepSeek 会话" aria-label="查看 DeepSeek 会话">
+                                                <button id="viewAiConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="查看 AI 会话" aria-label="查看 AI 会话">
                                                     查看会话
                                                 </button>
-                                                <button id="clearDeepseekConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-red-300 dark:border-red-700 text-red-600 dark:text-gray-50 rounded-md hover:bg-red-50 dark:hover:bg-gray-600 transition-colors" title="清空 DeepSeek 会话" aria-label="清空 DeepSeek 会话">
+                                                <button id="clearAiConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-red-300 dark:border-red-700 text-red-600 dark:text-gray-50 rounded-md hover:bg-red-50 dark:hover:bg-gray-600 transition-colors" title="清空 AI 会话" aria-label="清空 AI 会话">
                                                     清空会话
                                                 </button>
                                             </div>
@@ -1444,13 +1487,31 @@
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">批量请求：每批最多条数</label>
-                                                <input type="number" id="deepseekBatchMaxItems" value="40" min="5" max="100" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="每批最多翻译条数" aria-label="每批最多条数">
+                                                <input type="number" id="aiBatchMaxItems" value="40" min="5" max="100" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="每批最多翻译条数" aria-label="每批最多条数">
                                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">单次 API 请求最多包含的翻译条数（5–100，默认 40）</p>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">每批最多字符（约）</label>
-                                                <input type="number" id="deepseekBatchMaxChars" value="6000" min="1000" max="20000" step="500" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="每批约最大字符" aria-label="每批最多字符">
+                                                <input type="number" id="aiBatchMaxChars" value="6000" min="1000" max="20000" step="500" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="每批约最大字符" aria-label="每批最多字符">
                                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">单批内容约最大字符，先到先切（1000–20000，默认 6000）</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                    <div id="traditionalEngineSettingsSection" class="hidden">
+                                        <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-100">传统翻译引擎设置</h5>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">传统翻译引擎（如 Google Translate）使用 REST API 进行逐条翻译，无需额外增强配置</p>
+                                        <div class="mt-4 space-y-3">
+                                            <div class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                                                <div class="flex items-start gap-3">
+                                                    <i class="fa fa-info-circle text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0"></i>
+                                                    <div class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                                                        <p>传统翻译引擎无需配置模型、Priming 样本或会话记忆等参数。</p>
+                                                        <p>翻译质量取决于引擎本身，可通过并发数量和重试次数优化稳定性。</p>
+                                                        <p>请在上方 <strong>API 密钥</strong> 标签页中配置对应引擎的 API Key。</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1494,12 +1555,12 @@
 
                                 <div>
                                     <div class="flex items-center justify-between gap-3 mb-2">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">DeepSeek System Prompt（批量翻译 JSON，覆盖，可留空继承通用）</label>
-                                        <button id="resetProjectPromptTemplateDeepSeekBatch" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="清空覆盖" aria-label="清空 DeepSeek 批量覆盖 Prompt">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">AI 批量翻译 System Prompt（JSON 输出，覆盖，可留空继承通用）</label>
+                                        <button id="resetProjectPromptTemplateAiBatch" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="清空覆盖" aria-label="清空 AI 批量覆盖 Prompt">
                                             清空覆盖
                                         </button>
                                     </div>
-                                    <textarea id="projectPromptTemplateDeepSeekBatch" rows="10" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" placeholder="留空表示继承通用模板（会自动补充 JSON 输出要求）"></textarea>
+                                    <textarea id="projectPromptTemplateAiBatch" rows="10" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" placeholder="留空表示继承通用模板（会自动补充 JSON 输出要求）"></textarea>
                                 </div>
 
                                 <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800 rounded-md p-3">
@@ -1546,6 +1607,26 @@
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于谷歌翻译服务,在 <a href="https://console.cloud.google.com/apis" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Google Cloud</a> 获取</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gemini API Key</label>
+                                    <div class="relative">
+                                        <input type="password" id="geminiApiKey" placeholder="请输入 Gemini API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                                        <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="geminiApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 Google Gemini AI 翻译,在 <a href="https://aistudio.google.com/apikey" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Google AI Studio</a> 获取</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Claude API Key</label>
+                                    <div class="relative">
+                                        <input type="password" id="claudeApiKey" placeholder="请输入 Claude API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                                        <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="claudeApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 Anthropic Claude AI 翻译,在 <a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Anthropic Console</a> 获取</p>
                                 </div>
                                 <div class="bg-yellow-50 dark:bg-amber-900 border border-yellow-200 dark:border-amber-700 rounded-md p-3">
                                     <div class="flex items-start">
@@ -2227,32 +2308,32 @@
         </div>
     </div>
 
-    <div id="deepseekPrimingSamplesModal" role="dialog" aria-modal="true" aria-labelledby="deepseekPrimingSamplesModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="aiPrimingSamplesModal" role="dialog" aria-modal="true" aria-labelledby="aiPrimingSamplesModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 id="deepseekPrimingSamplesModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">选择 Priming 样本</h3>
+                <h3 id="aiPrimingSamplesModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">选择 Priming 样本</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
             <div class="p-4 sm:p-6 overflow-y-auto">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-3">勾选样本（source-only），用于提升后续翻译准确度。key/字段名仅作为上下文，不会被翻译。</div>
-                <div id="deepseekPrimingSamplesList" class="space-y-2"></div>
+                <div id="aiPrimingSamplesList" class="space-y-2"></div>
             </div>
             <div class="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div class="text-xs text-gray-500 dark:text-gray-400">将保存到设置中（需要点击“保存设置”生效）</div>
                 <div class="flex items-center gap-2">
-                    <button id="cancelDeepseekPrimingSamples" type="button" class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                    <button id="saveDeepseekPrimingSamples" type="button" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存样本</button>
+                    <button id="cancelAiPrimingSamples" type="button" class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                    <button id="saveAiPrimingSamples" type="button" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存样本</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="deepseekConversationViewerModal" role="dialog" aria-modal="true" aria-labelledby="deepseekConversationViewerModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
+    <div id="aiConversationViewerModal" role="dialog" aria-modal="true" aria-labelledby="aiConversationViewerModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-6xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 id="deepseekConversationViewerModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">DeepSeek 会话查看器</h3>
+                <h3 id="aiConversationViewerModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">AI 会话查看器</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
                     <i class="fa fa-times"></i>
                 </button>
@@ -2261,23 +2342,35 @@
                 <div class="flex gap-4 h-full overflow-hidden min-h-0">
                     <div class="w-52 flex-shrink-0 overflow-y-auto overflow-x-hidden min-h-0">
                         <div class="text-sm font-medium text-gray-800 dark:text-gray-100 mb-2">会话列表</div>
-                        <select id="deepseekConversationKeySelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="会话列表" aria-label="会话列表"></select>
-                        <div id="deepseekConversationMeta" class="mt-2 text-xs text-gray-500 dark:text-gray-400 break-words whitespace-pre-line"></div>
+                        <select id="aiConversationKeySelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="会话列表" aria-label="会话列表"></select>
+                        <div id="aiConversationMeta" class="mt-2 text-xs text-gray-500 dark:text-gray-400 break-words whitespace-pre-line"></div>
                         <div class="mt-3 flex items-center gap-2">
-                            <button id="copyDeepseekConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="复制会话" aria-label="复制会话">复制</button>
+                            <button id="copyAiConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="复制会话" aria-label="复制会话">复制</button>
                             <button type="button" class="close-modal px-3 py-2 text-xs sm:text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="关闭" aria-label="关闭">关闭</button>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0 flex flex-col overflow-hidden min-h-0">
                         <div class="text-sm font-medium text-gray-800 dark:text-gray-100 mb-2 flex-shrink-0">对话内容</div>
-                        <div id="deepseekConversationMessages" class="space-y-2 flex-1 overflow-y-auto min-h-0"></div>
+                        <div id="aiConversationMessages" class="space-y-2 flex-1 overflow-y-auto min-h-0"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 自定义JavaScript -->
-    <script src="app.js"></script>
+    <!-- 自定义JavaScript（app.bundle.js 为打包版本，app.js 为开发版本） -->
+    <script>
+      // 优先加载 bundle（1 个文件 vs 106 个），不存在则回退到开发模式 loader
+      (function () {
+        var s = document.createElement("script");
+        s.src = "app.bundle.js";
+        s.onerror = function () {
+          var f = document.createElement("script");
+          f.src = "app.js";
+          document.head.appendChild(f);
+        };
+        document.head.appendChild(s);
+      })();
+    </script>
 </body>
 </html>

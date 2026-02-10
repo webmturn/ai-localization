@@ -4,6 +4,37 @@
 
 ---
 
+## [v1.2.0] — 2026-02-10
+
+> 多引擎支持 & 性能优化
+
+### 新增
+- 翻译引擎注册表 `EngineRegistry`，统一引擎配置与发现
+- 新增 Gemini、Claude 翻译引擎支持
+- AI 引擎基类 `AIEngineBase`，支持 `_transformRequestBody` / `_parseResponseText` 钩子
+- 传统引擎基类 `TraditionalEngineBase`（Google Translate）
+- JS 打包脚本 `scripts/build-bundle.js`，合并 106 个 JS 为 1 个 `app.bundle.js`
+- `npm run build` 一键构建（CSS + JS Bundle）
+- 引擎切换 Toast 通知（工具栏/侧边栏/设置面板）
+- 批量翻译 ETA 预估（预计剩余 Xm Xs）
+- 用户友好错误消息（密钥无效/配额用完）
+
+### 修复
+- 速率限制：Promise 队列串行化 + `reportRateLimit` 共享冷却机制
+- Gemini `rateLimitPerSecond` 5→0.25（匹配免费层 15 RPM）
+- Claude API 端点修正为原生 `/v1/messages` + `anthropic-version` 头
+- 解析 `Retry-After` 头（单条+批量双路径）
+- 区分 quota-exceeded（不可重试）与 rate-limit（可重试）
+- 批量翻译并发数受限于引擎 `rateLimitPerSecond`
+- 设置面板引擎切换后模型下拉框联动重建
+- Bundle TDZ 修复：顶层 `const`/`let` 转 `var`，`safeLog` 注入
+
+### 改进
+- `index.html` 自动检测 bundle，不存在时回退到 `app.js` 开发模式
+- 批量翻译 `processOne` 传递 `normalizedEngine`（保证非 null）
+
+---
+
 ## [v1.1.0] — 2026-02-09
 
 > 移动端体验优化 & 桌面客户端预览 | [详细发布说明](docs/RELEASE-v1.1.0.md)

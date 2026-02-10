@@ -1,9 +1,10 @@
 // 批量翻译接口
+// 通过 EngineRegistry 自动分发：AI 引擎走批量 JSON 路径，传统/不支持批量的引擎走逐项路径
 TranslationService.prototype.translateBatch = async function (
   items,
   sourceLang,
   targetLang,
-  engine = "deepseek",
+  engine = null,
   onProgress = null
 ) {
   const results = [];
@@ -26,13 +27,15 @@ TranslationService.prototype.translateBatch = async function (
 
   (loggers.translation || console).info(`开始批量翻译: ${total} 项`);
 
-  const normalizedEngine = (engine || "").toString().toLowerCase();
+  const normalizedEngine = (engine || EngineRegistry.getDefaultEngineId()).toString().toLowerCase();
+  const engineConfig = EngineRegistry.get(normalizedEngine);
 
   const getItemKey = translationGetItemKey;
   const getFileBase = translationGetFileBase;
   const toSnippet = translationToSnippet;
 
-  if (normalizedEngine === "deepseek") {
+  // ========== AI 引擎批量路径 ==========
+  if (engineConfig && engineConfig.category === "ai" && engineConfig.supportsBatch) {
     try {
       if (!AppState.translations.isInProgress) {
         (loggers.translation || console).debug("翻译已被取消 (尚未开始)");
@@ -45,12 +48,12 @@ TranslationService.prototype.translateBatch = async function (
       }
 
       if (onProgress) {
-        onProgress(0, total, "正在请求 DeepSeek 批量翻译...");
+        onProgress(0, total, "正在请求 " + engineConfig.name + " 批量翻译...");
       }
       if (typeof addProgressLog === "function") {
         addProgressLog({
           level: "info",
-          message: `开始批量翻译（DeepSeek）：${total} 项（${sourceLang} → ${targetLang}）`,
+          message: `开始批量翻译（${engineConfig.name}）：${total} 项（${sourceLang} → ${targetLang}）`,
         });
       }
 
@@ -61,7 +64,8 @@ TranslationService.prototype.translateBatch = async function (
         addProgressLog(logBuffer.splice(0));
       };
 
-      const translatedList = await this.translateBatchWithDeepSeek(
+      const translatedList = await AIEngineBase.translateBatch(
+        normalizedEngine,
         items,
         sourceLang,
         targetLang,
@@ -72,7 +76,8 @@ TranslationService.prototype.translateBatch = async function (
               addProgressLog({ level: "info", message: msg });
             }
           },
-        }
+        },
+        this
       );
 
       for (let i = 0; i < items.length; i++) {
@@ -196,11 +201,11 @@ TranslationService.prototype.translateBatch = async function (
         if (typeof addProgressLog === "function") {
           addProgressLog({
             level: "error",
-            message: `DeepSeek 批量翻译失败: ${msg || "DeepSeek API密钥未配置"}`,
+            message: `${engineConfig.name} 批量翻译失败: ${msg || engineConfig.name + " API密钥未配置"}`,
           });
         }
 
-        translationMarkAllAsErrors(items, errors, msg || "DeepSeek API密钥未配置", {
+        translationMarkAllAsErrors(items, errors, msg || engineConfig.name + " API密钥未配置", {
           status: error?.status,
           code: error?.code,
           provider: error?.provider,
@@ -208,69 +213,72 @@ TranslationService.prototype.translateBatch = async function (
         });
 
         if (onProgress) {
-          onProgress(0, total, "DeepSeek API Key 未配置，已中止批量翻译");
+          onProgress(0, total, engineConfig.name + " API Key 未配置，已中止批量翻译");
         }
 
         return { results, errors };
       }
 
+      // 批量路径 429 时触发共享冷却，让后续逐项路径等待
+      const batchStatus = error?.status;
+      const batchIs429 = batchStatus === 429 || (msg && (msg.includes("429") || /rate\s*limit/i.test(msg)));
+      if (batchIs429 && typeof this.reportRateLimit === "function") {
+        this.reportRateLimit(normalizedEngine, error?.retryAfter || 30);
+      }
+
       if (typeof addProgressLog === "function") {
         addProgressLog({
           level: "error",
-          message: `DeepSeek 批量翻译失败: ${msg || error}`,
+          message: `${engineConfig.name} 批量翻译失败: ${msg || error}`,
         });
       }
       (loggers.translation || console).warn(
-        "DeepSeek 批量翻译失败，将回退为逐项翻译:",
+        engineConfig.name + " 批量翻译失败，将回退为逐项翻译:",
         msg || error
       );
     }
   }
 
-  // 其他引擎：预检 API Key，避免逐项失败刷屏
-  if (normalizedEngine === "openai" || normalizedEngine === "google") {
+  // ========== 预检 API Key（通用，基于 EngineRegistry） ==========
+  if (engineConfig) {
     const settings = await this.getSettings().catch(() => ({}));
-    let key = "";
-    let providerLabel = normalizedEngine === "openai" ? "OpenAI" : "Google Translate";
-    let validateType = normalizedEngine === "openai" ? "openai" : "google";
-
-    if (normalizedEngine === "openai") {
-      key = settings.openaiApiKey;
-    } else {
-      key = settings.googleApiKey;
-    }
-
+    const key = settings[engineConfig.apiKeyField];
     const missing = !key;
-    const invalid = !missing && !securityUtils.validateApiKey(key, validateType);
+    const invalid = !missing && !securityUtils.validateApiKey(key, engineConfig.apiKeyValidationType || normalizedEngine);
 
     if (missing || invalid) {
-      const msg = missing
-        ? `${providerLabel} API密钥未配置`
-        : `${providerLabel} API密钥格式不正确`;
+      const keyMsg = missing
+        ? engineConfig.name + " API密钥未配置"
+        : engineConfig.name + " API密钥格式不正确";
 
       if (typeof addProgressLog === "function") {
-        addProgressLog({ level: "error", message: msg });
+        addProgressLog({ level: "error", message: keyMsg });
       }
 
-      translationMarkAllAsErrors(items, errors, msg, {
+      translationMarkAllAsErrors(items, errors, keyMsg, {
         code: missing ? "API_KEY_MISSING" : "API_KEY_INVALID",
         provider: normalizedEngine,
       });
 
       if (onProgress) {
-        onProgress(0, total, `${providerLabel} API Key 未配置/无效，已中止批量翻译`);
+        onProgress(0, total, engineConfig.name + " API Key 未配置/无效，已中止批量翻译");
       }
 
       return { results, errors };
     }
   }
 
-  // 逐项处理（支持并发）
-  const nonDeepseekSettings = await this.getSettings().catch(() => ({}));
-  const rawLimit = parseInt(nonDeepseekSettings?.concurrentLimit);
-  const concurrentLimit = Number.isFinite(rawLimit)
-    ? Math.max(1, Math.min(10, rawLimit))
-    : 1;
+  // ========== 逐项处理（支持并发） ==========
+  const itemSettings = await this.getSettings().catch(() => ({}));
+  const rawLimit = parseInt(itemSettings?.concurrentLimit);
+  // 并发数不超过引擎速率限制（rateLimitPerSecond < 1 时强制串行）
+  const engineRps = engineConfig?.rateLimitPerSecond || 3;
+  const maxByEngine = engineRps < 1 ? 1 : Math.ceil(engineRps);
+  const userLimit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10, rawLimit)) : 1;
+  const concurrentLimit = Math.min(userLimit, maxByEngine);
+
+  // ETA 预估
+  const etaStartTime = Date.now();
 
   const processOne = async (i) => {
     const item = items[i];
@@ -314,7 +322,7 @@ TranslationService.prototype.translateBatch = async function (
         item.sourceText,
         sourceLang,
         targetLang,
-        engine,
+        normalizedEngine,
         context
       );
 
@@ -373,7 +381,19 @@ TranslationService.prototype.translateBatch = async function (
           (item2.sourceText || "").length > 50
             ? item2.sourceText.substring(0, 50) + "..."
             : item2.sourceText || "";
-        onProgress(completed, total, `[${completed}/${total}] ${currentText}`);
+        // ETA 预估
+        let etaText = "";
+        if (completed > 0 && completed < total) {
+          const elapsed = Date.now() - etaStartTime;
+          const avgMs = elapsed / completed;
+          const remaining = Math.ceil((total - completed) * avgMs / 1000);
+          if (remaining >= 60) {
+            etaText = ` · 预计剩余 ${Math.floor(remaining / 60)}分${remaining % 60}秒`;
+          } else {
+            etaText = ` · 预计剩余 ${remaining}秒`;
+          }
+        }
+        onProgress(completed, total, `[${completed}/${total}] ${currentText}${etaText}`);
       }
     }
   };

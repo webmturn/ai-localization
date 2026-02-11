@@ -208,13 +208,6 @@ function selectCurrentPageTranslationItems() {
     : [];
   if (all.length === 0) return;
 
-  const itemsPerPage = Number.isFinite(AppState?.translations?.itemsPerPage)
-    ? AppState.translations.itemsPerPage
-    : 20;
-  const currentPage = Number.isFinite(AppState?.translations?.currentPage)
-    ? AppState.translations.currentPage
-    : 1;
-
   let filtered = Array.isArray(AppState?.translations?.filtered)
     ? AppState.translations.filtered
     : [];
@@ -225,9 +218,26 @@ function selectCurrentPageTranslationItems() {
   }
   if (filtered.length === 0) return;
 
-  const safePage = Math.max(1, currentPage);
-  const startIndex = (safePage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filtered.length);
+  // 虚拟滚动模式：选择当前可见范围内的项
+  var vsm = typeof VirtualScrollManager !== 'undefined' ? VirtualScrollManager.getInstance() : null;
+  var startIndex, endIndex;
+
+  if (vsm && vsm.isEnabled()) {
+    var vRange = vsm.getVisibleRange();
+    startIndex = vRange ? vRange.start : 0;
+    endIndex = vRange ? vRange.end : 0;
+  } else {
+    const itemsPerPage = Number.isFinite(AppState?.translations?.itemsPerPage)
+      ? AppState.translations.itemsPerPage
+      : 20;
+    const currentPage = Number.isFinite(AppState?.translations?.currentPage)
+      ? AppState.translations.currentPage
+      : 1;
+    const safePage = Math.max(1, currentPage);
+    startIndex = (safePage - 1) * itemsPerPage;
+    endIndex = Math.min(startIndex + itemsPerPage, filtered.length);
+  }
+
   const itemsToShow = filtered.slice(startIndex, endIndex);
   if (itemsToShow.length === 0) return;
 

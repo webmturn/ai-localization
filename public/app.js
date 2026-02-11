@@ -136,6 +136,7 @@
     "app/ui/file-drop.js",
     "app/ui/engine-model-sync.js",
     "app/ui/perf/sync-heights.js",
+    "app/ui/perf/virtual-scroll.js",
     "app/ui/event-listeners/keyboard.js",
     "app/ui/event-listeners/translations-lists.js",
     "app/ui/event-listeners/file-panels.js",

@@ -358,9 +358,7 @@ function updateTranslationLists() {
       AppState.translations._idToIndexSource = AppState.project.translationItems;
     }
 
-    // 计算分页（使用 AppState）
-    const itemsPerPage = AppState.translations.itemsPerPage;
-    const currentPage = AppState.translations.currentPage;
+    // 准备数据
     let filteredItems = AppState.translations.filtered;
     const translationItems = AppState.translations.items;
 
@@ -370,21 +368,31 @@ function updateTranslationLists() {
       AppState.translations.filtered = filteredItems;
     }
 
-    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, filteredItems.length);
-    const itemsToShow = filteredItems.slice(startIndex, endIndex);
+    // 虚拟滚动：根据数据量自动启用/禁用
+    var vsm = typeof VirtualScrollManager !== 'undefined' ? VirtualScrollManager.getInstance() : null;
+    if (vsm) vsm.autoToggle();
+    var virtualActive = vsm && vsm.isEnabled();
 
-    __devLog(
-      "当前页:",
-      currentPage,
-      "总页数:",
-      totalPages,
-      "显示范围:",
-      startIndex + 1,
-      "-",
-      endIndex
-    );
+    var startIndex, endIndex, itemsToShow, totalPages;
+
+    if (virtualActive) {
+      // 虚拟滚动模式：按滚动位置确定可见范围
+      var vRange = vsm.getVisibleRange();
+      startIndex = vRange ? vRange.start : 0;
+      endIndex = vRange ? vRange.end : Math.min(30, filteredItems.length);
+      itemsToShow = filteredItems.slice(startIndex, endIndex);
+      totalPages = 1; // 虚拟滚动无分页概念
+      __devLog("虚拟滚动范围:", startIndex, "-", endIndex, "共", filteredItems.length, "项");
+    } else {
+      // 分页模式
+      const itemsPerPage = AppState.translations.itemsPerPage;
+      const currentPage = AppState.translations.currentPage;
+      totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+      startIndex = (currentPage - 1) * itemsPerPage;
+      endIndex = Math.min(startIndex + itemsPerPage, filteredItems.length);
+      itemsToShow = filteredItems.slice(startIndex, endIndex);
+      __devLog("当前页:", currentPage, "总页数:", totalPages, "显示范围:", startIndex + 1, "-", endIndex);
+    }
 
     // 仅为当前可见视图创建 DOM，跳过不可见视图（减少 ~50% DOM 操作）
     const sourceFragment = isMobile ? null : document.createDocumentFragment();
@@ -441,6 +449,15 @@ function updateTranslationLists() {
           );
         }
       });
+    }
+
+    // 虚拟滚动：设置上下 spacer
+    if (virtualActive && vsm) {
+      var spacers = vsm.getSpacers(startIndex, endIndex);
+      vsm._applySpacers(spacers.top, spacers.bottom);
+    } else if (vsm && !vsm.isEnabled()) {
+      // 分页模式：确保清除 spacer
+      vsm._clearSpacers();
     }
 
     // 一次性更新 DOM（仅更新可见视图）
@@ -508,17 +525,27 @@ function updateTranslationLists() {
       }
     }
 
-    // 更新分页
-    updatePaginationUI(
-      filteredItems.length,
-      startIndex + 1,
-      endIndex,
-      currentPage,
-      totalPages
-    );
+    // 更新分页（虚拟滚动模式下跳过）
+    if (!virtualActive) {
+      updatePaginationUI(
+        filteredItems.length,
+        startIndex + 1,
+        endIndex,
+        AppState.translations.currentPage,
+        totalPages
+      );
+    }
 
     // 翻页/过滤后立即同步高度，避免延迟导致布局抖动
     syncTranslationHeights();
+
+    // 虚拟滚动：渲染后测量实际行高并缓存
+    if (virtualActive && vsm) {
+      // 在 syncTranslationHeights 回调后测量（高度同步完成后才准确）
+      requestAnimationFrame(function () {
+        vsm.measureRenderedHeights();
+      });
+    }
 
     AppState.translations.renderVersion =
       (AppState.translations.renderVersion || 0) + 1;
@@ -527,7 +554,7 @@ function updateTranslationLists() {
         new CustomEvent("translations:rendered", {
           detail: {
             version: AppState.translations.renderVersion,
-            page: currentPage,
+            page: virtualActive ? 1 : AppState.translations.currentPage,
             startIndex,
             endIndex,
           },

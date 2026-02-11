@@ -380,7 +380,16 @@ async function __focusTranslationItemImpl(itemId) {
   const beforeVersion = AppState.translations.renderVersion || 0;
   let willUpdateList = false;
 
-  if (AppState.translations.currentPage !== targetPage) {
+  // 虚拟滚动模式：直接滚动到目标位置
+  var vsm = typeof VirtualScrollManager !== 'undefined' ? VirtualScrollManager.getInstance() : null;
+  if (vsm && vsm.isEnabled()) {
+    var scrollIdx = filteredIndex >= 0 ? filteredIndex : index;
+    if (didResetFilter) {
+      willUpdateList = true;
+      updateTranslationLists();
+    }
+    vsm.scrollToFilteredIndex(scrollIdx);
+  } else if (AppState.translations.currentPage !== targetPage) {
     if (typeof isDevelopment !== "undefined" && isDevelopment) {
       (loggers.app || console).info(`切换到第 ${targetPage} 页以显示索引 ${index} 的项`);
     }

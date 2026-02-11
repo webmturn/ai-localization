@@ -5,7 +5,7 @@
 var VirtualScrollManager = (function () {
   var ESTIMATED_ROW_HEIGHT = 90;
   var BUFFER_ROWS = 5;
-  var AUTO_ENABLE_THRESHOLD = 100;
+  var AUTO_ENABLE_THRESHOLD = Infinity; // 不自动启用，保留分页模式
   var instance = null;
 
   function VSM() {

@@ -76,16 +76,37 @@ const EventManager = {
       }
     }
 
-    target.addEventListener(event, handler, listenerOptions);
-
     const listenerId = `${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
+
+    // 检测 once 选项：包装 handler 使其在触发后自动从 listeners 数组中清除
+    const hasOnce = listenerOptions && typeof listenerOptions === "object" && listenerOptions.once;
+    let actualHandler = handler;
+    if (hasOnce) {
+      const self = this;
+      actualHandler = function onceWrapper(e) {
+        handler.call(this, e);
+        // 浏览器已自动移除原生监听器，仅清理 EventManager 跟踪条目
+        const idx = self.listeners.findIndex((l) => l.id === listenerId);
+        if (idx !== -1) self.listeners.splice(idx, 1);
+      };
+      // 移除 once 标记，由 wrapper 自行管理生命周期
+      if (typeof listenerOptions === "object") {
+        const { once: _once, ...rest } = listenerOptions;
+        listenerOptions = Object.keys(rest).length > 0 ? rest : undefined;
+      } else {
+        listenerOptions = undefined;
+      }
+    }
+
+    target.addEventListener(event, actualHandler, listenerOptions);
+
     this.listeners.push({
       id: listenerId,
       target,
       event,
-      handler,
+      handler: actualHandler,
       options: listenerOptions,
       tag,
       scope,

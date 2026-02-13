@@ -333,9 +333,15 @@ class ErrorManager {
     
     let code = ERROR_CODES.UNKNOWN_ERROR;
     let details = { originalError: error, context };
+
+    // 优先使用原始错误上已有的已知错误代码，避免启发式匹配覆盖精确分类
+    const originalCode = error?.code || error?.details?.originalError?.code;
+    if (originalCode && Object.values(ERROR_CODES).includes(originalCode)) {
+      code = originalCode;
+    }
     
-    // 网络错误
-    if (name === 'AbortError' && context.userCancelled) {
+    // 网络错误（仅在未命中已知代码时进行启发式匹配）
+    else if (name === 'AbortError' && context.userCancelled) {
       code = ERROR_CODES.USER_CANCELLED;
     } else if (name === 'AbortError' || errorString.includes('abort')) {
       code = ERROR_CODES.TIMEOUT;
@@ -374,14 +380,6 @@ class ErrorManager {
         code = ERROR_CODES.API_KEY_MISSING;
       } else if (errorString.includes('格式') || errorString.includes('invalid')) {
         code = ERROR_CODES.API_KEY_INVALID;
-      }
-    }
-
-    // 如果仍然是 UNKNOWN_ERROR，但原始错误里带有已知的错误代码，则沿用原始错误代码
-    if (code === ERROR_CODES.UNKNOWN_ERROR) {
-      const originalCode = error?.code || error?.details?.originalError?.code;
-      if (originalCode && Object.values(ERROR_CODES).includes(originalCode)) {
-        code = originalCode;
       }
     }
     

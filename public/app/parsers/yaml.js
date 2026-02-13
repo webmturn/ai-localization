@@ -134,7 +134,8 @@ function exportYAML(items, options = {}) {
         lines.push(`${prefix}${key}:`);
         lines.push(toYAML(value, level + 1));
       } else {
-        const quotedValue = useQuotes ? `"${value}"` : value;
+        const escapedValue = String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const quotedValue = useQuotes ? `"${escapedValue}"` : value;
         lines.push(`${prefix}${key}: ${quotedValue}`);
       }
     }

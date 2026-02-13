@@ -332,15 +332,7 @@ class UniversalValidators {
       showNotification('warning', '验证失败', error.userMessage || error.message);
     }
 
-    // 记录到错误管理器
-    if (this.errorManager) {
-      this.errorManager.handleError(error, {
-        ...context,
-        isValidationError: true
-      });
-    }
-
-    // 控制台输出详细信息（开发模式）
+    // 仅记录日志，不通过 errorManager 重复显示通知
     (loggers.app || console).warn(`验证失败 [${error.code}]:`, error.message, context);
   }
 }

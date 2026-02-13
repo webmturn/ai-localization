@@ -702,6 +702,9 @@ body.sidebar-resizing * {
 
 #notification {
     z-index: 100;
+    border-radius: 0.75rem;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* 当通知显示时，调整布局 - 使用高特异性选择器 */
@@ -1291,16 +1294,6 @@ body:not(.dark-mode) #notification {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* 导出按钮增强 */
-#exportBtn {
-    transition: background-color 0.15s ease, box-shadow 0.15s ease;
-    font-weight: 500;
-}
-
-#exportBtn:hover {
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-}
-
 /* ==================== range 滑块美化 ==================== */
 input[type="range"] {
     -webkit-appearance: none;
@@ -1332,6 +1325,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.15);
 }
 
+.dark-mode input[type="range"]::-webkit-slider-thumb {
+    border-color: #1f2937;
+}
+
 input[type="range"]::-moz-range-thumb {
     width: 18px;
     height: 18px;
@@ -1340,6 +1337,10 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
     border: 2px solid white;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode input[type="range"]::-moz-range-thumb {
+    border-color: #1f2937;
 }
 
 /* ==================== 分页控件增强 ==================== */
@@ -1364,13 +1365,6 @@ input[type="range"]::-moz-range-thumb {
 
 [role="dialog"] .bg-primary:hover {
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-}
-
-/* ==================== 通知样式增强 ==================== */
-#notification {
-    border-radius: 0.75rem;
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
-                opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ==================== 搜索输入框增强 ==================== */

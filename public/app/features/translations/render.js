@@ -79,7 +79,7 @@ var __targetItemTemplate = (function () {
     '<div class="flex items-stretch w-full h-full">' +
       '<div class="flex-1 min-w-0">' +
         '<div class="item-content h-full">' +
-          '<textarea class="w-full h-full border border-transparent rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none break-words bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" aria-label="译文编辑" title="译文编辑" style="font-family:inherit"></textarea>' +
+          '<textarea class="w-full h-full border-2 border-transparent rounded focus:outline-none focus:border-blue-500 resize-none break-words bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" aria-label="译文编辑" title="译文编辑" style="font-family:inherit"></textarea>' +
         '</div>' +
       '</div>' +
     '</div>';

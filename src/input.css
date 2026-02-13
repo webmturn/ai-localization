@@ -1065,16 +1065,9 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 }
 
-/* ==================== 视觉增强：模态框毛玻璃背景 ==================== */
-[role="dialog"] {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
 /* ==================== 按钮悬停阴影提升 ==================== */
 .toolbar-btn,
-#exportBtn,
-[id$="Btn"]:not(:disabled) {
+#exportBtn {
     transition: transform 80ms ease, filter 120ms ease, box-shadow 0.2s ease;
 }
 
@@ -1157,13 +1150,11 @@ a:focus-visible {
 }
 
 /* ==================== 暗色模式切换平滑过渡 ==================== */
-body,
-header,
-main,
-aside,
-section,
-.modal-content,
-#notification {
+body.theme-transitioning,
+body.theme-transitioning header,
+body.theme-transitioning main,
+body.theme-transitioning aside,
+body.theme-transitioning section {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 

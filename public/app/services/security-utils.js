@@ -68,7 +68,12 @@ class SecurityUtils {
     combined.set(iv);
     combined.set(new Uint8Array(encrypted), iv.length);
 
-    return btoa(String.fromCharCode(...combined));
+    // 分块转换，避免大数组 spread 导致栈溢出
+    var chunks = [];
+    for (var i = 0; i < combined.length; i += 8192) {
+      chunks.push(String.fromCharCode.apply(null, combined.slice(i, i + 8192)));
+    }
+    return btoa(chunks.join(""));
   }
 
   // 解密文本（先尝试当前盐值，失败后回退到旧固定盐值以兼容历史数据）

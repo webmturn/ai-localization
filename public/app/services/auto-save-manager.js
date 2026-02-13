@@ -14,10 +14,7 @@ class AutoSaveManager {
     this.errorCount = 0;          // 错误次数统计
     this.lastError = null;        // 最后一次错误
     this.isPaused = false;        // 是否暂停自动保存
-    this.saveQueue = [];          // 保存队列
     this.isSaving = false;        // 是否正在保存
-    this.maxRetries = 3;          // 最大重试次数
-    this.retryDelay = 1000;       // 重试延迟(ms)
     this.minSaveInterval = 2000;  // 最小保存间隔(ms)
   }
 
@@ -122,7 +119,7 @@ class AutoSaveManager {
   }
 
   // 保存项目（带重试机制）
-  async saveProject(retryCount = 0) {
+  async saveProject() {
     if (!AppState.project || this.isPaused) return;
     
     // 防止并发保存
@@ -224,6 +221,8 @@ class AutoSaveManager {
             "自动保存降级：由于 localStorage 空间不足，已跳过保存原始文件内容"
           );
         } catch (fallbackError) {
+          this.errorCount++;
+          this.lastError = { timestamp: Date.now(), message: fallbackError?.message };
           (loggers.storage || console).error("自动保存失败（降级后仍失败）:", fallbackError);
           if (typeof showNotification === "function") {
             showNotification(
@@ -236,6 +235,8 @@ class AutoSaveManager {
         return;
       }
 
+      this.errorCount++;
+      this.lastError = { timestamp: Date.now(), message: error?.message };
       (loggers.storage || console).error("自动保存失败:", error);
       if (typeof showNotification === "function") {
         showNotification(

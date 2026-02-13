@@ -99,13 +99,6 @@ class TranslationUIController {
       em.add(window, 'translationProgressChanged', (event) => {
         this.handleProgressChange(event.detail);
       }, { tag: 'translation', label: 'window:translationProgressChanged' });
-    } else if (typeof window.addEventListener === 'function') {
-      window.addEventListener('translationStateChanged', (event) => {
-        this.handleStateChange(event.detail);
-      });
-      window.addEventListener('translationProgressChanged', (event) => {
-        this.handleProgressChange(event.detail);
-      });
     }
   }
   

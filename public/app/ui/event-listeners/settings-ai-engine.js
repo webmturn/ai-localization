@@ -417,7 +417,7 @@ function registerEventListenersSettingsAiEngine(ctx) {
           }
           __renderAiConversationMessages(messages);
           if (copyBtn) {
-            copyBtn.onclick = async () => {
+            EventManager.add(copyBtn, "click", async () => {
               try {
                 const raw = snapshot[k] || [];
                 const payload = JSON.stringify(
@@ -442,12 +442,14 @@ function registerEventListenersSettingsAiEngine(ctx) {
                   "当前环境不支持自动复制",
                 );
               }
-            };
+            }, { tag: "settings", scope: "settingsModal", label: "copyAiConversation:click" });
           }
         };
 
         if (keySelect) {
-          keySelect.onchange = renderSelected;
+          EventManager.add(keySelect, "change", renderSelected, {
+            tag: "settings", scope: "settingsModal", label: "aiConversationKeySelect:change"
+          });
         }
         renderSelected();
         openModal("aiConversationViewerModal");

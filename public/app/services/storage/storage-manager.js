@@ -1253,10 +1253,15 @@ if (typeof document !== "undefined" && typeof EventManager !== "undefined") {
   }, { tag: "storage", label: "document:visibilitychange:storageRetry" });
 
   var __fsReconnectId = EventManager.add(document, "click", function () {
-    if (storageManager.__fsFallbackPending) {
-      storageManager.tryReconnectFilesystem().catch((e) => { (loggers.storage || console).debug('文件系统重连失败:', e); });
-    }
-    EventManager.removeById(__fsReconnectId);
+    if (!storageManager.__fsFallbackPending) return;
+    storageManager.tryReconnectFilesystem()
+      .then(function (ok) {
+        if (ok && __fsReconnectId) {
+          EventManager.removeById(__fsReconnectId);
+          __fsReconnectId = null;
+        }
+      })
+      .catch((e) => { (loggers.storage || console).debug('文件系统重连失败:', e); });
   }, { tag: "storage", label: "document:click:fsReconnect" });
 }
 

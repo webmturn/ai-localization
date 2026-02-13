@@ -124,7 +124,7 @@ const EngineRegistry = {
    * @returns {Object} 注册后的完整配置
    */
   registerCustom: function (userConfig) {
-    var id = userConfig.id || ("custom-" + Date.now());
+    var id = userConfig.id || ("custom-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
     var authType = userConfig.authType || "bearer";
     var config = {
       id: id,

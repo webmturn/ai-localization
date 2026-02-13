@@ -1,6 +1,6 @@
 {
   "name": "translation-tool",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "智能翻译工具 - 多格式本地化翻译助手",
   "scripts": {
     "build-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify --config ./config/tailwind.config.js",

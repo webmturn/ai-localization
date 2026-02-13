@@ -33,6 +33,8 @@ class TranslationService {
     // 确保至少有默认引擎
     if (!this.rateLimits.deepseek) this.rateLimits.deepseek = { maxPerSecond: 3, lastRequest: 0 };
     if (!this.rateLimits.openai) this.rateLimits.openai = { maxPerSecond: 3, lastRequest: 0 };
+    if (!this.rateLimits.gemini) this.rateLimits.gemini = { maxPerSecond: 0.25, lastRequest: 0 };
+    if (!this.rateLimits.claude) this.rateLimits.claude = { maxPerSecond: 3, lastRequest: 0 };
     if (!this.rateLimits.google) this.rateLimits.google = { maxPerSecond: 10, lastRequest: 0 };
   }
 }

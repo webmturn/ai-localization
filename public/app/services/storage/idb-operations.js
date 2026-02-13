@@ -10,6 +10,15 @@ const __fileContentDB = {
 let __notifiedIdbFileContentError = false;
 let __notifiedIdbVersionChange = false;
 function notifyIndexedDbFileContentErrorOnce(error, action) {
+  // 优先委托给统一的存储错误处理器（它内部按 error.name 做分类型去重）
+  try {
+    if (typeof storageErrorHandler !== "undefined" && storageErrorHandler && typeof storageErrorHandler.handleIndexedDBFileContentError === "function") {
+      storageErrorHandler.handleIndexedDBFileContentError(error, action);
+      return;
+    }
+  } catch (_) {}
+
+  // Fallback：storageErrorHandler 尚未就绪时使用原始通知逻辑（全局只通知一次）
   if (__notifiedIdbFileContentError) return;
   __notifiedIdbFileContentError = true;
   if (typeof showNotification !== "function") return;

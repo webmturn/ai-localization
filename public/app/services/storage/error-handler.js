@@ -12,9 +12,37 @@ function notifyStorageErrorV2(error, action, options = {}) {
   const {
     context = {}
   } = options;
+
+  const fallbackNotify = () => {
+    try {
+      if (typeof window !== 'undefined' && typeof window.notifyIndexedDbFileContentErrorOnceOriginal === 'function') {
+        return window.notifyIndexedDbFileContentErrorOnceOriginal(error, action);
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof showNotification === 'function') {
+        showNotification('warning', '存储异常', `${action || '存储操作'}失败，请重试或刷新页面。`);
+      }
+    } catch (_) {}
+
+    try {
+      (window.loggers?.storage || console).warn('notifyStorageErrorV2 fallback:', action, error);
+    } catch (_) {}
+    return { shouldNotify: false };
+  };
+  
+  if (typeof ErrorUtils === 'undefined' || !ErrorUtils || typeof errorManager === 'undefined' || !errorManager) {
+    return fallbackNotify();
+  }
   
   // 使用统一错误管理系统
-  const standardError = ErrorUtils.analyzeStorageError(error, action);
+  let standardError;
+  try {
+    standardError = ErrorUtils.analyzeStorageError(error, action);
+  } catch (e) {
+    return fallbackNotify();
+  }
   
   // 记录错误上下文
   const errorContext = {
@@ -25,7 +53,12 @@ function notifyStorageErrorV2(error, action, options = {}) {
   };
   
   // 处理错误（这会自动显示通知和解决方案）
-  const handledError = errorManager.handleError(standardError, errorContext);
+  let handledError;
+  try {
+    handledError = errorManager.handleError(standardError, errorContext);
+  } catch (e) {
+    return fallbackNotify();
+  }
   
   return handledError;
 }
@@ -412,8 +445,7 @@ window.StorageErrorHandler = {
   checkStorageHealth
 };
 
-// 向后兼容
-if (typeof notifyIndexedDbFileContentErrorOnce !== 'undefined') {
-  window.notifyIndexedDbFileContentErrorOnceOriginal = notifyIndexedDbFileContentErrorOnce;
-}
-window.notifyIndexedDbFileContentErrorOnce = notifyStorageErrorV2;
+// 向后兼容：保留 notifyStorageErrorV2 作为可直接调用的增强版接口，
+// 但不再覆盖 notifyIndexedDbFileContentErrorOnce —— 该函数已在 idb-operations.js
+// 中内置"优先委托 storageErrorHandler"的逻辑，无需外部替换。
+window.notifyStorageErrorV2 = notifyStorageErrorV2;

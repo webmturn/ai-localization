@@ -887,7 +887,7 @@ class StorageManager {
     if (!(typeof navigator !== "undefined" && navigator.userActivation?.isActive)) return false;
 
     try {
-      await fsBackend.ensureReady({ allowPrompt: false });
+      await fsBackend.ensureReady({ allowPrompt: true });
       this.preferredBackendId = "filesystem";
       this.__fsFallbackPending = false;
       this.__persistPreferredBackend("filesystem");

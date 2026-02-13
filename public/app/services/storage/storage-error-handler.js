@@ -225,16 +225,31 @@ class StorageErrorHandler {
    * @param {Object} options - 选项
    */
   showNotification(type, title, message, options = {}) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const uiOptions = {};
+
+    if (opts && typeof opts.action === 'function') {
+      uiOptions.action = opts.action;
+      uiOptions.actionLabel = opts.actionLabel;
+    } else if (Array.isArray(opts.actions) && opts.actions.length > 0) {
+      const first = opts.actions[0];
+      if (first && typeof first.action === 'function') {
+        uiOptions.action = first.action;
+        uiOptions.actionLabel = first.text;
+      }
+    }
+
     if (typeof showNotification === 'function') {
-      showNotification(type, title, message);
+      const hasUiOptions = Object.keys(uiOptions).length > 0;
+      showNotification(type, title, message, hasUiOptions ? uiOptions : undefined);
     } else {
       (loggers.storage || console).info(`${type.toUpperCase()}: ${title} - ${message}`);
     }
     
     // 处理额外操作
-    if (options.actions && Array.isArray(options.actions)) {
+    if (opts.actions && Array.isArray(opts.actions)) {
       // 这里可以扩展显示操作按钮的功能
-      (loggers.storage || console).debug("可用操作:", options.actions.map(a => a.text));
+      (loggers.storage || console).debug("可用操作:", opts.actions.map(a => a.text));
     }
   }
   

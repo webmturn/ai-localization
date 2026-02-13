@@ -161,7 +161,7 @@ function _aiIsCancelled() {
     return !!(
       typeof AppState !== "undefined" &&
       AppState?.translations &&
-      !AppState.translations.isInProgress
+      AppState.translations.isInProgress === false
     );
   } catch (_) {
     return false;
@@ -405,10 +405,16 @@ var AIEngineBase = {
     var onLog = options && typeof options.onLog === "function" ? options.onLog : null;
 
     if (!apiKey) {
-      throw new Error(config.name + " API密钥未配置");
+      var err1 = new Error(config.name + " API密钥未配置");
+      err1.code = "API_KEY_MISSING";
+      err1.provider = engineId;
+      throw err1;
     }
     if (!securityUtils.validateApiKey(apiKey, config.apiKeyValidationType || engineId)) {
-      throw new Error(config.name + " API密钥格式不正确");
+      var err2 = new Error(config.name + " API密钥格式不正确");
+      err2.code = "API_KEY_INVALID";
+      err2.provider = engineId;
+      throw err2;
     }
 
     var sourceLanguage = _AI_LANG_NAMES[sourceLang] || sourceLang;

@@ -4,6 +4,23 @@
 
 ---
 
+## [v1.2.1] — 2026-02-13
+
+> 代码质量审查 & 事件监听器规范化
+
+### 修复
+- **P1**: `settings-ai-engine.js` DOM0 事件绑定 (`.onclick`/`.onchange`) 替换为 `EventManager.add`，消除标签去重失效和内存泄漏风险
+- **P1**: `ui-controller.js` 移除 `EventManager` 不可用时回退原生 `addEventListener` 的死代码分支
+- **P2**: `storage-manager.js` `saveCurrentProject()` 内联 IndexedDB 错误通知逻辑（QuotaExceeded/AbortError/InvalidState/blocked）与 `StorageErrorHandler` 重复，委托给 `storageErrorHandler.handleError()`
+- 其余 11×P2 + 2×P3 问题已在前序迭代修复（共 13 个修复提交）
+
+### 改进
+- 全量代码质量审查：覆盖 `public/app/` 全部 11 个子目录、~127 个文件
+- 确认 27+ 处原生 `addEventListener` 均为合理使用（全局错误捕获 / DOMContentLoaded / 自管理 scroll+cleanup / AbortSignal / 开发环境专用）
+- 连续 9 轮审查无新问题，代码库无剩余已知质量缺陷
+
+---
+
 ## [v1.2.0] — 2026-02-10
 
 > 多引擎支持 & 性能优化

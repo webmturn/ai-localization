@@ -315,29 +315,29 @@ function registerEventListenersSettings(ctx) {
 
           // 术语库设置
           autoApplyTerms:
-            DOMCache.get("autoApplyTerms")?.checked || true,
+            DOMCache.get("autoApplyTerms")?.checked ?? true,
           termMatchMode:
             DOMCache.get("termMatchMode")?.value || "exact",
           highlightTerms:
-            DOMCache.get("highlightTerms")?.checked || true,
+            DOMCache.get("highlightTerms")?.checked ?? true,
           duplicateHandling:
             DOMCache.get("duplicateHandling")?.value || "overwrite",
 
           // 文件处理设置
           maxFileSize:
             parseInt(DOMCache.get("maxFileSize")?.value) || 10,
-          formatXML: DOMCache.get("formatXML")?.checked || true,
-          formatXLIFF: DOMCache.get("formatXLIFF")?.checked || true,
-          formatJSON: DOMCache.get("formatJSON")?.checked || true,
-          formatPO: DOMCache.get("formatPO")?.checked || true,
-          formatRESX: DOMCache.get("formatRESX")?.checked || true,
+          formatXML: DOMCache.get("formatXML")?.checked ?? true,
+          formatXLIFF: DOMCache.get("formatXLIFF")?.checked ?? true,
+          formatJSON: DOMCache.get("formatJSON")?.checked ?? true,
+          formatPO: DOMCache.get("formatPO")?.checked ?? true,
+          formatRESX: DOMCache.get("formatRESX")?.checked ?? true,
           formatIOSStrings:
-            DOMCache.get("formatIOSStrings")?.checked || true,
-          formatQtTS: DOMCache.get("formatQtTS")?.checked || true,
+            DOMCache.get("formatIOSStrings")?.checked ?? true,
+          formatQtTS: DOMCache.get("formatQtTS")?.checked ?? true,
           formatTextFallback:
-            DOMCache.get("formatTextFallback")?.checked || true,
+            DOMCache.get("formatTextFallback")?.checked ?? true,
           autoDetectEncoding:
-            DOMCache.get("autoDetectEncoding")?.checked || true,
+            DOMCache.get("autoDetectEncoding")?.checked ?? true,
           autoTranslateOnImport:
             DOMCache.get("autoTranslateOnImport")?.checked || false,
 

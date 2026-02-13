@@ -229,7 +229,7 @@ class ParserUtils {
     const result = [];
     
     for (const item of items) {
-      const key = item.sourceText;
+      const key = item.sourceText + '\0' + (item.metadata?.file || '');
       if (seen.has(key)) {
         // 保留有翻译的版本
         const existing = seen.get(key);
@@ -398,7 +398,13 @@ class EnhancedParserManager {
       // 获取解析器
       let items = [];
       
-      // 使用全局解析函数
+      // 优先使用通过 registerParser() 注册的解析器
+      if (this.parsers.has(format)) {
+        const registeredParser = this.parsers.get(format);
+        items = registeredParser(cleanedContent, fileName, options);
+        if (!Array.isArray(items)) items = [];
+      } else
+      // 内置全局解析函数（fallback）
       switch (format) {
         case 'json':
           if (typeof parseJSON === 'function') {

@@ -54,6 +54,20 @@ function handleDrop(e) {
   if (e.dataTransfer.files.length) {
     // 将 FileList 转换为数组，保持一致性
     const filesArray = Array.from(e.dataTransfer.files);
+
+    // 验证文件大小（10MB限制），与 handleFileSelect 保持一致
+    const invalidFiles = filesArray.filter(
+      (file) => !securityUtils.validateFileSize(file.size, 10)
+    );
+    if (invalidFiles.length > 0) {
+      showNotification(
+        "error",
+        "文件过大",
+        `以下文件超过10MB限制：${invalidFiles.map((f) => f.name).join(", ")}`
+      );
+      return;
+    }
+
     processFiles(filesArray);
   }
 }

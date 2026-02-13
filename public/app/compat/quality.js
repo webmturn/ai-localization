@@ -158,8 +158,10 @@ function updateIssuesTable(filter = { severity: "all", type: "all" }) {
 
 // 过滤问题（节流版）
 const filterIssuesThrottled = throttle(function () {
-  const severity = DOMCache.get("issueFilterSeverity").value;
-  const type = DOMCache.get("issueFilterType").value;
+  const severityEl = DOMCache.get("issueFilterSeverity");
+  const typeEl = DOMCache.get("issueFilterType");
+  const severity = severityEl ? severityEl.value : "all";
+  const type = typeEl ? typeEl.value : "all";
 
   updateIssuesTable({ severity, type });
 }, 300);

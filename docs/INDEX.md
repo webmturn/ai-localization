@@ -1,7 +1,7 @@
 # 文档索引
 
 **项目**: 智能翻译工具 (AI Localization)  
-**最后更新**: 2026-02-10
+**最后更新**: 2026-02-13
 
 ---
 
@@ -82,3 +82,4 @@
 | [history/DI_MIGRATION_EXAMPLE.md](history/DI_MIGRATION_EXAMPLE.md) | DI 迁移示例 |
 | [history/P1-PROGRESS-REPORT.md](history/P1-PROGRESS-REPORT.md) | P1 进度报告 |
 | [history/P1-FINAL-REPORT.md](history/P1-FINAL-REPORT.md) | P1 最终完成报告 |
+| [history/CODE-QUALITY-REVIEW.md](history/CODE-QUALITY-REVIEW.md) | 代码质量全量审查报告（19轮，127文件，19项修复） |

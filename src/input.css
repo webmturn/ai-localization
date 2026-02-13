@@ -1065,6 +1065,13 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 }
 
+/* ==================== 模态框毛玻璃背景（轻量版） ==================== */
+[role="dialog"] {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    will-change: backdrop-filter;
+}
+
 /* ==================== 按钮悬停阴影提升 ==================== */
 .toolbar-btn,
 #exportBtn {

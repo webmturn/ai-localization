@@ -1066,16 +1066,13 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 }
 
-/* ==================== 浅色主题：头部导航栏增强 ==================== */
-header {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
+/* ==================== 共享样式（两种主题通用） ==================== */
 header .flex.items-center button {
     transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-header #newProjectBtn {
+header #newProjectBtn,
+.toolbar-btn-primary {
     font-weight: 500;
     letter-spacing: 0.01em;
 }
@@ -1084,148 +1081,151 @@ header #newProjectBtn:hover {
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
-/* 浅色主题：导航栏按钮悬停边框加深 */
-header button.border:hover {
-    border-color: #9ca3af;
-}
-
-/* ==================== 浅色主题：侧边栏背景层次 ==================== */
-#leftSidebar,
-#rightSidebar {
-    box-shadow: inset 0 0 0 0 transparent;
-}
-
-/* 浅色主题：侧边栏分割线柔化 */
-#leftSidebar .border-b,
-#rightSidebar .border-t {
-    border-color: #e5e7eb;
-}
-
-/* ==================== 浅色主题：工具栏背景微调 ==================== */
-.toolbar-btn-primary {
-    font-weight: 500;
-    letter-spacing: 0.01em;
-}
-
-/* 浅色主题：工具栏背景区域边框加强 */
-.language-switcher {
-    border: 1px solid #e5e7eb;
-}
-
-.toolbar-engine-select {
-    border: 1px solid #e5e7eb;
-}
-
-/* ==================== 浅色主题：搜索栏增强 ==================== */
-#translationSearchInput,
-#searchInput {
-    border-color: #d1d5db;
-}
-
-#translationSearchInput:hover,
-#searchInput:hover {
-    border-color: #9ca3af;
-}
-
-/* ==================== 浅色主题：设置面板表单 ==================== */
-#settingsPanel select,
-#settingsPanel input {
-    border-color: #d1d5db;
-}
-
-#settingsPanel select:hover,
-#settingsPanel input:hover {
-    border-color: #9ca3af;
-}
-
-#settingsPanel label {
-    color: #4b5563;
-}
-
-#settingsPanel h3 {
-    color: #1f2937;
-    font-weight: 600;
-}
-
-#settingsPanel p.text-xs {
-    color: #6b7280;
-}
-
-/* ==================== 浅色主题：模态框增强 ==================== */
-[role="dialog"] {
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
-[role="dialog"] > .modal-content,
-[role="dialog"] > div {
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-/* 模态框内输入框边框对比度 */
-[role="dialog"] input[type="text"],
-[role="dialog"] select {
-    border-color: #d1d5db;
-}
-
-[role="dialog"] input[type="text"]:hover,
-[role="dialog"] select:hover {
-    border-color: #9ca3af;
-}
-
-/* 模态框取消按钮边框增强 */
-[role="dialog"] .close-modal.border {
-    border-color: #d1d5db;
-}
-
-[role="dialog"] .close-modal.border:hover {
-    border-color: #9ca3af;
-    background-color: #f9fafb;
-}
-
-/* ==================== 浅色主题：分页控件 ==================== */
-#paginationContainer {
-    background-color: #f9fafb;
-}
-
-#sourcePagination button {
-    border-color: #d1d5db;
-}
-
-#sourcePageInfo {
-    border-color: #e5e7eb;
-    background-color: #ffffff;
-}
-
-/* ==================== 浅色主题：导出按钮 ==================== */
 #exportBtn {
     font-weight: 600;
     letter-spacing: 0.02em;
 }
 
-/* ==================== 浅色主题：文件拖拽区域 ==================== */
-.file-drop-area {
+.translation-column-header h3 {
+    font-weight: 600;
+}
+
+#settingsPanel h3 {
+    font-weight: 600;
+}
+
+/* ==================== 浅色主题专属样式 ==================== */
+body:not(.dark-mode) header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+body:not(.dark-mode) header button.border:hover {
+    border-color: #9ca3af;
+}
+
+body:not(.dark-mode) .language-switcher {
+    border: 1px solid #e5e7eb;
+}
+
+body:not(.dark-mode) .toolbar-engine-select {
+    border: 1px solid #e5e7eb;
+}
+
+body:not(.dark-mode) #translationSearchInput,
+body:not(.dark-mode) #searchInput {
+    border-color: #d1d5db;
+}
+
+body:not(.dark-mode) #translationSearchInput:hover,
+body:not(.dark-mode) #searchInput:hover {
+    border-color: #9ca3af;
+}
+
+body:not(.dark-mode) #settingsPanel select,
+body:not(.dark-mode) #settingsPanel input {
+    border-color: #d1d5db;
+}
+
+body:not(.dark-mode) #settingsPanel select:hover,
+body:not(.dark-mode) #settingsPanel input:hover {
+    border-color: #9ca3af;
+}
+
+body:not(.dark-mode) #settingsPanel label {
+    color: #4b5563;
+}
+
+body:not(.dark-mode) #settingsPanel h3 {
+    color: #1f2937;
+}
+
+body:not(.dark-mode) #settingsPanel p.text-xs {
+    color: #6b7280;
+}
+
+body:not(.dark-mode) [role="dialog"] {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+body:not(.dark-mode) [role="dialog"] > .modal-content,
+body:not(.dark-mode) [role="dialog"] > div {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+body:not(.dark-mode) [role="dialog"] input[type="text"],
+body:not(.dark-mode) [role="dialog"] select {
+    border-color: #d1d5db;
+}
+
+body:not(.dark-mode) [role="dialog"] input[type="text"]:hover,
+body:not(.dark-mode) [role="dialog"] select:hover {
+    border-color: #9ca3af;
+}
+
+body:not(.dark-mode) [role="dialog"] .close-modal.border {
+    border-color: #d1d5db;
+}
+
+body:not(.dark-mode) [role="dialog"] .close-modal.border:hover {
+    border-color: #9ca3af;
+    background-color: #f9fafb;
+}
+
+body:not(.dark-mode) #paginationContainer {
+    background-color: #f9fafb;
+}
+
+body:not(.dark-mode) #sourcePagination button {
+    border-color: #d1d5db;
+}
+
+body:not(.dark-mode) #sourcePageInfo {
+    border-color: #e5e7eb;
+    background-color: #ffffff;
+}
+
+body:not(.dark-mode) .file-drop-area {
     border-color: #d1d5db;
     background-color: #fafbfc;
 }
 
-.file-drop-area:hover {
+body:not(.dark-mode) .file-drop-area:hover {
     border-color: #93c5fd;
     background-color: #eff6ff;
 }
 
-/* ==================== 浅色主题：翻译列表表头 ==================== */
-.translation-headers {
+body:not(.dark-mode) .translation-headers {
     background-color: #fafbfc;
 }
 
-.translation-column-header h3 {
+body:not(.dark-mode) .translation-column-header h3 {
     color: #1f2937;
-    font-weight: 600;
 }
 
-/* ==================== 浅色主题：通知样式 ==================== */
-#notification {
+body:not(.dark-mode) #notification {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* ==================== 暗色主题对应样式 ==================== */
+.dark-mode .language-switcher {
+    border: 1px solid #4b5563;
+}
+
+.dark-mode .toolbar-engine-select {
+    border: 1px solid #4b5563;
+}
+
+.dark-mode [role="dialog"] {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode [role="dialog"] > .modal-content,
+.dark-mode [role="dialog"] > div {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.dark-mode #notification {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* ==================== 左侧文件浏览器增强 ==================== */

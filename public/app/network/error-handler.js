@@ -297,8 +297,6 @@ class NetworkUtilsV2 extends NetworkUtils {
  * @param {Object} retryOptions - 重试选项
  * @returns {Promise<Response>} 响应对象
  */
-const __sharedNetworkUtilsV2 = new NetworkUtilsV2();
-
 async function fetchWithRetry(url, options = {}, retryOptions = {}) {
   const {
     maxRetries = 3,
@@ -307,7 +305,7 @@ async function fetchWithRetry(url, options = {}, retryOptions = {}) {
     timeout = 30000
   } = retryOptions;
   
-  const utils = __sharedNetworkUtilsV2;
+  const utils = window.networkUtilsV2 || new NetworkUtilsV2();
   
   let lastError = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {

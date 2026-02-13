@@ -183,6 +183,7 @@
 #translationScrollWrapper,
 .translation-scroll-wrapper {
     overflow-anchor: none;
+    scrollbar-gutter: stable;
 }
 @media (min-width: 768px) {
     html body .translation-headers .translation-column-header {

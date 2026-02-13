@@ -1009,42 +1009,10 @@ class StorageManager {
     } catch (e) {
       (loggers.storage || console).warn("保存 currentProject 失败:", preferred.backendId, e);
 
-      const errName = e && e.name ? String(e.name) : "";
-      const errMsg = e && e.message ? String(e.message) : String(e);
-
       if (preferred.backendId === "indexeddb") {
-        if (typeof showNotification === "function") {
-          if (errName === "QuotaExceededError") {
-            showNotification(
-              "error",
-              "存储空间不足",
-              "IndexedDB 存储空间不足，已尝试降级到 localStorage 保存。建议：清理站点数据/减少导入/导出项目备份。"
-            );
-          } else if (errName === "AbortError") {
-            showNotification(
-              "warning",
-              "IndexedDB写入中止",
-              "IndexedDB 写入被中止（可能是权限/并发/浏览器策略变化）。已尝试降级到 localStorage 保存。"
-            );
-          } else if (errName === "InvalidStateError") {
-            showNotification(
-              "warning",
-              "IndexedDB状态异常",
-              "IndexedDB 状态异常（可能数据库连接被关闭或升级中）。已尝试降级到 localStorage 保存。"
-            );
-          } else if (/blocked/i.test(errMsg) || /version/i.test(errMsg)) {
-            showNotification(
-              "warning",
-              "IndexedDB被阻塞",
-              "IndexedDB 可能被其他标签页占用或正在升级。已尝试降级到 localStorage 保存。"
-            );
-          } else {
-            showNotification(
-              "warning",
-              "IndexedDB保存失败",
-              "已尝试降级到 localStorage 保存。若问题持续，请清理站点数据或关闭其他标签页。"
-            );
-          }
+        // 委托给统一的存储错误处理器（去重通知 + 智能分类）
+        if (typeof storageErrorHandler !== "undefined" && storageErrorHandler) {
+          storageErrorHandler.handleError(e, { context: "保存项目", operation: "saveCurrentProject" });
         }
 
         try {

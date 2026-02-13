@@ -25,11 +25,11 @@ function __syncTranslationHeightsImpl(afterSync) {
     // 获取屏幕尺寸以确定最小高度 （isMobile 已在上方 early-return）
     var vw = window.innerWidth;
     var isTablet = vw >= 768 && vw < 1024;
-    var baseMinHeight = isTablet ? 80 : 90;
+    var baseMinHeight = isTablet ? 56 : 52;
 
     // 横屏且高度有限的情况
     if (window.matchMedia("(orientation: landscape)").matches && window.innerHeight < 600) {
-      baseMinHeight = 50;
+      baseMinHeight = 44;
     }
 
     // 使用 requestAnimationFrame 和批量读写分离减少重排

@@ -412,6 +412,7 @@ function updateTranslationLists() {
     } else {
       const idToIndex = AppState.translations.idToIndex;
       const allItems = AppState.project.translationItems;
+      var staggerIdx = 0;
       itemsToShow.forEach((item) => {
         if (!item) return;
 
@@ -422,32 +423,36 @@ function updateTranslationLists() {
         const isPrimarySelected =
           originalIndex === AppState.translations.selected;
 
+        // 交错动画索引（上限 15 避免后面的项延迟过长）
+        var si = Math.min(staggerIdx, 15);
+
         if (isMobile) {
-          mobileFragment.appendChild(
-            createMobileCombinedTranslationItemElement(
+          var mEl = createMobileCombinedTranslationItemElement(
               item,
               originalIndex,
               isPrimarySelected
-            )
           );
+          mEl.style.setProperty("--i", si);
+          mobileFragment.appendChild(mEl);
         } else {
-          sourceFragment.appendChild(
-            createTranslationItemElement(
+          var sEl = createTranslationItemElement(
               item,
               originalIndex,
               isPrimarySelected,
               true
-            )
           );
-          targetFragment.appendChild(
-            createTranslationItemElement(
+          sEl.style.setProperty("--i", si);
+          sourceFragment.appendChild(sEl);
+          var tEl = createTranslationItemElement(
               item,
               originalIndex,
               isPrimarySelected,
               false
-            )
           );
+          tEl.style.setProperty("--i", si);
+          targetFragment.appendChild(tEl);
         }
+        staggerIdx++;
       });
     }
 

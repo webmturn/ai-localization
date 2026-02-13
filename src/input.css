@@ -1247,6 +1247,95 @@ body.theme-transitioning section {
                 opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* ==================== 列表项交错进入动画 ==================== */
+@keyframes itemStaggerIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.responsive-translation-item {
+    animation: itemStaggerIn 0.25s ease both;
+    animation-delay: calc(var(--i, 0) * 25ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .responsive-translation-item {
+        animation: none;
+    }
+}
+
+/* ==================== 侧边栏标签页内容切换动画 ==================== */
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-panel.active,
+.project-tab-panel.active,
+.settings-tab-content.active {
+    animation: tabFadeIn 0.2s ease;
+}
+
+/* ==================== 模态框进入动画（scale + fade） ==================== */
+@keyframes modalEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+[role="dialog"]:not(.hidden) > .modal-content,
+[role="dialog"]:not(.hidden) > div:not(.modal-content) {
+    animation: modalEnter 0.2s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* ==================== 文件拖拽区域动态反馈 ==================== */
+@keyframes dropZonePulse {
+    0%, 100% { border-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3); }
+    50% { border-color: #2563eb; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+.file-drop-area[data-active="true"] {
+    animation: dropZonePulse 1.2s ease-in-out infinite;
+}
+
+/* ==================== 按钮涟漪效果 ==================== */
+.ripple-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-effect::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.3) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.ripple-effect:active::after {
+    opacity: 1;
+    transition: opacity 0s;
+}
+
 /* 字体大小：作用于根元素，页面内容通过 rem 继承 */
 html.text-sm {
     font-size: 14px;

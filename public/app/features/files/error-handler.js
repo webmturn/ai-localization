@@ -218,27 +218,12 @@ async function detectEncodingAndRead(file, signal) {
   const headerBuffer = await headerBlob.arrayBuffer();
   const headerBytes = new Uint8Array(headerBuffer);
   
-  let detectedEncoding = 'utf-8';
-  let hasBOM = false;
-  
-  // 检测BOM
-  if (headerBytes.length >= 3) {
-    if (headerBytes[0] === 0xEF && headerBytes[1] === 0xBB && headerBytes[2] === 0xBF) {
-      detectedEncoding = 'utf-8';
-      hasBOM = true;
-    } else if (headerBytes[0] === 0xFF && headerBytes[1] === 0xFE) {
-      detectedEncoding = 'utf-16le';
-      hasBOM = true;
-    } else if (headerBytes[0] === 0xFE && headerBytes[1] === 0xFF) {
-      detectedEncoding = 'utf-16be';
-      hasBOM = true;
-    }
-  }
-  
-  // 如果没有BOM，尝试检测编码
-  if (!hasBOM) {
-    detectedEncoding = detectTextEncoding(headerBytes);
-  }
+  // 检测BOM（委托给 ParserUtils 统一实现）
+  const bomEncoding = typeof ParserUtils !== 'undefined'
+    ? ParserUtils.detectBom(headerBytes)
+    : '';
+  const hasBOM = !!bomEncoding;
+  const detectedEncoding = hasBOM ? bomEncoding : detectTextEncoding(headerBytes);
   
   // 读取完整文件
   const content = await readFileWithEncoding(file, detectedEncoding, signal);

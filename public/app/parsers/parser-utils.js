@@ -14,15 +14,28 @@ class ParserUtils {
    * @returns {string} 编码名称
    */
   static detectEncoding(buffer) {
-    const bytes = new Uint8Array(buffer);
+    const bom = ParserUtils.detectBom(buffer);
+    return bom || 'utf-8';
+  }
+  
+  /**
+   * 检测 BOM（字节顺序标记）
+   * @param {ArrayBuffer|Uint8Array} bufferOrBytes - 文件缓冲区或字节数组
+   * @returns {string} BOM 对应的编码名称，无 BOM 时返回空字符串
+   */
+  static detectBom(bufferOrBytes) {
+    const bytes = bufferOrBytes instanceof Uint8Array
+      ? bufferOrBytes
+      : new Uint8Array(bufferOrBytes);
+    if (!bytes || bytes.length < 2) return '';
     
     // UTF-8 BOM
-    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
       return 'utf-8';
     }
     
     // UTF-32 LE BOM (must check before UTF-16 LE since both start with FF FE)
-    if (bytes[0] === 0xFF && bytes[1] === 0xFE && bytes[2] === 0x00 && bytes[3] === 0x00) {
+    if (bytes.length >= 4 && bytes[0] === 0xFF && bytes[1] === 0xFE && bytes[2] === 0x00 && bytes[3] === 0x00) {
       return 'utf-32le';
     }
     
@@ -36,8 +49,7 @@ class ParserUtils {
       return 'utf-16be';
     }
     
-    // 默认 UTF-8
-    return 'utf-8';
+    return '';
   }
   
   /**

@@ -23,15 +23,15 @@ async function __readFileAsyncImpl(file) {
     }
   };
 
-  const __detectBomEncoding = (bytes) => {
-    if (!bytes || bytes.length < 2) return "";
-    if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
-      return "utf-8";
-    }
-    if (bytes[0] === 0xff && bytes[1] === 0xfe) return "utf-16le";
-    if (bytes[0] === 0xfe && bytes[1] === 0xff) return "utf-16be";
-    return "";
-  };
+  const __detectBomEncoding = typeof ParserUtils !== 'undefined'
+    ? ParserUtils.detectBom
+    : (bytes) => {
+        if (!bytes || bytes.length < 2) return "";
+        if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return "utf-8";
+        if (bytes[0] === 0xff && bytes[1] === 0xfe) return "utf-16le";
+        if (bytes[0] === 0xfe && bytes[1] === 0xff) return "utf-16be";
+        return "";
+      };
 
   const __guessUtf16WithoutBom = (bytes) => {
     if (!bytes || bytes.length < 4) return "";

@@ -756,7 +756,7 @@ function initializeErrorManager() {
  * @param {Object} context - 上下文信息
  * @returns {Promise} 包装后的Promise
  */
-async function withErrorHandling(asyncFunction, context = {}) {
+async function executeWithErrorHandling(asyncFunction, context = {}) {
   try {
     return await asyncFunction();
   } catch (error) {
@@ -778,7 +778,7 @@ async function withErrorHandling(asyncFunction, context = {}) {
  * @returns {Promise} 翻译结果
  */
 async function withTranslationErrorHandling(translationFunction, context = {}) {
-  return withErrorHandling(translationFunction, {
+  return executeWithErrorHandling(translationFunction, {
     ...context,
     category: 'translation',
     retryable: true
@@ -792,7 +792,7 @@ async function withTranslationErrorHandling(translationFunction, context = {}) {
  * @returns {Promise} 存储结果
  */
 async function withStorageErrorHandling(storageFunction, context = {}) {
-  return withErrorHandling(storageFunction, {
+  return executeWithErrorHandling(storageFunction, {
     ...context,
     category: 'storage',
     retryable: true
@@ -806,7 +806,7 @@ async function withStorageErrorHandling(storageFunction, context = {}) {
  * @returns {Promise} 请求结果
  */
 async function withNetworkErrorHandling(networkFunction, context = {}) {
-  return withErrorHandling(networkFunction, {
+  return executeWithErrorHandling(networkFunction, {
     ...context,
     category: 'network',
     retryable: true,
@@ -823,7 +823,7 @@ if (typeof module !== 'undefined' && module.exports) {
     ERROR_SEVERITY,
     ERROR_CATEGORIES,
     initializeErrorManager,
-    withErrorHandling,
+    executeWithErrorHandling,
     withTranslationErrorHandling,
     withStorageErrorHandling,
     withNetworkErrorHandling
@@ -836,7 +836,7 @@ if (typeof module !== 'undefined' && module.exports) {
   window.ERROR_SEVERITY = ERROR_SEVERITY;
   window.ERROR_CATEGORIES = ERROR_CATEGORIES;
   window.initializeErrorManager = initializeErrorManager;
-  window.withErrorHandling = withErrorHandling;
+  window.executeWithErrorHandling = executeWithErrorHandling;
   window.withTranslationErrorHandling = withTranslationErrorHandling;
   window.withStorageErrorHandling = withStorageErrorHandling;
   window.withNetworkErrorHandling = withNetworkErrorHandling;

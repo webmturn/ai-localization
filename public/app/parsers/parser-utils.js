@@ -470,12 +470,6 @@ class EnhancedParserManager {
   }
 }
 
-// 创建全局实例
-const parserUtils = new ParserUtils();
-const enhancedParserManager = new EnhancedParserManager();
-
 // 暴露到全局
 window.ParserUtils = ParserUtils;
 window.EnhancedParserManager = EnhancedParserManager;
-window.parserUtils = parserUtils;
-window.enhancedParserManager = enhancedParserManager;

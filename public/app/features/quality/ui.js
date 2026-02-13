@@ -136,15 +136,6 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
     );
   }
 
-  EventManager.pruneDisconnected();
-
-  const oldFocusButtons = DOMCache.queryAll(
-    'button[data-action="focusTranslationItem"]', tbody
-  );
-  oldFocusButtons.forEach((btn) => {
-    EventManager.removeByTarget(btn);
-  });
-
   let filteredIssues = issues;
 
   if (filter.severity !== "all") {

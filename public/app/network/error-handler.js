@@ -275,6 +275,26 @@ class NetworkUtilsV2 extends NetworkUtils {
     }
     
     this.circuitBreaker.set(url, breaker);
+
+    // 防止熔断器条目无限增长导致内存泄漏（最多保留 50 个 URL）
+    if (this.circuitBreaker.size > 50) {
+      // 优先淘汰已关闭且最久未失败的条目
+      let oldestKey = null;
+      let oldestTime = Infinity;
+      for (const [k, v] of this.circuitBreaker) {
+        if (v.state === 'closed' && (v.lastFailure || 0) < oldestTime) {
+          oldestTime = v.lastFailure || 0;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey) {
+        this.circuitBreaker.delete(oldestKey);
+      } else {
+        // 全部非 closed，淘汰最旧的
+        const first = this.circuitBreaker.keys().next().value;
+        this.circuitBreaker.delete(first);
+      }
+    }
   }
   
   _onCircuitBreakerSuccess(url) {

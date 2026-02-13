@@ -713,6 +713,13 @@ var AIEngineBase = {
         var maxRounds = 8;
         var trimmedHistory = nextHistory.slice(-maxRounds);
         conversations.set(conversationKey, trimmedHistory);
+
+        // 防止会话键无限增长导致内存泄漏（最多保留 50 个会话）
+        if (conversations.size > 50) {
+          var oldest = conversations.keys().next().value;
+          conversations.delete(oldest);
+        }
+
         history = trimmedHistory;
       }
     }

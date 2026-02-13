@@ -28,6 +28,34 @@ function initEngineModelSync() {
 
   if (!engineSelect || !sidebarEngineSelect) return;
 
+  // 引擎模型定义（工具栏和设置页共享，避免重复）
+  var __engineModelDefs = {
+    deepseek: [
+      { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
+      { value: "deepseek-reasoner", label: "DeepSeek Reasoner (推理)" },
+    ],
+    openai: [
+      { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
+      { value: "gpt-4o", label: "GPT-4o (推荐)" },
+      { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
+      { value: "gpt-4.1", label: "GPT-4.1" },
+      { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+      { value: "gpt-4", label: "GPT-4 (经典)" },
+      { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+    ],
+    gemini: [
+      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
+      { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
+      { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+      { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+    ],
+    claude: [
+      { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
+      { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
+      { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
+    ],
+  };
+
   const toolbarCategoryFilter = DOMCache.get("toolbarEngineCategoryFilter");
   const sidebarCategoryFilter = DOMCache.get("sidebarEngineCategoryFilter");
 
@@ -76,34 +104,7 @@ function initEngineModelSync() {
       if (modelSelect) {
         modelSelect.replaceChildren();
 
-        var modelDefs = {
-          deepseek: [
-            { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
-            { value: "deepseek-reasoner", label: "DeepSeek Reasoner (推理)" },
-          ],
-          openai: [
-            { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
-            { value: "gpt-4o", label: "GPT-4o (推荐)" },
-            { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-            { value: "gpt-4.1", label: "GPT-4.1" },
-            { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-            { value: "gpt-4", label: "GPT-4 (经典)" },
-            { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-          ],
-          gemini: [
-            { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
-            { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
-            { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-            { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-          ],
-          claude: [
-            { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
-            { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-            { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
-          ],
-        };
-
-        var optionDefs = modelDefs[selectedEngine];
+        var optionDefs = __engineModelDefs[selectedEngine];
         // 自定义引擎：显示一个可编辑的默认模型
         if (!optionDefs && engineConfig) {
           optionDefs = engineConfig.defaultModel
@@ -167,34 +168,7 @@ function initEngineModelSync() {
       settingsModelContainer.classList.remove("hidden");
 
     // 动态重建模型下拉框：只显示当前引擎的模型（无 optgroup 标题）
-    var modelDefs = {
-      deepseek: [
-        { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
-        { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
-      ],
-      openai: [
-        { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
-        { value: "gpt-4o", label: "GPT-4o (推荐)" },
-        { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-        { value: "gpt-4.1", label: "GPT-4.1" },
-        { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-        { value: "gpt-4", label: "GPT-4" },
-        { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-      ],
-      gemini: [
-        { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
-        { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
-        { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-        { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-      ],
-      claude: [
-        { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
-        { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-        { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
-      ],
-    };
-
-    var models = modelDefs[engine];
+    var models = __engineModelDefs[engine];
     if (!models && settingsConfig && settingsConfig.defaultModel) {
       models = [{ value: settingsConfig.defaultModel, label: settingsConfig.defaultModel }];
     }

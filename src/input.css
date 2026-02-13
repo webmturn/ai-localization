@@ -1065,6 +1065,178 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 }
 
+/* ==================== 视觉增强：模态框毛玻璃背景 ==================== */
+[role="dialog"] {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* ==================== 按钮悬停阴影提升 ==================== */
+.toolbar-btn,
+#exportBtn,
+[id$="Btn"]:not(:disabled) {
+    transition: transform 80ms ease, filter 120ms ease, box-shadow 0.2s ease;
+}
+
+.toolbar-btn:hover:not(:disabled),
+#exportBtn:hover {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.toolbar-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+}
+
+/* ==================== 空状态轻浮动画 ==================== */
+@keyframes gentleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+#sourceList > div > .fa,
+#targetList > div > .fa,
+#mobileCombinedList > div > .fa {
+    animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* ==================== 进度条条纹动画（翻译进行中） ==================== */
+@keyframes progressStripe {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+#progressBar.active {
+    background-image: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+    animation: progressStripe 0.6s linear infinite;
+}
+
+/* ==================== 统一 focus-visible 样式 ==================== */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.dark-mode button:focus-visible,
+.dark-mode select:focus-visible,
+.dark-mode input:focus-visible,
+.dark-mode textarea:focus-visible,
+.dark-mode a:focus-visible {
+    outline-color: #60a5fa;
+}
+
+/* ==================== 翻译项悬停效果 ==================== */
+.translation-item:hover {
+    background-color: rgba(37, 99, 235, 0.04);
+}
+
+.dark-mode .translation-item:hover {
+    background-color: rgba(96, 165, 250, 0.06);
+}
+
+.translation-item.selected {
+    background-color: rgba(37, 99, 235, 0.08);
+}
+
+.dark-mode .translation-item.selected {
+    background-color: rgba(96, 165, 250, 0.1);
+}
+
+/* ==================== 暗色模式切换平滑过渡 ==================== */
+body,
+header,
+main,
+aside,
+section,
+.modal-content,
+#notification {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ==================== 骨架屏加载动画 ==================== */
+@keyframes skeletonShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.dark-mode .skeleton {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+}
+
+/* ==================== 按钮异步 loading 态 ==================== */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.75;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    top: 50%;
+    left: 50%;
+    margin-top: -0.5rem;
+    margin-left: -0.5rem;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: btnSpin 0.6s linear infinite;
+}
+
+@keyframes btnSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== 卡片悬停微抬效果 ==================== */
+.modal-content {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ==================== 文件树项悬停效果 ==================== */
+#fileTree li {
+    transition: background-color 0.15s ease, padding-left 0.15s ease;
+    border-radius: 0.375rem;
+}
+
+#fileTree li:hover {
+    background-color: rgba(37, 99, 235, 0.06);
+    padding-left: 0.25rem;
+}
+
+.dark-mode #fileTree li:hover {
+    background-color: rgba(96, 165, 250, 0.08);
+}
+
+/* ==================== 通知滑入增强 ==================== */
+#notification {
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* 字体大小：作用于根元素，页面内容通过 rem 继承 */
 html.text-sm {
     font-size: 14px;

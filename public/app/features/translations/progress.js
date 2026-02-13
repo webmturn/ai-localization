@@ -7,7 +7,7 @@ function showTranslationProgress() {
     const modal = DOMCache.get("translationProgressModal");
     if (modal) modal.classList.remove("hidden");
     const bar = DOMCache.get("progressBar");
-    if (bar) bar.style.width = "0%";
+    if (bar) { bar.style.width = "0%"; bar.classList.add("active"); }
     const pct = DOMCache.get("progressPercentage");
     if (pct) pct.textContent = "0%";
     const statusEl = DOMCache.get("progressStatus");
@@ -22,6 +22,8 @@ function showTranslationProgress() {
 function hideTranslationProgress() {
   const modal = DOMCache.get("translationProgressModal");
   if (modal) modal.classList.add("hidden");
+  const bar = DOMCache.get("progressBar");
+  if (bar) bar.classList.remove("active");
 }
 
 function updateTranslationControlState() {

@@ -1065,11 +1065,23 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 }
 
-/* ==================== 模态框毛玻璃背景（轻量版） ==================== */
+/* ==================== 模态框遮罩层次感（零GPU开销替代毛玻璃） ==================== */
 [role="dialog"] {
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
-    will-change: backdrop-filter;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode [role="dialog"] {
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+[role="dialog"] > .modal-content,
+[role="dialog"] > div {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode [role="dialog"] > .modal-content,
+.dark-mode [role="dialog"] > div {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* ==================== 按钮悬停阴影提升 ==================== */

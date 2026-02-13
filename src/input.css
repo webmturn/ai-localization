@@ -643,7 +643,7 @@ body.sidebar-resizing * {
     
     html body .responsive-translation-container .translation-item p.text-sm,
     html body .responsive-translation-container .translation-item textarea {
-        min-height: 44px;
+        min-height: 80px;
     }
 }
 
@@ -1149,12 +1149,6 @@ a:focus-visible {
 .dark-mode textarea:focus-visible,
 .dark-mode a:focus-visible {
     outline-color: #60a5fa;
-}
-
-/* ==================== 译文 textarea 暗色模式优化 ==================== */
-.dark-mode .responsive-translation-item textarea {
-    background-color: transparent;
-    color-scheme: dark;
 }
 
 /* ==================== 翻译项悬停效果 ==================== */

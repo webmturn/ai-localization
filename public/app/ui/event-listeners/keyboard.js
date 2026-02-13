@@ -362,7 +362,7 @@
 
         if (e.key === "Escape") return;
       },
-      { tag: "app", scope: "keyboard", label: "window:keydownHotkeys", capture: true },
+      { tag: "app", scope: "keyboard", label: "window:keydownHotkeys", listenerOptions: true },
     );
   }
 

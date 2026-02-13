@@ -1087,6 +1087,11 @@ header #newProjectBtn:hover {
 #exportBtn {
     font-weight: 600;
     letter-spacing: 0.02em;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#exportBtn:hover {
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .translation-column-header h3 {

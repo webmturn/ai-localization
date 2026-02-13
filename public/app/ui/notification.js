@@ -101,16 +101,13 @@ function showNotification(type, title, message, options) {
   if (actionsEl && actionBtn) {
     if (opts.action && typeof opts.action === 'function') {
       actionBtn.textContent = opts.actionLabel || '撤销';
-      // 移除旧的点击监听（通过克隆节点）
-      const newBtn = actionBtn.cloneNode(true);
-      actionBtn.parentNode.replaceChild(newBtn, actionBtn);
-      DOMCache.cache && DOMCache.cache.set("notificationActionBtn", newBtn);
-      newBtn.addEventListener('click', function () {
+      // 使用 EventManager 去重替代 cloneNode 模式
+      EventManager.add(actionBtn, 'click', function () {
         try { opts.action(); } catch (e) {
           (loggers.app || console).error("notification action error:", e);
         }
         closeNotification();
-      });
+      }, { tag: 'notification', label: 'notificationActionBtn:click' });
       actionsEl.classList.remove('hidden');
     } else {
       actionsEl.classList.add('hidden');

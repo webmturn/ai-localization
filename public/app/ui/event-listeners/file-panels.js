@@ -39,7 +39,7 @@ function registerEventListenersFilePanels(ctx) {
         const row = e.target.closest("li > div");
         if (!row || !fileTree.contains(row)) return;
 
-        fileTree.querySelectorAll("li > div").forEach((el) => {
+        DOMCache.queryAll("li > div", fileTree).forEach((el) => {
           el.classList.remove("bg-blue-50", "dark:bg-blue-900/20", "ring-1", "ring-blue-200", "dark:ring-blue-800");
         });
         row.classList.add("bg-blue-50", "dark:bg-blue-900/20", "ring-1", "ring-blue-200", "dark:ring-blue-800");

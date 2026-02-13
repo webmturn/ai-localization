@@ -410,7 +410,9 @@ function registerEventListenersDataAndUi(ctx) {
       const onAnimationEnd = () => {
         target.classList.remove(spinClass);
       };
-      target.addEventListener("animationend", onAnimationEnd, { once: true });
+      EventManager.add(target, "animationend", onAnimationEnd, {
+        tag: "ui", scope: "animation", listenerOptions: { once: true }
+      });
     },
     {
       tag: "ui",

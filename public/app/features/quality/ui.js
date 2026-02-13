@@ -12,7 +12,7 @@ function __syncQualityRuleCardsImpl() {
     punctuation: opts.checkPunctuation,
     numbers: opts.checkNumbers,
   };
-  container.querySelectorAll(".quality-rule-card[data-check-id]").forEach(function (card) {
+  DOMCache.queryAll(".quality-rule-card[data-check-id]", container).forEach(function (card) {
     const id = card.getAttribute("data-check-id");
     const enabled = cardById[id] !== false;
     if (enabled) {
@@ -138,8 +138,8 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
 
   EventManager.pruneDisconnected();
 
-  const oldFocusButtons = tbody.querySelectorAll(
-    'button[data-action="focusTranslationItem"]'
+  const oldFocusButtons = DOMCache.queryAll(
+    'button[data-action="focusTranslationItem"]', tbody
   );
   oldFocusButtons.forEach((btn) => {
     EventManager.removeByTarget(btn);

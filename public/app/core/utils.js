@@ -136,12 +136,21 @@ var SettingsCache = {
     this._storageListenerBound = true;
     var self = this;
     try {
-      window.addEventListener("storage", function (e) {
-        if (e.key === self._key) {
-          self._dirty = true;
-          self._cache = null;
-        }
-      });
+      if (typeof EventManager !== "undefined") {
+        EventManager.add(window, "storage", function (e) {
+          if (e.key === self._key) {
+            self._dirty = true;
+            self._cache = null;
+          }
+        }, { tag: "storage", label: "window:storage:" + self._key });
+      } else {
+        window.addEventListener("storage", function (e) {
+          if (e.key === self._key) {
+            self._dirty = true;
+            self._cache = null;
+          }
+        });
+      }
     } catch (_) {
       // storage event not supported - safe to ignore
     }

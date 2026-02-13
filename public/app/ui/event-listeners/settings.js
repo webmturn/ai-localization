@@ -1,10 +1,10 @@
 // 跟踪快捷键编辑状态，确保 keydown 监听器可被清理
-let __shortcutEditPendingKeyHandler = null;
+let __shortcutEditListenerId = null;
 
 function __cleanupShortcutEditKeyHandler() {
-  if (__shortcutEditPendingKeyHandler) {
-    document.removeEventListener("keydown", __shortcutEditPendingKeyHandler, true);
-    __shortcutEditPendingKeyHandler = null;
+  if (__shortcutEditListenerId) {
+    EventManager.removeById(__shortcutEditListenerId);
+    __shortcutEditListenerId = null;
   }
 }
 
@@ -27,7 +27,7 @@ function refreshShortcutsList() {
 
   const definitions = window.KEYBOARD_SHORTCUT_DEFINITIONS;
   const effectiveKeys = window.getEffectiveShortcutKeys();
-  const rows = list.querySelectorAll("[data-shortcut-id]");
+  const rows = DOMCache.queryAll("[data-shortcut-id]", list);
   rows.forEach((row) => {
     const id = row.getAttribute("data-shortcut-id");
     if (!id) return;
@@ -92,10 +92,13 @@ function refreshShortcutsList() {
             btn.textContent = "修改";
           }
         };
-        __shortcutEditPendingKeyHandler = onKey;
-        document.addEventListener("keydown", onKey, true);
+        __shortcutEditListenerId = EventManager.add(document, "keydown", onKey, {
+          tag: "settings", scope: "settingsModal",
+          label: "document:keydown:shortcutEdit",
+          listenerOptions: true
+        });
         setTimeout(() => {
-          if (__shortcutEditPendingKeyHandler === onKey) {
+          if (__shortcutEditListenerId) {
             __cleanupShortcutEditKeyHandler();
             if (btn.textContent === hint) btn.textContent = "修改";
           }

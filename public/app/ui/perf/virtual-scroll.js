@@ -125,7 +125,7 @@ var VirtualScrollManager = (function () {
       : DOMCache.get("sourceList");
     if (!list) return;
 
-    var items = list.querySelectorAll(".responsive-translation-item");
+    var items = DOMCache.queryAll(".responsive-translation-item", list);
     var start = this._lastStart;
     if (start < 0) start = 0;
 

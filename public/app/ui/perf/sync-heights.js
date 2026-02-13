@@ -14,8 +14,8 @@ function __syncTranslationHeightsImpl(afterSync) {
       if (after) requestAnimationFrame(after);
       return;
     }
-    const sourceItems = sourceListEl.querySelectorAll(".responsive-translation-item");
-    const targetItems = targetListEl.querySelectorAll(".responsive-translation-item");
+    const sourceItems = DOMCache.queryAll(".responsive-translation-item", sourceListEl);
+    const targetItems = DOMCache.queryAll(".responsive-translation-item", targetListEl);
 
     if (sourceItems.length !== targetItems.length || sourceItems.length === 0) {
       if (after) requestAnimationFrame(after);

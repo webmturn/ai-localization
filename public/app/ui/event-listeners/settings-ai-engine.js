@@ -282,7 +282,7 @@ function registerEventListenersSettingsAiEngine(ctx) {
         }
 
         const checked = Array.from(
-          listEl.querySelectorAll('input[type="checkbox"][data-id]'),
+          DOMCache.queryAll('input[type="checkbox"][data-id]', listEl),
         )
           .filter((el) => el.checked)
           .map((el) => String(el.dataset.id));

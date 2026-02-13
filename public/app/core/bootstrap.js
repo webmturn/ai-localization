@@ -797,9 +797,15 @@ function setupMultiTabDetection() {
     channel.postMessage({ type: 'tab-ping' });
 
     // 页面卸载时关闭频道
-    window.addEventListener('beforeunload', () => {
-      channel.close();
-    });
+    if (typeof EventManager !== "undefined") {
+      EventManager.add(window, 'beforeunload', () => {
+        channel.close();
+      }, { tag: 'startup', label: 'window:beforeunload:multiTabChannel' });
+    } else {
+      window.addEventListener('beforeunload', () => {
+        channel.close();
+      });
+    }
 
     window.__multiTabChannel = channel;
   } catch (error) {

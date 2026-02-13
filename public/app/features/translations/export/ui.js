@@ -143,7 +143,7 @@ function closeModal(eventOrModalId) {
 
   // 如果没有参数，只关闭最顶层的模态框（最后一个可见的）
   const visibleModals = Array.from(
-    document.querySelectorAll(".fixed.inset-0.bg-black.bg-opacity-50"),
+    DOMCache.queryAll(".fixed.inset-0.bg-black.bg-opacity-50"),
   ).filter((modal) => !modal.classList.contains("hidden"));
 
   if (visibleModals.length > 0) {
@@ -159,7 +159,7 @@ function __setupModalFocusTrap(modal) {
 
   // 将焦点移到模态框内第一个可聚焦元素
   requestAnimationFrame(() => {
-    const focusable = modal.querySelectorAll(__FOCUSABLE_SELECTOR);
+    const focusable = DOMCache.queryAll(__FOCUSABLE_SELECTOR, modal);
     if (focusable.length > 0) {
       focusable[0].focus();
     } else {
@@ -171,7 +171,7 @@ function __setupModalFocusTrap(modal) {
   // Tab 键循环陷阱
   __modalFocusTrapState.trapHandler = function (e) {
     if (e.key !== 'Tab') return;
-    const focusable = Array.from(modal.querySelectorAll(__FOCUSABLE_SELECTOR));
+    const focusable = Array.from(DOMCache.queryAll(__FOCUSABLE_SELECTOR, modal));
     if (focusable.length === 0) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -187,15 +187,19 @@ function __setupModalFocusTrap(modal) {
       }
     }
   };
-  document.addEventListener('keydown', __modalFocusTrapState.trapHandler);
+  __modalFocusTrapState.trapListenerId = EventManager.add(document, 'keydown',
+    __modalFocusTrapState.trapHandler,
+    { tag: 'modal', label: 'document:keydown:focusTrap' }
+  );
 }
 
 // 移除焦点陷阱
 function __removeModalFocusTrap() {
-  if (__modalFocusTrapState.trapHandler) {
-    document.removeEventListener('keydown', __modalFocusTrapState.trapHandler);
-    __modalFocusTrapState.trapHandler = null;
+  if (__modalFocusTrapState.trapListenerId) {
+    EventManager.removeById(__modalFocusTrapState.trapListenerId);
+    __modalFocusTrapState.trapListenerId = null;
   }
+  __modalFocusTrapState.trapHandler = null;
 }
 
 // 恢复焦点到触发元素

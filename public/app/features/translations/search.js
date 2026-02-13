@@ -97,49 +97,50 @@ function updatePaginationUI(
   currentPage,
   totalPages
 ) {
-  const sourcePagination = DOMCache.get("sourcePagination");
-  const targetPagination = DOMCache.get("targetPagination");
   const itemsPerPage = AppState.translations.itemsPerPage; // 使用 AppState 中的设置
 
-  try {
-    // 更新源文本分页信息
-    const sourceStartRange = DOMCache.get("sourceStartRange");
-    const sourceEndRange = DOMCache.get("sourceEndRange");
-    const sourceTotalItems = DOMCache.get("sourceTotalItems");
-    const sourcePageInfo = DOMCache.get("sourcePageInfo");
+  // 使用 batchUpdate 将 8 个 DOM 写入合并到同一帧
+  DOMCache.batchUpdate("pagination", function () {
+    try {
+      // 更新源文本分页信息
+      const sourceStartRange = DOMCache.get("sourceStartRange");
+      const sourceEndRange = DOMCache.get("sourceEndRange");
+      const sourceTotalItems = DOMCache.get("sourceTotalItems");
+      const sourcePageInfo = DOMCache.get("sourcePageInfo");
 
-    if (sourceStartRange)
-      sourceStartRange.textContent = totalItems > 0 ? startRange : 0;
-    if (sourceEndRange)
-      sourceEndRange.textContent = totalItems > 0 ? endRange : 0;
-    if (sourceTotalItems) sourceTotalItems.textContent = totalItems;
-    if (sourcePageInfo) sourcePageInfo.textContent = `第 ${currentPage} 页`;
+      if (sourceStartRange)
+        sourceStartRange.textContent = totalItems > 0 ? startRange : 0;
+      if (sourceEndRange)
+        sourceEndRange.textContent = totalItems > 0 ? endRange : 0;
+      if (sourceTotalItems) sourceTotalItems.textContent = totalItems;
+      if (sourcePageInfo) sourcePageInfo.textContent = `第 ${currentPage} 页`;
 
-    // 更新分页按钮状态
-    const sourcePrevBtn = DOMCache.get("sourcePrevBtn");
-    const sourceNextBtn = DOMCache.get("sourceNextBtn");
+      // 更新分页按钮状态
+      const sourcePrevBtn = DOMCache.get("sourcePrevBtn");
+      const sourceNextBtn = DOMCache.get("sourceNextBtn");
 
-    if (sourcePrevBtn) sourcePrevBtn.disabled = currentPage === 1;
-    if (sourceNextBtn) sourceNextBtn.disabled = currentPage === totalPages;
+      if (sourcePrevBtn) sourcePrevBtn.disabled = currentPage === 1;
+      if (sourceNextBtn) sourceNextBtn.disabled = currentPage === totalPages;
 
-    // 显示或隐藏分页控件
-    const paginationContainer = DOMCache.get("paginationContainer");
-    __devLog(
-      `分页信息: 总项数=${totalItems}, 每页项数=${itemsPerPage}, 是否显示=${
-        totalItems > itemsPerPage
-      }`
-    );
+      // 显示或隐藏分页控件
+      const paginationContainer = DOMCache.get("paginationContainer");
+      __devLog(
+        `分页信息: 总项数=${totalItems}, 每页项数=${itemsPerPage}, 是否显示=${
+          totalItems > itemsPerPage
+        }`
+      );
 
-    if (paginationContainer) {
-      if (totalItems > itemsPerPage) {
-        paginationContainer.classList.remove("hidden");
-      } else {
-        paginationContainer.classList.add("hidden");
+      if (paginationContainer) {
+        if (totalItems > itemsPerPage) {
+          paginationContainer.classList.remove("hidden");
+        } else {
+          paginationContainer.classList.add("hidden");
+        }
       }
+    } catch (error) {
+      (loggers.app || console).error("更新分页UI时出错:", error);
     }
-  } catch (error) {
-    (loggers.app || console).error("更新分页UI时出错:", error);
-  }
+  });
 }
 
 // 处理搜索输入（只搜索文件，不影响翻译列表）

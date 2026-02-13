@@ -66,10 +66,10 @@ function updateSelectionStyles() {
     const sourceListEl = DOMCache.get("sourceList");
     const targetListEl = DOMCache.get("targetList");
     const sourceItems = sourceListEl
-      ? sourceListEl.querySelectorAll(".responsive-translation-item")
+      ? DOMCache.queryAll(".responsive-translation-item", sourceListEl)
       : [];
     const targetItems = targetListEl
-      ? targetListEl.querySelectorAll(".responsive-translation-item")
+      ? DOMCache.queryAll(".responsive-translation-item", targetListEl)
       : [];
 
     const indicatorEnabled = AppState.ui.sourceSelectionIndicatorEnabled;
@@ -127,7 +127,7 @@ function updateSelectionStyles() {
   } else {
     const mobileListEl = DOMCache.get("mobileCombinedList");
     const mobileItems = mobileListEl
-      ? mobileListEl.querySelectorAll(".responsive-translation-item")
+      ? DOMCache.queryAll(".responsive-translation-item", mobileListEl)
       : [];
     mobileItems.forEach((item) => {
       const idx = parseInt(item.dataset.index);
@@ -337,27 +337,30 @@ function updateStatusBadge(index, newStatus) {
   const statusText = getStatusText(newStatus);
   const statusClassName = `text-xs font-semibold ${getStatusClass(newStatus)} px-2 py-0.5 rounded-full whitespace-nowrap`;
 
-  if (sourceList) {
-    const item = sourceList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
-    if (item) {
-      const badge = item.querySelector("span.text-xs");
-      if (badge) {
-        badge.textContent = statusText;
-        badge.className = statusClassName;
+  // 使用 batchUpdate 合并状态标签的 DOM 写入
+  DOMCache.batchUpdate("status-badge", function () {
+    if (sourceList) {
+      const item = sourceList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
+      if (item) {
+        const badge = item.querySelector("span.text-xs");
+        if (badge) {
+          badge.textContent = statusText;
+          badge.className = statusClassName;
+        }
       }
     }
-  }
 
-  if (mobileCombinedList) {
-    const item = mobileCombinedList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
-    if (item) {
-      const badge = item.querySelector("span.text-xs");
-      if (badge) {
-        badge.textContent = statusText;
-        badge.className = statusClassName;
+    if (mobileCombinedList) {
+      const item = mobileCombinedList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
+      if (item) {
+        const badge = item.querySelector("span.text-xs");
+        if (badge) {
+          badge.textContent = statusText;
+          badge.className = statusClassName;
+        }
       }
     }
-  }
+  });
 }
 
 // 更新计数器
@@ -373,8 +376,11 @@ function updateCounters() {
       item.status === "approved"
   ).length;
 
-  const sourceCountEl = DOMCache.get("sourceCount");
-  const targetCountEl = DOMCache.get("targetCount");
-  if (sourceCountEl) sourceCountEl.textContent = `${total} 项`;
-  if (targetCountEl) targetCountEl.textContent = `${translated}/${total} 项`;
+  // 使用 batchUpdate 合并计数器 DOM 写入（每次编辑都会触发）
+  DOMCache.batchUpdate("counters", function () {
+    const sourceCountEl = DOMCache.get("sourceCount");
+    const targetCountEl = DOMCache.get("targetCount");
+    if (sourceCountEl) sourceCountEl.textContent = `${total} 项`;
+    if (targetCountEl) targetCountEl.textContent = `${translated}/${total} 项`;
+  });
 }

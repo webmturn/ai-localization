@@ -3,17 +3,19 @@
 
 // 显示翻译进度模态框
 function showTranslationProgress() {
-  const modal = DOMCache.get("translationProgressModal");
-  if (modal) modal.classList.remove("hidden");
-  const bar = DOMCache.get("progressBar");
-  if (bar) bar.style.width = "0%";
-  const pct = DOMCache.get("progressPercentage");
-  if (pct) pct.textContent = "0%";
-  const statusEl = DOMCache.get("progressStatus");
-  if (statusEl) statusEl.textContent = "准备翻译...";
-  const log = DOMCache.get("progressLog");
-  if (log) log.replaceChildren();
-  updateTranslationControlState();
+  DOMCache.batchUpdate("progress-show", function () {
+    const modal = DOMCache.get("translationProgressModal");
+    if (modal) modal.classList.remove("hidden");
+    const bar = DOMCache.get("progressBar");
+    if (bar) bar.style.width = "0%";
+    const pct = DOMCache.get("progressPercentage");
+    if (pct) pct.textContent = "0%";
+    const statusEl = DOMCache.get("progressStatus");
+    if (statusEl) statusEl.textContent = "准备翻译...";
+    const log = DOMCache.get("progressLog");
+    if (log) log.replaceChildren();
+    updateTranslationControlState();
+  }, { priority: "high" });
 }
 
 // 隐藏翻译进度模态框
@@ -54,13 +56,16 @@ function updateProgress(current, total, status) {
     status: status || "",
   };
   const percentage = safeTotal > 0 ? Math.floor((safeCurrent / safeTotal) * 100) : 0;
-  const bar = DOMCache.get("progressBar");
-  if (bar) bar.style.width = `${percentage}%`;
-  const pctEl = DOMCache.get("progressPercentage");
-  if (pctEl) pctEl.textContent = `${percentage}%`;
-  const statusEl = DOMCache.get("progressStatus");
-  if (statusEl) statusEl.textContent = status;
-  updateTranslationControlState();
+  // 使用 batchUpdate 合并多次快速调用的 DOM 写入到同一帧
+  DOMCache.batchUpdate("progress", function () {
+    const bar = DOMCache.get("progressBar");
+    if (bar) bar.style.width = `${percentage}%`;
+    const pctEl = DOMCache.get("progressPercentage");
+    if (pctEl) pctEl.textContent = `${percentage}%`;
+    const statusEl = DOMCache.get("progressStatus");
+    if (statusEl) statusEl.textContent = status;
+    updateTranslationControlState();
+  });
 }
 
 // 添加进度日志
@@ -99,12 +104,15 @@ function addProgressLog(message) {
     frag.appendChild(li);
   }
 
-  log.appendChild(frag);
+  // 使用 batchUpdate 合并快速连续的日志追加到同一帧
+  DOMCache.batchUpdate("progress-log", function () {
+    log.appendChild(frag);
 
-  const maxLines = 500;
-  while (log.children.length > maxLines) {
-    log.removeChild(log.firstChild);
-  }
+    const maxLines = 500;
+    while (log.children.length > maxLines) {
+      log.removeChild(log.firstChild);
+    }
 
-  log.scrollTop = log.scrollHeight;
+    log.scrollTop = log.scrollHeight;
+  });
 }

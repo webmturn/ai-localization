@@ -1245,19 +1245,19 @@ class StorageManager {
 
 const storageManager = new StorageManager();
 
-if (typeof document !== "undefined") {
-  document.addEventListener("visibilitychange", () => {
+if (typeof document !== "undefined" && typeof EventManager !== "undefined") {
+  EventManager.add(document, "visibilitychange", () => {
     if (document.visibilityState === "visible" && !storageManager.indexedDbAvailable) {
       storageManager.retryIndexedDbAvailability().catch((e) => { (loggers.storage || console).debug('IndexedDB 重试失败:', e); });
     }
-  });
+  }, { tag: "storage", label: "document:visibilitychange:storageRetry" });
 
-  document.addEventListener("click", function __fsReconnectOnClick() {
+  var __fsReconnectId = EventManager.add(document, "click", function () {
     if (storageManager.__fsFallbackPending) {
       storageManager.tryReconnectFilesystem().catch((e) => { (loggers.storage || console).debug('文件系统重连失败:', e); });
     }
-    document.removeEventListener("click", __fsReconnectOnClick);
-  }, { once: true });
+    EventManager.removeById(__fsReconnectId);
+  }, { tag: "storage", label: "document:click:fsReconnect" });
 }
 
 // IDB GC/清理函数已拆分到 idb-operations.js

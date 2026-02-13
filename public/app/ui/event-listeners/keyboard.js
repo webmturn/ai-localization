@@ -135,7 +135,7 @@
   function runAction(id, e) {
     if (id === "escape") {
       const visibleModals = Array.from(
-        document.querySelectorAll(".fixed.inset-0.bg-black.bg-opacity-50"),
+        DOMCache.queryAll(".fixed.inset-0.bg-black.bg-opacity-50"),
       ).filter(function (modal) { return !modal.classList.contains("hidden"); });
       if (visibleModals.length > 0) {
         if (typeof closeModal === "function") closeModal();
@@ -278,7 +278,7 @@
       ? DOMCache.get("mobileCombinedList")
       : DOMCache.get("targetList");
     if (!container) return;
-    var textareas = Array.from(container.querySelectorAll("textarea[data-index]"));
+    var textareas = Array.from(DOMCache.queryAll("textarea[data-index]", container));
     var currentPos = textareas.findIndex(function (ta) {
       return parseInt(ta.dataset.index) === currentIndex;
     });

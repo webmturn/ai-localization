@@ -69,9 +69,6 @@ class ErrorSystemIntegrator {
       this.initialized = true;
       (loggers.errors || console).info('错误处理系统初始化完成');
       
-      // 显示初始化成功通知
-      this._showNotification('success', '系统就绪', '错误处理系统已成功初始化');
-      
     } catch (error) {
       (loggers.errors || console).error('错误处理系统初始化失败:', error);
       throw error;

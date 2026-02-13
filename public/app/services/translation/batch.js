@@ -240,9 +240,9 @@ TranslationService.prototype.translateBatch = async function (
   }
 
   // ========== 预检 API Key（通用，基于 EngineRegistry） ==========
+  const __batchSettings = await this.getSettings().catch(() => ({}));
   if (engineConfig) {
-    const settings = await this.getSettings().catch(() => ({}));
-    const key = settings[engineConfig.apiKeyField];
+    const key = __batchSettings[engineConfig.apiKeyField];
     const missing = !key;
     const invalid = !missing && !securityUtils.validateApiKey(key, engineConfig.apiKeyValidationType || normalizedEngine);
 
@@ -269,8 +269,7 @@ TranslationService.prototype.translateBatch = async function (
   }
 
   // ========== 逐项处理（支持并发） ==========
-  const itemSettings = await this.getSettings().catch(() => ({}));
-  const rawLimit = parseInt(itemSettings?.concurrentLimit);
+  const rawLimit = parseInt(__batchSettings?.concurrentLimit);
   // 并发数不超过引擎速率限制（rateLimitPerSecond < 1 时强制串行）
   const engineRps = engineConfig?.rateLimitPerSecond || 3;
   const maxByEngine = engineRps < 1 ? 1 : Math.ceil(engineRps);

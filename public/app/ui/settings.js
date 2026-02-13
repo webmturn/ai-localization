@@ -355,7 +355,6 @@ function applySettings(settings) {
   // 应用主题设置
   if (settings.themeMode) {
     const body = document.body;
-    const wasDark = body.classList.contains("dark-mode");
     if (settings.themeMode === "dark") {
       body.classList.add("dark-mode");
     } else if (settings.themeMode === "light") {
@@ -370,11 +369,6 @@ function applySettings(settings) {
       } else {
         body.classList.remove("dark-mode");
       }
-    }
-    const isDark = body.classList.contains("dark-mode");
-    if (wasDark !== isDark) {
-      body.classList.add("theme-transitioning");
-      setTimeout(function () { body.classList.remove("theme-transitioning"); }, 400);
     }
   }
 

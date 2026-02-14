@@ -477,6 +477,13 @@
     color: #f3f4f6;
 }
 
+/* 工具栏引擎选择框焦点指示器 */
+.toolbar-engine-select select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    border-radius: 0.25rem;
+}
+
 /* 工具栏内翻译引擎选择框 - 夜间模式（保留兼容） */
 .dark-mode .language-switcher + div select,
 .dark-mode .toolbar-engine-select select {

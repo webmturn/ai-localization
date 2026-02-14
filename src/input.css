@@ -13,12 +13,6 @@
     [role="button"],
     .cursor-pointer {
         -webkit-tap-highlight-color: transparent;
-    }
-
-    button,
-    a,
-    [role="button"],
-    .cursor-pointer {
         transition: transform 80ms ease, filter 120ms ease;
     }
 
@@ -1130,12 +1124,14 @@ body:not(.dark-mode) #searchInput:hover {
 }
 
 body:not(.dark-mode) #settingsPanel select,
-body:not(.dark-mode) #settingsPanel input {
+body:not(.dark-mode) #settingsPanel input[type="text"],
+body:not(.dark-mode) #settingsPanel input[type="number"] {
     border-color: #d1d5db;
 }
 
 body:not(.dark-mode) #settingsPanel select:hover,
-body:not(.dark-mode) #settingsPanel input:hover {
+body:not(.dark-mode) #settingsPanel input[type="text"]:hover,
+body:not(.dark-mode) #settingsPanel input[type="number"]:hover {
     border-color: #9ca3af;
 }
 
@@ -1287,6 +1283,7 @@ input[type="range"] {
     height: 6px;
     border-radius: 3px;
     background: #e5e7eb;
+    border: none;
     outline: none;
 }
 
@@ -1363,10 +1360,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ==================== 用户菜单/下拉菜单增强 ==================== */
+#userMenu a,
+#mobileMoreMenu a {
+    transition: padding-left 0.15s ease, background-color 0.15s ease;
+}
+
 #userMenu a:hover,
 #mobileMoreMenu a:hover {
     padding-left: 1.25rem;
-    transition: padding-left 0.15s ease, background-color 0.15s ease;
 }
 
 /* 字体大小：作用于根元素，页面内容通过 rem 继承 */

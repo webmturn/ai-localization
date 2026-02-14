@@ -411,6 +411,8 @@
 
 .language-switcher select:focus {
     outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    border-radius: 0.25rem;
 }
 
 .language-switcher .swap-btn {
@@ -460,6 +462,8 @@
 
 #translationEngine:focus {
     outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    border-radius: 0.25rem;
 }
 
 .dark-mode #translationEngine {

@@ -189,10 +189,6 @@ const EngineRegistry = {
   },
 
   /**
-   * 从持久化数据恢复自定义引擎
-   * @param {Object[]} customEngines
-   */
-  /**
    * 获取默认引擎 ID（首个 AI 引擎，若无则首个任意引擎）
    * @returns {string}
    */
@@ -203,6 +199,10 @@ const EngineRegistry = {
     return all.length > 0 ? all[0].id : "deepseek";
   },
 
+  /**
+   * 从持久化数据恢复自定义引擎
+   * @param {Object[]} customEngines
+   */
   restoreCustomEngines: function (customEngines) {
     if (!Array.isArray(customEngines)) return;
     for (var i = 0; i < customEngines.length; i++) {

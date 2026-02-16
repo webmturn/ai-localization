@@ -199,32 +199,6 @@ function switchTabState(tabSelector, panelSelector, tabName, options) {
   }
 }
 
-/**
- * 统一的搜索过滤函数
- * @param {Array} items - 需要过滤的项目数组
- * @param {string} query - 搜索关键词
- * @param {Array<string>} fields - 需要搜索的字段名，支持嵌套字段（如 'metadata.resourceId'）
- * @returns {Array} 过滤后的项目数组
- */
-function filterItems(
-  items,
-  query,
-  fields = ["sourceText", "targetText", "context"]
-) {
-  if (!query || !query.trim()) return [...items];
-
-  const lowerQuery = query.toLowerCase();
-  return items.filter((item) => {
-    return fields.some((field) => {
-      // 支持嵌套字段访问，如 'metadata.resourceId'
-      const value = field.includes(".")
-        ? field.split(".").reduce((obj, key) => obj?.[key], item)
-        : item[field];
-      return value?.toString().toLowerCase().includes(lowerQuery);
-    });
-  });
-}
-
 (function () {
   const App = (window.App = window.App || {});
   App.services = App.services || {};
@@ -502,40 +476,8 @@ function hasService(serviceName) {
   }
 }
 
-/**
- * 批量获取服务
- * @param {string[]} serviceNames - 服务名称数组
- * @returns {Object} 服务名称到实例的映射
- */
-function getServices(serviceNames) {
-  const services = {};
-  serviceNames.forEach(name => {
-    try {
-      services[name] = getServiceSafely(name, name);
-    } catch (error) {
-      services[name] = null;
-    }
-  });
-  return services;
-}
-
-/**
- * 创建服务依赖注入包装器
- * @param {Function} fn - 需要依赖注入的函数
- * @param {string[]} dependencies - 依赖的服务名称列表
- * @returns {Function} 包装后的函数
- */
-function withDependencies(fn, dependencies) {
-  return function(...args) {
-    const services = getServices(dependencies);
-    return fn.call(this, services, ...args);
-  };
-}
-
 // 暴露到全局
 window.getServiceSafely = getServiceSafely;
 window.getService = getService;
 window.hasService = hasService;
-window.getServices = getServices;
-window.withDependencies = withDependencies;
 

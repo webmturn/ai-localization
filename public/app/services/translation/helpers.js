@@ -120,30 +120,3 @@ function translationMarkAllAsErrors(items, errorsArray, errorMsg, extra = {}) {
     });
   }
 }
-
-/**
- * 等待翻译暂停状态解除
- * @param {Object} options - 选项
- * @param {Object} options.state - AppState.translations 引用
- * @param {Function} [options.onPause] - 暂停时回调（仅首次触发）
- * @param {Function} [options.onCancel] - 取消时回调（替代默认 return false 行为）
- * @returns {Promise<boolean>} true=继续, false=已取消
- */
-async function translationWaitWhilePaused(options = {}) {
-  const state = options.state || (typeof AppState !== "undefined" ? AppState.translations : null);
-  if (!state) return true;
-
-  let notified = false;
-  while (state.isPaused) {
-    if (!state.isInProgress) {
-      if (options.onCancel) options.onCancel();
-      return false;
-    }
-    if (!notified && options.onPause) {
-      options.onPause();
-      notified = true;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-  return true;
-}

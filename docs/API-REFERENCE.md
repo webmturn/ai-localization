@@ -1,8 +1,8 @@
 # API 参考文档
 
 **项目**: 智能翻译工具 (AI Localization)  
-**版本**: 1.2.0  
-**更新日期**: 2026-02-10
+**版本**: 1.2.1  
+**更新日期**: 2026-02-16
 
 ---
 
@@ -40,7 +40,7 @@ const services = getAllServices(['service1', 'service2']);
 checkArchitectureStatus();
 ```
 
-> 说明：上述便捷函数由 `public/app/core/dependency-injection.js` 暴露到 `window`。
+> 说明：上述便捷函数由 `public/app/core/architecture/dependency-injection.js` 暴露到 `window`。
 > `getService(...)` 在服务未注册且无全局备用时会返回 `null`（不会抛错），调用方需自行判空。
 
 ### 可用服务列表
@@ -150,10 +150,13 @@ const handled = errorManager.handleError(error, {
 });
 
 // 获取错误统计
-const stats = errorManager.getStats();
+const stats = errorManager.getErrorStats();
 
 // 获取错误历史
-const history = errorManager.getErrorHistory();
+const history = errorManager.errorHistory;
+
+// 清理错误历史
+errorManager.clearErrorHistory();
 ```
 
 ### 错误代码常量
@@ -346,7 +349,7 @@ const translated = await translationService.translate(
   text,
   sourceLang,
   targetLang,
-  engine,    // 'deepseek' | 'openai' | 'google'
+  engine,    // 'deepseek' | 'openai' | 'gemini' | 'claude' | 'google'
   context,   // { elementType, xmlPath, parentText, key }
   maxRetries // 可选，默认读取设置
 );
@@ -551,23 +554,34 @@ AppState.qualityCheckResults.issues          // 问题列表
 
 ---
 
-## DeepSeek 翻译设置
+## AI 翻译设置
 
-通过 `SettingsCache` 读写，存储在 localStorage `translatorSettings` 中：
+通过 `SettingsCache` 读写，存储在 localStorage `translatorSettings` 中。
+
+### API 密钥（按引擎区分）
+
+| 设置项 | 类型 | 说明 |
+|----------|------|------|
+| `deepseekApiKey` | string | DeepSeek API 密钥（加密存储） |
+| `openaiApiKey` | string | OpenAI API 密钥（加密存储） |
+| `geminiApiKey` | string | Gemini API 密钥（加密存储） |
+| `claudeApiKey` | string | Claude API 密钥（加密存储） |
+| `googleApiKey` | string | Google Translate API 密钥（加密存储） |
+
+### AI 增强功能（统一前缀 `ai*`，适用于所有 AI 引擎）
 
 | 设置项 | 类型 | 默认值 | 说明 |
 |----------|------|--------|------|
-| `deepseekApiKey` | string | - | API 密钥（加密存储） |
-| `deepseekUseKeyContext` | boolean | false | 翻译时参考 key/字段名 |
-| `deepseekContextAwareEnabled` | boolean | false | 上下文感知翻译 |
-| `deepseekContextWindowSize` | number | 3 | 前后各取多少条相邻条目 (1-10) |
-| `deepseekPrimingEnabled` | boolean | false | 启用 Priming 样本 |
-| `deepseekPrimingSampleCount` | number | 3 | Priming 样本数 |
-| `deepseekPrimingSampleIds` | string[] | [] | 手选的样本 ID |
-| `deepseekConversationEnabled` | boolean | false | 多轮会话记忆 |
-| `deepseekConversationScope` | string | 'project' | 会话范围: project/fileType/file |
-| `deepseekBatchMaxItems` | number | 40 | 每批次最大条目数 (5-100) |
-| `deepseekBatchMaxChars` | number | 6000 | 每批次最大字符数 (1000-20000) |
+| `aiUseKeyContext` | boolean | false | 翻译时参考 key/字段名 |
+| `aiContextAwareEnabled` | boolean | false | 上下文感知翻译 |
+| `aiContextWindowSize` | number | 3 | 前后各取多少条相邻条目 (1-10) |
+| `aiPrimingEnabled` | boolean | false | 启用 Priming 样本 |
+| `aiPrimingSampleCount` | number | 3 | Priming 样本数 |
+| `aiPrimingSampleIds` | string[] | [] | 手选的样本 ID |
+| `aiConversationEnabled` | boolean | false | 多轮会话记忆 |
+| `aiConversationScope` | string | 'project' | 会话范围: project/fileType/file |
+| `aiBatchMaxItems` | number | 40 | 每批次最大条目数 (5-100) |
+| `aiBatchMaxChars` | number | 6000 | 每批次最大字符数 (1000-20000) |
 | `translationRequestCacheEnabled` | boolean | false | 请求缓存 |
 | `translationRequestCacheTTLSeconds` | number | 5 | 缓存 TTL (1-600秒) |
 
@@ -592,7 +606,7 @@ EventManager.getStats();
 networkUtils.getStats();
 
 // 错误统计
-errorManager.getStats();
+errorManager.getErrorStats();
 ```
 
 ---

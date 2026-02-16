@@ -27,38 +27,36 @@
 - 测试和演示代码 ❌
 ```
 
-## 📁 文件分类
+## 文件分类
 
 ### 核心系统文件（生产环境必需）
 ```
 public/app/core/errors/
-├── error-manager.js      ✅ 核心错误管理器
-├── error-utils.js        ✅ 错误处理工具
-└── error-production.js   ✅ 生产环境监控
+├── error-manager.js          核心错误管理器
+├── error-manager-preload.js  错误管理器预加载
+├── error-utils.js            错误处理工具
+├── error-integration.js      错误系统集成
+└── error-production.js       生产环境监控
 
 public/app/services/storage/
-├── error-handler.js          ✅ 存储错误处理（统一）
-└── storage-error-handler.js  ✅ 存储错误处理
+├── error-handler.js          存储错误处理（统一）
+└── storage-error-handler.js  存储错误处理
 
 public/app/network/
-└── error-handler.js      ✅ 网络错误处理
+└── error-handler.js      网络错误处理
 
 public/app/features/
-├── translations/error-handler.js  ✅ 翻译错误处理
-└── files/error-handler.js         ✅ 文件错误处理
+├── translations/error-handler.js  翻译错误处理
+└── files/error-handler.js         文件错误处理
 ```
 
 ### 开发和测试文件（生产环境排除）
 ```
 public/app/dev-tools/
-├── error-demo.js                 ❌ 错误演示
-├── error-test.js                 ❌ 功能测试
-├── error-system-test.js          ❌ 系统测试
-├── error-handling-examples.js    ❌ 使用示例
-├── p0-integration-test.js        ❌ 集成测试（阶段性）
-├── p1-decoupling-test.js         ❌ 解耦测试（阶段性）
-├── p2-improvements-test.js       ❌ 改进验证（阶段性）
-└── legacy-cleanup-test.js        ❌ 遗留清理验证（阶段性）
+├── error-demo.js                 错误演示
+├── error-test.js                 功能测试
+├── error-system-test.js          系统测试
+└── error-handling-examples.js    使用示例
 ```
 
 > 说明：仓库当前将演示/测试脚本集中放在 `public/app/dev-tools/`，用于浏览器控制台手动运行或在开发模式下按需加载。

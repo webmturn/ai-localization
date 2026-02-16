@@ -1,7 +1,7 @@
 # 文档索引
 
 **项目**: 智能翻译工具 (AI Localization)  
-**最后更新**: 2026-02-13
+**最后更新**: 2026-02-16
 
 ---
 
@@ -49,6 +49,7 @@
 |------|------|
 | [RELEASE-v1.2.0.md](RELEASE-v1.2.0.md) | v1.2.0 发布说明（多引擎支持 + JS Bundle + UI/UX） |
 | [RELEASE-v1.1.0.md](RELEASE-v1.1.0.md) | v1.1.0 发布说明（移动端优化 + 桌面客户端预览） |
+| [RELEASE-v1.0.0.md](RELEASE-v1.0.0.md) | v1.0.0 发布说明 |
 | [CHANGELOG.md](../CHANGELOG.md) | 完整版本变更记录 |
 | [GITHUB-RELEASE-CHECKLIST.md](GITHUB-RELEASE-CHECKLIST.md) | GitHub 发布检查清单 |
 | [README-CDN-UPDATE.md](README-CDN-UPDATE.md) | CDN 更新指南 |
@@ -83,3 +84,8 @@
 | [history/P1-PROGRESS-REPORT.md](history/P1-PROGRESS-REPORT.md) | P1 进度报告 |
 | [history/P1-FINAL-REPORT.md](history/P1-FINAL-REPORT.md) | P1 最终完成报告 |
 | [history/CODE-QUALITY-REVIEW.md](history/CODE-QUALITY-REVIEW.md) | 代码质量全量审查报告（19轮，127文件，19项修复） |
+| [history/DETAILED_ISSUES_AND_SOLUTIONS.md](history/DETAILED_ISSUES_AND_SOLUTIONS.md) | 详细问题与解决方案 |
+| [history/P1-2-REMOVE-DUPLICATES-PLAN.md](history/P1-2-REMOVE-DUPLICATES-PLAN.md) | P1-2 去重复计划 |
+| [history/P1-2-REMOVE-DUPLICATES-COMPLETE.md](history/P1-2-REMOVE-DUPLICATES-COMPLETE.md) | P1-2 去重复完成报告 |
+| [history/P1-3-CLEANUP-CONSOLE-COMPLETE.md](history/P1-3-CLEANUP-CONSOLE-COMPLETE.md) | P1-3 清理 console 完成报告 |
+| [history/PROJECT-IMPROVEMENT-ROADMAP.md](history/PROJECT-IMPROVEMENT-ROADMAP.md) | 项目改进路线图 |

@@ -43,8 +43,8 @@ const errorManager = Architecture.getService('errorManager');
 const moduleInfo = Architecture.getModule('translationModule');
 ```
 
-> 说明：`getService/hasService/getAllServices/checkArchitectureStatus` 由 `public/app/core/dependency-injection.js` 提供。
-> `Architecture.getService/getStatus` 等门面方法由 `public/app/core/architecture-initializer.js` 在初始化阶段注入。
+> 说明：`getService/hasService/getAllServices/checkArchitectureStatus` 由 `public/app/core/architecture/dependency-injection.js` 提供。
+> `Architecture.getService/getStatus` 等门面方法由 `public/app/core/architecture/architecture-initializer.js` 在初始化阶段注入。
 
 ### 2. 注册新服务
 

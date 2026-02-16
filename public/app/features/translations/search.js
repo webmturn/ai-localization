@@ -1,6 +1,20 @@
 let searchCache = new Map(); // 搜索结果缓存
 let lastSearchQuery = ""; // 上次搜索查询
 let lastSearchScope = ""; // 上次搜索范围（按文件）
+let _searchDataVersion = 0; // 数据变更版本号
+let _searchItemsRef = null; // 跟踪 translationItems 数组引用
+
+/**
+ * 使搜索缓存失效（在翻译项内容变更后调用）
+ * 调用场景：翻译完成、编辑译文、查找替换、清除译文、导入文件等
+ */
+function invalidateSearchCache() {
+  if (searchCache.size > 0) {
+    searchCache.clear();
+    lastSearchQuery = "";
+  }
+  _searchDataVersion++;
+}
 
 // __devLog 已在 render.js 中定义，此处不再重复
 
@@ -16,6 +30,14 @@ function applySearchFilter() {
     }
 
     const allItems = AppState.project.translationItems;
+
+    // 数据源引用变化时（导入新文件、切换项目）自动失效缓存
+    if (_searchItemsRef !== allItems) {
+      _searchItemsRef = allItems;
+      searchCache.clear();
+      lastSearchQuery = "";
+    }
+
     const selectedFile = AppState?.translations?.selectedFile;
     const scopeKey = selectedFile ? `file:${selectedFile}` : "project:all";
     if (scopeKey !== lastSearchScope) {

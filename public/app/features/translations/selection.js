@@ -313,6 +313,7 @@ function updateTranslationItem(index, targetText) {
 
     if (oldTargetText !== targetText) {
       autoSaveManager.markDirty();
+      if (typeof invalidateSearchCache === "function") invalidateSearchCache();
     }
 
     // 同步到 AppState.translations.items

@@ -235,6 +235,9 @@ class TranslationBusinessLogic {
     if (results.length > 0 && this.autoSaveManager) {
       this.autoSaveManager.markDirty();
     }
+    if (results.length > 0 && typeof invalidateSearchCache === "function") {
+      invalidateSearchCache();
+    }
     
     // 更新项目时间戳
     if (this.appState?.project && results.length > 0) {

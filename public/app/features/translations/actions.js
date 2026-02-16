@@ -850,6 +850,7 @@ async function retryFailedTranslations() {
     }
 
     autoSaveManager.markDirty();
+    if (typeof invalidateSearchCache === "function") invalidateSearchCache();
     
     // 使用通用的UI更新函数（如果可用）
     if (typeof updateTranslationUI === 'function') {

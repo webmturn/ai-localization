@@ -275,6 +275,7 @@ function applyFindReplace() {
   if (autoSave) {
     autoSave.markDirty();
   }
+  if (typeof invalidateSearchCache === "function") invalidateSearchCache();
 
   // 使用统一的UI更新器
   if (typeof updateTranslationUI === 'function') {

@@ -1004,5 +1004,4 @@ async function scrollToItem(index) {
   }
 })();
 
-// 应用搜索过滤
-// 应用搜索过滤（优化版 - 添加缓存机制）
+// 应用搜索过滤（优化版 - 添加缓存机制，见 search.js）

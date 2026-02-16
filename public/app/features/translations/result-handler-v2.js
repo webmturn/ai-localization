@@ -329,6 +329,7 @@ class TranslationResultHandler {
       if (typeof autoSaveManager !== 'undefined' && autoSaveManager.markDirty) {
         autoSaveManager.markDirty();
       }
+      if (typeof invalidateSearchCache === "function") invalidateSearchCache();
 
       // 更新UI
       this.updateTranslationUI({

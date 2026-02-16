@@ -158,6 +158,8 @@ class TranslationBusinessLogic {
       this.setTranslationState({
         isInProgress: true,
         isPaused: false,
+        _batchStarted: true,
+        _batchCancelled: false,
         lastFailedItems: [],
         lastBatchContext: {
           scope: 'custom',
@@ -263,7 +265,9 @@ class TranslationBusinessLogic {
   cancelTranslation() {
     this.setTranslationState({
       isInProgress: false,
-      isPaused: false
+      isPaused: false,
+      _batchCancelled: true,
+      _batchStarted: false
     });
     
     // 取消网络请求

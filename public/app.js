@@ -10,6 +10,20 @@
   App.features = App.features || {};
   App.ui = App.ui || {};
 
+  // 安全回退：确保 loggers 在 logger-config.js 加载失败时不会导致全局 ReferenceError
+  // logger-config.js 加载成功后会用完整实现覆盖此占位
+  if (typeof window.loggers === 'undefined') {
+    var _noop = function () {};
+    var _stubLogger = { error: console.error.bind(console), warn: console.warn.bind(console), info: _noop, debug: _noop, verbose: _noop };
+    window.loggers = {
+      architecture: _stubLogger, modules: _stubLogger, services: _stubLogger,
+      scripts: _stubLogger, errors: _stubLogger, app: _stubLogger,
+      storage: _stubLogger, startup: _stubLogger, translation: _stubLogger, di: _stubLogger
+    };
+  }
+  // 确保 loggers 在闭包作用域内也可用（与 logger-config.js 中的 const loggers 保持一致）
+  var loggers = window.loggers;
+
   // 架构系统脚本 - 必须首先加载
   var architectureScripts = [
     "app/core/logger-config.js",         // 日志配置（最先加载）

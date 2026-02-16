@@ -158,11 +158,12 @@ function _aiFormatContextPrompt(ctx) {
 
 function _aiIsCancelled() {
   try {
-    return !!(
-      typeof AppState !== "undefined" &&
-      AppState?.translations &&
-      AppState.translations.isInProgress === false
-    );
+    if (typeof AppState === "undefined" || !AppState?.translations) return false;
+    // 显式取消标记优先（由 cancelTranslation 设置）
+    if (AppState.translations._batchCancelled === true) return true;
+    // 兼容旧逻辑：仅当批量翻译曾经启动过（_batchStarted）后 isInProgress 变为 false 才视为取消
+    // 避免在翻译尚未开始时误判
+    return !!(AppState.translations._batchStarted && AppState.translations.isInProgress === false);
   } catch (_) {
     return false;
   }
@@ -718,6 +719,25 @@ var AIEngineBase = {
         if (conversations.size > 50) {
           var oldest = conversations.keys().next().value;
           conversations.delete(oldest);
+        }
+
+        // 内存安全：估算总大小，超过阈值时淘汰最旧会话
+        var _estimatedBytes = 0;
+        conversations.forEach(function (rounds) {
+          for (var ri = 0; ri < rounds.length; ri++) {
+            var r = rounds[ri];
+            _estimatedBytes += (r.system || "").length + (r.user?.content || "").length + (r.assistant?.content || "").length;
+          }
+        });
+        var _maxBytes = 2 * 1024 * 1024; // 2MB 上限
+        while (_estimatedBytes > _maxBytes && conversations.size > 1) {
+          var _oldKey = conversations.keys().next().value;
+          var _oldRounds = conversations.get(_oldKey) || [];
+          for (var _ri = 0; _ri < _oldRounds.length; _ri++) {
+            var _r = _oldRounds[_ri];
+            _estimatedBytes -= (_r.system || "").length + (_r.user?.content || "").length + (_r.assistant?.content || "").length;
+          }
+          conversations.delete(_oldKey);
         }
 
         history = trimmedHistory;

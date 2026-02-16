@@ -327,6 +327,8 @@ async function translateSelectedFallback() {
     // 设置翻译状态
     appState.translations.isInProgress = true;
     appState.translations.isPaused = false;
+    appState.translations._batchStarted = true;
+    appState.translations._batchCancelled = false;
     appState.translations.lastFailedItems = [];
     appState.translations.lastBatchContext = {
       scope: "selected",
@@ -495,6 +497,8 @@ async function translateAllFallback() {
     // 设置翻译状态
     appState.translations.isInProgress = true;
     appState.translations.isPaused = false;
+    appState.translations._batchStarted = true;
+    appState.translations._batchCancelled = false;
     appState.translations.lastFailedItems = [];
     appState.translations.lastBatchContext = {
       scope: "file",
@@ -678,6 +682,8 @@ function cancelTranslation() {
       
     appState.translations.isInProgress = false;
     appState.translations.isPaused = false;
+    appState.translations._batchCancelled = true;
+    appState.translations._batchStarted = false;
 
     // 取消所有活动的网络请求
     const networkUtils = getServiceSafely('networkUtils', 'networkUtils');
@@ -748,6 +754,8 @@ async function retryFailedTranslations() {
 
   AppState.translations.isInProgress = true;
   AppState.translations.isPaused = false;
+  AppState.translations._batchStarted = true;
+  AppState.translations._batchCancelled = false;
   updateTranslationControlState();
 
     let translationCount = 0;

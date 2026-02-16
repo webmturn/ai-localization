@@ -561,8 +561,9 @@ class ErrorManager {
         promise: event.promise 
       });
       
-      // 阻止默认的控制台错误输出
-      if (error.severity !== ERROR_SEVERITY.CRITICAL) {
+      // 仅对已知可恢复的错误阻止默认控制台输出
+      // 非关键错误不再一律 preventDefault，保留浏览器控制台日志以便调试
+      if (error.severity === ERROR_SEVERITY.LOW && error.recovered) {
         event.preventDefault();
       }
     });

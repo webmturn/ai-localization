@@ -539,22 +539,6 @@ function configureTranslationServices(container) {
 }
 
 // ==================== 导出接口 ====================
-window.DIContainer = DIContainer;
-window.ServiceLocator = ServiceLocator;
-window.ContainerBuilder = ContainerBuilder;
-// diContainer 和 serviceLocator 将在 initializeDI() 中设置
-
-// 装饰器
-window.createServiceDecorator = createServiceDecorator;
-window.inject = inject;
-
-// 配置函数
-window.configureCoreServices = configureCoreServices;
-window.configureStorageServices = configureStorageServices;
-window.configureNetworkServices = configureNetworkServices;
-window.configureTranslationServices = configureTranslationServices;
-
-// 便捷函数（统一走安全获取逻辑，避免未注册服务导致异常泛滥）
 window.getService = (name) => getServiceSafely(name, name);
 window.hasService = (name) => {
   try {

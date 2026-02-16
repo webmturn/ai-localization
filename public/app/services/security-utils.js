@@ -5,7 +5,26 @@ class SecurityUtils {
   constructor() {
     this._legacySalt = "xml-translator-v1";
     this._saltKey = "__secUtils_salt";
+    this._instanceKeyStorageKey = "__secUtils_instanceKey";
     this._salt = null; // lazy-initialized
+    this._instanceKey = null; // lazy-initialized
+  }
+
+  // 获取或生成每安装实例唯一的加密密钥（存储在 localStorage）
+  _getOrCreateInstanceKey() {
+    if (this._instanceKey) return this._instanceKey;
+    try {
+      var stored = localStorage.getItem(this._instanceKeyStorageKey);
+      if (stored && stored.length >= 32) {
+        this._instanceKey = stored;
+        return this._instanceKey;
+      }
+    } catch (_) {}
+    // 生成随机密钥
+    var arr = crypto.getRandomValues(new Uint8Array(32));
+    this._instanceKey = Array.from(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+    try { localStorage.setItem(this._instanceKeyStorageKey, this._instanceKey); } catch (_) {}
+    return this._instanceKey;
   }
 
   // 获取或生成每安装实例唯一的盐值（存储在 localStorage）
@@ -50,8 +69,9 @@ class SecurityUtils {
     );
   }
 
-  // 加密文本（使用每安装实例唯一的盐值）
-  async encrypt(text, password = "default-key") {
+  // 加密文本（使用每安装实例唯一的盐值和密钥）
+  async encrypt(text, password) {
+    if (!password) password = this._getOrCreateInstanceKey();
     const salt = this._getOrCreateSalt();
     const key = await this.deriveKey(password, salt);
     const enc = new TextEncoder();
@@ -77,7 +97,8 @@ class SecurityUtils {
   }
 
   // 解密文本（先尝试当前盐值，失败后回退到旧固定盐值以兼容历史数据）
-  async decrypt(encryptedText, password = "default-key") {
+  async decrypt(encryptedText, password) {
+    if (!password) password = this._getOrCreateInstanceKey();
     // 非 Base64 格式直接返回（未加密的旧数据）
     try { atob(encryptedText); } catch (_) { return encryptedText; }
 
@@ -92,8 +113,17 @@ class SecurityUtils {
         return await this._decryptWithSalt(encryptedText, password, this._legacySalt);
       } catch (_) {}
     }
-    // 均失败：可能是未加密的旧数据
-    (loggers.services || console).warn("解密失败，返回原文（可能是未加密的旧数据）");
+    // 回退到旧硬编码密码（兼容 v1.2.1 之前加密的数据）
+    try {
+      return await this._decryptWithSalt(encryptedText, "default-key", salt);
+    } catch (_) {}
+    if (salt !== this._legacySalt) {
+      try {
+        return await this._decryptWithSalt(encryptedText, "default-key", this._legacySalt);
+      } catch (_) {}
+    }
+    // 均失败：可能是未加密的旧数据或被篡改
+    (loggers.services || console).error("所有解密方式均失败，返回原文（数据可能未加密或已损坏）");
     return encryptedText;
   }
 

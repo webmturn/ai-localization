@@ -6,30 +6,13 @@ TranslationService.prototype.getSettings = async function () {
   try {
 
     // 尝试解密API密钥（如果是加密的）
-    if (settings.openaiApiKey && settings.openaiApiKey.length > 50) {
-      settings.openaiApiKey = await securityUtils.decrypt(
-        settings.openaiApiKey
-      );
-    }
-    if (settings.googleApiKey && settings.googleApiKey.length > 50) {
-      settings.googleApiKey = await securityUtils.decrypt(
-        settings.googleApiKey
-      );
-    }
-    if (settings.deepseekApiKey && settings.deepseekApiKey.length > 50) {
-      settings.deepseekApiKey = await securityUtils.decrypt(
-        settings.deepseekApiKey
-      );
-    }
-    if (settings.geminiApiKey && settings.geminiApiKey.length > 50) {
-      settings.geminiApiKey = await securityUtils.decrypt(
-        settings.geminiApiKey
-      );
-    }
-    if (settings.claudeApiKey && settings.claudeApiKey.length > 50) {
-      settings.claudeApiKey = await securityUtils.decrypt(
-        settings.claudeApiKey
-      );
+    // 加密后的 Base64 字符串通常远长于原始 API Key，50 为安全阈值
+    const _encryptedMinLen = 50;
+    const _apiKeyFields = ['openaiApiKey', 'googleApiKey', 'deepseekApiKey', 'geminiApiKey', 'claudeApiKey'];
+    for (const field of _apiKeyFields) {
+      if (settings[field] && settings[field].length > _encryptedMinLen) {
+        settings[field] = await securityUtils.decrypt(settings[field]);
+      }
     }
 
     return settings;

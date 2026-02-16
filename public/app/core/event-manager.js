@@ -8,6 +8,10 @@
  */
 const EventManager = {
   listeners: [],
+  /** @type {Map<string, Object>} ID → 监听器条目索引 */
+  _byId: new Map(),
+  /** @type {Map<string, Object[]>} label → 监听器条目列表索引 */
+  _byLabel: new Map(),
 
   /**
    * 添加事件监听器
@@ -61,18 +65,20 @@ const EventManager = {
       }
     }
 
-    // 去重：如果存在相同 target+event+label 的监听器，先移除旧的避免重复绑定
+    // 去重：如果存在相同 target+event+label 的监听器，先移除旧的避免重复绑定（O(1) 查找）
     if (label) {
-      const dupes = this.listeners.filter(
-        (l) => l.label === label && l.target === target && l.event === event
-      );
-      if (dupes.length > 0) {
-        dupes.forEach((l) => {
-          try { l.target.removeEventListener(l.event, l.handler, l.options); } catch (_) {}
-        });
-        this.listeners = this.listeners.filter(
-          (l) => !(l.label === label && l.target === target && l.event === event)
-        );
+      const existing = this._byLabel.get(label);
+      if (existing && existing.length > 0) {
+        const dupes = existing.filter((l) => l.target === target && l.event === event);
+        if (dupes.length > 0) {
+          dupes.forEach((l) => {
+            try { l.target.removeEventListener(l.event, l.handler, l.options); } catch (_) {}
+            this._byId.delete(l.id);
+          });
+          const dupeIds = new Set(dupes.map((l) => l.id));
+          this.listeners = this.listeners.filter((l) => !dupeIds.has(l.id));
+          this._byLabel.set(label, existing.filter((l) => !dupeIds.has(l.id)));
+        }
       }
     }
 
@@ -88,8 +94,13 @@ const EventManager = {
       actualHandler = function onceWrapper(e) {
         handler.call(this, e);
         // 浏览器已自动移除原生监听器，仅清理 EventManager 跟踪条目
-        const idx = self.listeners.findIndex((l) => l.id === listenerId);
-        if (idx !== -1) self.listeners.splice(idx, 1);
+        const entry = self._byId.get(listenerId);
+        if (entry) {
+          self._byId.delete(listenerId);
+          self._removeFromLabel(entry);
+          const idx = self.listeners.indexOf(entry);
+          if (idx !== -1) self.listeners.splice(idx, 1);
+        }
       };
       // 移除 once 标记，由 wrapper 自行管理生命周期
       if (typeof listenerOptions === "object") {
@@ -102,7 +113,7 @@ const EventManager = {
 
     target.addEventListener(event, actualHandler, listenerOptions);
 
-    this.listeners.push({
+    const entry = {
       id: listenerId,
       target,
       event,
@@ -111,7 +122,14 @@ const EventManager = {
       tag,
       scope,
       label,
-    });
+    };
+
+    this.listeners.push(entry);
+    this._byId.set(listenerId, entry);
+    if (label) {
+      const arr = this._byLabel.get(label);
+      if (arr) { arr.push(entry); } else { this._byLabel.set(label, [entry]); }
+    }
 
     return listenerId;
   },
@@ -122,16 +140,18 @@ const EventManager = {
    * @returns {boolean} 是否成功移除
    */
   removeById(listenerId) {
-    const index = this.listeners.findIndex((l) => l.id === listenerId);
-    if (index === -1) return false;
+    const listener = this._byId.get(listenerId);
+    if (!listener) return false;
 
-    const listener = this.listeners[index];
     listener.target.removeEventListener(
       listener.event,
       listener.handler,
       listener.options
     );
-    this.listeners.splice(index, 1);
+    this._byId.delete(listenerId);
+    this._removeFromLabel(listener);
+    const index = this.listeners.indexOf(listener);
+    if (index !== -1) this.listeners.splice(index, 1);
     return true;
   },
 
@@ -148,6 +168,8 @@ const EventManager = {
         listener.handler,
         listener.options
       );
+      this._byId.delete(listener.id);
+      this._removeFromLabel(listener);
     });
     this.listeners = this.listeners.filter((l) => l.target !== target);
     return toRemove.length;
@@ -166,6 +188,8 @@ const EventManager = {
         listener.handler,
         listener.options
       );
+      this._byId.delete(listener.id);
+      this._removeFromLabel(listener);
     });
     this.listeners = this.listeners.filter((l) => l.event !== event);
     return toRemove.length;
@@ -179,6 +203,8 @@ const EventManager = {
         listener.handler,
         listener.options
       );
+      this._byId.delete(listener.id);
+      this._removeFromLabel(listener);
     });
     this.listeners = this.listeners.filter((l) => l.tag !== tag);
     return toRemove.length;
@@ -192,6 +218,8 @@ const EventManager = {
         listener.handler,
         listener.options
       );
+      this._byId.delete(listener.id);
+      this._removeFromLabel(listener);
     });
     this.listeners = this.listeners.filter((l) => l.scope !== scope);
     return toRemove.length;
@@ -213,6 +241,8 @@ const EventManager = {
         listener.handler,
         listener.options
       );
+      this._byId.delete(listener.id);
+      this._removeFromLabel(listener);
     });
     this.listeners = this.listeners.filter(
       (l) => !(l.target === target && l.event === event)
@@ -230,6 +260,8 @@ const EventManager = {
       target.removeEventListener(event, handler, options);
     });
     this.listeners = [];
+    this._byId.clear();
+    this._byLabel.clear();
     return count;
   },
 
@@ -238,6 +270,19 @@ const EventManager = {
    */
   clear() {
     return this.removeAll();
+  },
+
+  /**
+   * 从 _byLabel 索引中移除指定条目
+   * @param {Object} entry - 监听器条目
+   */
+  _removeFromLabel(entry) {
+    if (!entry || !entry.label) return;
+    const arr = this._byLabel.get(entry.label);
+    if (!arr) return;
+    const idx = arr.indexOf(entry);
+    if (idx !== -1) arr.splice(idx, 1);
+    if (arr.length === 0) this._byLabel.delete(entry.label);
   },
 
   pruneDisconnected() {
@@ -253,12 +298,14 @@ const EventManager = {
       );
     });
 
-    disconnected.forEach(({ target, event, handler, options }) => {
+    disconnected.forEach((l) => {
       try {
-        target.removeEventListener(event, handler, options);
+        l.target.removeEventListener(l.event, l.handler, l.options);
       } catch (e) {
         // ignore
       }
+      this._byId.delete(l.id);
+      this._removeFromLabel(l);
     });
 
     this.listeners = this.listeners.filter((l) => {

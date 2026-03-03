@@ -4,6 +4,30 @@
 
 ---
 
+## [v1.3.0] — 2026-03-03
+
+> 四大新功能 + 自动化测试基础设施 + Font Awesome v6 升级
+
+### 新增
+- **翻译记忆库 (TM)** — 跨项目存储和复用已翻译条目，支持精确匹配和 Levenshtein 模糊匹配（阈值可调），IndexedDB 独立存储，TMX 标准格式导出
+- **增量翻译 Diff** — 源文件变更检测，自动标记需重新翻译的条目（变更/新增/删除），快照管理，一键标记重译
+- **批量翻译断点续传** — 进度持久化到 localStorage，中断后可从断点恢复，24 小时自动过期清理
+- **自定义引擎接入** — 用户配置私有 LLM 端点（Ollama/vLLM/LiteLLM 等），OpenAI 兼容 API 格式，持久化到 localStorage 并自动恢复
+- **自动化测试基础设施** — Vitest 4.x + jsdom，`vm.runInThisContext` 加载全局命名空间源文件，106 个单元测试全部通过
+  - `tests/setup.mjs` — 测试环境设置（全局变量模拟）
+  - 6 个测试文件覆盖：helpers、security-utils、parser-utils、translation-memory、translation-diff、batch-resume
+
+### 修复
+- **P2**: `project.js` 最后一处 DOM0 事件绑定 `input.onchange` 替换为 `EventManager.add`
+
+### 改进
+- Font Awesome v4.7.0 → v6.7.2 全面升级（132 处图标类名迁移，49 个不同图标，`fa-solid`/`fa-regular` 分类）
+- CDN 下载工具适配 FA v6 多文件结构（`css/all.min.css` + `webfonts/`）
+- CI 工作流新增测试步骤（在构建前运行，fail-fast）
+- Bundle 从 107 → 111 个脚本（新增 4 个功能模块）
+
+---
+
 ## [v1.2.2] — 2026-03-03
 
 > 安全修复、AI 引擎优化 & 构建基础设施跨平台改造

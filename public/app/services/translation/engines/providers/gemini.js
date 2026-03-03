@@ -7,7 +7,7 @@ EngineRegistry.register({
   category: "ai",
   apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   apiKeyField: "geminiApiKey",
-  apiKeyValidationType: "generic",
+  apiKeyValidationType: "gemini",
   defaultModel: "gemini-2.0-flash",
   authHeaderBuilder: function (key) {
     return { "Authorization": "Bearer " + key };

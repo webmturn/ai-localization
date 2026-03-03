@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 使用 Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建 CSS
+        run: npm run build-css
+
+      - name: 构建 JS Bundle
+        run: npm run build-bundle
+
+      - name: 检查依赖版本
+        run: node scripts/tools.mjs check-versions
+
+      - name: 验证构建产物
+        run: |
+          echo "=== 验证构建产物 ==="
+          test -f public/styles.css && echo "✅ styles.css 存在" || (echo "❌ styles.css 缺失" && exit 1)
+          test -f public/app.bundle.js && echo "✅ app.bundle.js 存在" || (echo "❌ app.bundle.js 缺失" && exit 1)
+          BUNDLE_SIZE=$(wc -c < public/app.bundle.js)
+          echo "📦 app.bundle.js 大小: $BUNDLE_SIZE bytes"
+          if [ "$BUNDLE_SIZE" -lt 100000 ]; then
+            echo "❌ Bundle 体积异常偏小，可能构建不完整"
+            exit 1
+          fi
+          echo "✅ 构建验证通过"

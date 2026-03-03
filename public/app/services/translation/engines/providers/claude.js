@@ -7,7 +7,7 @@ EngineRegistry.register({
   category: "ai",
   apiUrl: "https://api.anthropic.com/v1/messages",
   apiKeyField: "claudeApiKey",
-  apiKeyValidationType: "generic",
+  apiKeyValidationType: "claude",
   defaultModel: "claude-sonnet-4-20250514",
   authHeaderBuilder: function (key) {
     return {

@@ -1,21 +1,37 @@
 // 获取保存的API设置（带解密）
+// 解密缓存：避免每次调用都执行 PBKDF2 解密（批量翻译时可达数百次）
+var _decryptedSettingsCache = {
+  _result: null,
+  _sourceRef: null, // 引用比较，SettingsCache.get() 返回同一对象时跳过解密
+};
+
 TranslationService.prototype.getSettings = async function () {
   const settings = SettingsCache.get();
   if (!settings || Object.keys(settings).length === 0) return {};
 
+  // 引用未变说明底层设置未更新，复用已解密的结果
+  if (_decryptedSettingsCache._sourceRef === settings && _decryptedSettingsCache._result) {
+    return _decryptedSettingsCache._result;
+  }
+
   try {
+    // 使用副本解密，避免污染 SettingsCache 的内部缓存对象
+    const copy = JSON.parse(JSON.stringify(settings));
 
     // 尝试解密API密钥（如果是加密的）
     // 加密后的 Base64 字符串通常远长于原始 API Key，50 为安全阈值
     const _encryptedMinLen = 50;
     const _apiKeyFields = ['openaiApiKey', 'googleApiKey', 'deepseekApiKey', 'geminiApiKey', 'claudeApiKey'];
     for (const field of _apiKeyFields) {
-      if (settings[field] && settings[field].length > _encryptedMinLen) {
-        settings[field] = await securityUtils.decrypt(settings[field]);
+      if (copy[field] && copy[field].length > _encryptedMinLen) {
+        copy[field] = await securityUtils.decrypt(copy[field]);
       }
     }
 
-    return settings;
+    _decryptedSettingsCache._sourceRef = settings;
+    _decryptedSettingsCache._result = copy;
+
+    return copy;
   } catch (error) {
     (loggers.translation || console).error("读取设置失败:", error);
     return {};
@@ -67,8 +83,8 @@ try {
       window.__DEFAULT_PROJECT_PROMPT_TEMPLATES = __DEFAULT_PROJECT_PROMPT_TEMPLATES;
     }
   }
-} catch (_) {
-  (loggers.translation || console).debug("translation settings global register:", _);
+} catch (e) {
+  (loggers.translation || console).debug("translation settings global register:", e);
 }
 
 __DEFAULT_PROJECT_PROMPT_TEMPLATES.general =

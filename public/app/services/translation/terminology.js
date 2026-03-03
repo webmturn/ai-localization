@@ -17,10 +17,10 @@ TranslationService.prototype.findTerminologyMatches = function (text) {
     if (!terminologyList || terminologyList.length === 0) return matches;
 
     // 遍历术语库，查找匹配项
+    const textLower = text.toLowerCase();
     for (const term of terminologyList) {
       try {
         // 使用简单的字符串匹配（大小写不敏感）
-        const textLower = text.toLowerCase();
         const sourceLower = term.source.toLowerCase();
 
         if (textLower.includes(sourceLower)) {

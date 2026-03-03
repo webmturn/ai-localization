@@ -19,11 +19,11 @@ class SecurityUtils {
         this._instanceKey = stored;
         return this._instanceKey;
       }
-    } catch (_) {}
+    } catch (e) {}
     // 生成随机密钥
     var arr = crypto.getRandomValues(new Uint8Array(32));
     this._instanceKey = Array.from(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
-    try { localStorage.setItem(this._instanceKeyStorageKey, this._instanceKey); } catch (_) {}
+    try { localStorage.setItem(this._instanceKeyStorageKey, this._instanceKey); } catch (e) {}
     return this._instanceKey;
   }
 
@@ -36,11 +36,11 @@ class SecurityUtils {
         this._salt = stored;
         return this._salt;
       }
-    } catch (_) {}
+    } catch (e) {}
     // 生成随机盐值
     var arr = crypto.getRandomValues(new Uint8Array(16));
     this._salt = Array.from(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
-    try { localStorage.setItem(this._saltKey, this._salt); } catch (_) {}
+    try { localStorage.setItem(this._saltKey, this._salt); } catch (e) {}
     return this._salt;
   }
 
@@ -100,27 +100,27 @@ class SecurityUtils {
   async decrypt(encryptedText, password) {
     if (!password) password = this._getOrCreateInstanceKey();
     // 非 Base64 格式直接返回（未加密的旧数据）
-    try { atob(encryptedText); } catch (_) { return encryptedText; }
+    try { atob(encryptedText); } catch (e) { return encryptedText; }
 
     const salt = this._getOrCreateSalt();
     // 尝试当前盐值解密
     try {
       return await this._decryptWithSalt(encryptedText, password, salt);
-    } catch (_) {}
+    } catch (e) {}
     // 回退到旧固定盐值（兼容升级前加密的数据）
     if (salt !== this._legacySalt) {
       try {
         return await this._decryptWithSalt(encryptedText, password, this._legacySalt);
-      } catch (_) {}
+      } catch (e) {}
     }
     // 回退到旧硬编码密码（兼容 v1.2.1 之前加密的数据）
     try {
       return await this._decryptWithSalt(encryptedText, "default-key", salt);
-    } catch (_) {}
+    } catch (e) {}
     if (salt !== this._legacySalt) {
       try {
         return await this._decryptWithSalt(encryptedText, "default-key", this._legacySalt);
-      } catch (_) {}
+      } catch (e) {}
     }
     // 均失败：可能是未加密的旧数据或被篡改
     (loggers.services || console).error("所有解密方式均失败，返回原文（数据可能未加密或已损坏）");
@@ -195,6 +195,12 @@ class SecurityUtils {
       case "google":
         // Google: 长度通常39字符
         return key.length >= 20 && key.length <= 100;
+      case "gemini":
+        // Gemini: Google AI Studio 密钥，通常以 AIza 开头，长度39字符
+        return key.startsWith("AIza") && key.length >= 30 && key.length <= 100;
+      case "claude":
+        // Claude: Anthropic 密钥，以 sk-ant- 开头，长度较长
+        return key.startsWith("sk-ant-") && key.length >= 20;
       default:
         return key.length >= 10;
     }

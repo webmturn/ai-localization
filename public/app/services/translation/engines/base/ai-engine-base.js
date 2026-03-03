@@ -4,12 +4,43 @@
 
 var _AI_LANG_NAMES = {
   zh: "中文",
+  "zh-CN": "简体中文",
+  "zh-TW": "繁體中文",
+  "zh-HK": "繁體中文（香港）",
   en: "English",
   ja: "日本語",
   ko: "한국어",
   fr: "Français",
   de: "Deutsch",
   es: "Español",
+  pt: "Português",
+  "pt-BR": "Português (Brasil)",
+  it: "Italiano",
+  ru: "Русский",
+  ar: "العربية",
+  th: "ไทย",
+  vi: "Tiếng Việt",
+  id: "Bahasa Indonesia",
+  ms: "Bahasa Melayu",
+  nl: "Nederlands",
+  pl: "Polski",
+  tr: "Türkçe",
+  uk: "Українська",
+  cs: "Čeština",
+  sv: "Svenska",
+  da: "Dansk",
+  fi: "Suomi",
+  no: "Norsk",
+  el: "Ελληνικά",
+  he: "עברית",
+  hi: "हिन्दी",
+  bn: "বাংলা",
+  ro: "Română",
+  hu: "Magyar",
+  sk: "Slovenčina",
+  bg: "Български",
+  hr: "Hrvatski",
+  ca: "Català",
 };
 
 // ======================== 辅助函数 ========================
@@ -164,7 +195,7 @@ function _aiIsCancelled() {
     // 兼容旧逻辑：仅当批量翻译曾经启动过（_batchStarted）后 isInProgress 变为 false 才视为取消
     // 避免在翻译尚未开始时误判
     return !!(AppState.translations._batchStarted && AppState.translations.isInProgress === false);
-  } catch (_) {
+  } catch (e) {
     return false;
   }
 }
@@ -266,8 +297,8 @@ var AIEngineBase = {
           targetLang: targetLang,
         });
       }
-    } catch (_) {
-      (loggers.translation || console).debug(engineId + " getPromptTemplate:", _);
+    } catch (e) {
+      (loggers.translation || console).debug(engineId + " getPromptTemplate:", e);
     }
     if (!systemPrompt || !systemPrompt.trim()) {
       systemPrompt = "你是一位专业的软件本地化翻译专家，精通" + sourceLanguage + "到" + targetLanguage + "的翻译。\n\n" +
@@ -450,8 +481,8 @@ var AIEngineBase = {
           targetLang: targetLang,
         });
       }
-    } catch (_) {
-      (loggers.translation || console).debug(engineId + " batch getPromptTemplate:", _);
+    } catch (e) {
+      (loggers.translation || console).debug(engineId + " batch getPromptTemplate:", e);
     }
     if (!baseSystemPrompt || !baseSystemPrompt.trim()) {
       baseSystemPrompt = "你是一位专业的软件本地化翻译专家，精通" + sourceLanguage + "到" + targetLanguage + "的翻译。\n\n" +
@@ -722,20 +753,22 @@ var AIEngineBase = {
         }
 
         // 内存安全：估算总大小，超过阈值时淘汰最旧会话
+        // 字符数 ×3 近似 UTF-8 字节数（中日韩等多字节字符占 3 字节）
         var _estimatedBytes = 0;
         conversations.forEach(function (rounds) {
           for (var ri = 0; ri < rounds.length; ri++) {
             var r = rounds[ri];
-            _estimatedBytes += (r.system || "").length + (r.user?.content || "").length + (r.assistant?.content || "").length;
+            _estimatedBytes += (r.system || "").length + (r.user?.content || "").length + (r.assistant?.content || "").length + (r.priming?.content || "").length;
           }
         });
+        _estimatedBytes = _estimatedBytes * 3;
         var _maxBytes = 2 * 1024 * 1024; // 2MB 上限
         while (_estimatedBytes > _maxBytes && conversations.size > 1) {
           var _oldKey = conversations.keys().next().value;
           var _oldRounds = conversations.get(_oldKey) || [];
           for (var _ri = 0; _ri < _oldRounds.length; _ri++) {
             var _r = _oldRounds[_ri];
-            _estimatedBytes -= (_r.system || "").length + (_r.user?.content || "").length + (_r.assistant?.content || "").length;
+            _estimatedBytes -= (((_r.system || "").length + (_r.user?.content || "").length + (_r.assistant?.content || "").length + (_r.priming?.content || "").length) * 3);
           }
           conversations.delete(_oldKey);
         }

@@ -4,6 +4,30 @@
 
 ---
 
+## [v1.2.2] — 2026-03-03
+
+> 安全修复、AI 引擎优化 & 构建基础设施跨平台改造
+
+### 修复
+- **P2**: API Key 验证补全 Gemini（`AIza` 前缀 + 长度 30-100）和 Claude（`sk-ant-` 前缀 + 长度 ≥ 20）专用规则
+- **P3**: 术语匹配 `text.toLowerCase()` 从循环内提到循环外，消除大术语库场景下的冗余调用
+- **P3**: `getSettings()` 添加解密结果缓存（引用比较），避免批量翻译时重复执行 PBKDF2 100K 迭代解密
+- **P3**: 会话历史内存估算加入 `priming` 消息内容 + ×3 UTF-8 字节系数，淘汰循环同步修正
+
+### 新增
+- `scripts/tools.mjs` — 跨平台 Node.js 项目工具（替代 `tools.ps1` 及 4 个 PS1 包装脚本）
+  - 支持 `check-node` / `check-versions` / `update-config` / `update-cdn` / `all`
+  - 自动处理 UTF-8 BOM 兼容
+- `scripts/build-production.mjs` — 跨平台生产构建脚本（替代 `build-production.ps1`）
+- `.github/workflows/ci.yml` — GitHub Actions CI 工作流（Node 18/20/22 矩阵，含构建产物验证）
+
+### 改进
+- `_AI_LANG_NAMES` 从 7 种语言扩充至 38 种（覆盖中文变体、欧洲、中东、南亚、东南亚语言），AI 提示词使用各语言原生名称
+- `package.json` 所有 npm scripts 从 PowerShell 调用改为 Node.js 调用，macOS/Linux 可直接运行
+- 代码规范化：43 个文件 catch 参数命名统一
+
+---
+
 ## [v1.2.1] — 2026-02-13
 
 > 代码质量审查 & 事件监听器规范化

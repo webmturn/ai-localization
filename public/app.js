@@ -142,6 +142,8 @@
     "app/features/translations/export/project.js",
     "app/features/translations/export/terminology-list.js",
     "app/features/terminology/init.js",
+    "app/features/tm/ui.js",                           // 翻译记忆库管理 UI
+    "app/features/engines/custom-ui.js",               // 自定义引擎配置 UI
     "app/features/sample/sample-project.js"
   ];
 

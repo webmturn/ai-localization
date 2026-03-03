@@ -5,8 +5,8 @@ function __ensureQualityModuleLoaded() {
     const App = window.App;
     const ensure = App?.services?.ensureQualityModule;
     if (typeof ensure === "function") return ensure();
-  } catch (_) {
-    (loggers.app || console).debug("compat quality module loader:", _);
+  } catch (e) {
+    (loggers.app || console).debug("compat quality module loader:", e);
   }
   return Promise.reject(new Error("Quality module loader not available"));
 }

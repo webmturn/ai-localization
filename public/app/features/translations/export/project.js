@@ -68,8 +68,8 @@ function createNewProject() {
     ) {
       window.loadProjectPromptTemplatesToUI();
     }
-  } catch (_) {
-    (loggers.app || console).debug("project loadPromptTemplates:", _);
+  } catch (e) {
+    (loggers.app || console).debug("project loadPromptTemplates:", e);
   }
 }
 
@@ -173,8 +173,8 @@ function openProject() {
           ) {
             window.loadProjectPromptTemplatesToUI();
           }
-        } catch (_) {
-          (loggers.app || console).debug("project import loadPromptTemplates:", _);
+        } catch (e) {
+          (loggers.app || console).debug("project import loadPromptTemplates:", e);
         }
       })
       .catch((e) => {

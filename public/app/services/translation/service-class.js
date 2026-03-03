@@ -27,7 +27,7 @@ class TranslationService {
           lastRequest: 0,
         };
       }
-    } catch (_) {
+    } catch (e) {
       // EngineRegistry 未就绪时使用默认值
     }
     // 确保至少有默认引擎

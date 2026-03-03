@@ -66,8 +66,8 @@ function registerEventListenersTerminology(ctx) {
       function (e) {
         try {
           e.preventDefault();
-        } catch (_) {
-          (loggers.app || console).debug("terminology dragover preventDefault:", _);
+        } catch (e) {
+          (loggers.app || console).debug("terminology dragover preventDefault:", e);
         }
 
         const App = window.App;
@@ -126,8 +126,8 @@ function registerEventListenersTerminology(ctx) {
       function (e) {
         try {
           e.preventDefault();
-        } catch (_) {
-          (loggers.app || console).debug("terminology drop preventDefault:", _);
+        } catch (e) {
+          (loggers.app || console).debug("terminology drop preventDefault:", e);
         }
 
         const App = window.App;

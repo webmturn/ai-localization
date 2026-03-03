@@ -18,7 +18,7 @@ function translationGetItemKey(item) {
         item?.id ||
         ""
     );
-  } catch (_) {
+  } catch (e) {
     return "";
   }
 }
@@ -34,7 +34,7 @@ function translationGetFileBase(item) {
     if (!f) return "";
     const parts = f.split(/\\|\//g);
     return parts[parts.length - 1] || f;
-  } catch (_) {
+  } catch (e) {
     return "";
   }
 }

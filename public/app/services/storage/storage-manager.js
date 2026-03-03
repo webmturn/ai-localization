@@ -352,8 +352,8 @@ class StorageManager {
           this.__metaActiveProjectIdKey
         );
         if (typeof val === "string" && val) return val;
-      } catch (_) {
-        (loggers.storage || console).debug("getActiveProjectId fallback:", backend?.backendId, _);
+      } catch (e) {
+        (loggers.storage || console).debug("getActiveProjectId fallback:", backend?.backendId, e);
       }
     }
     return null;
@@ -385,8 +385,8 @@ class StorageManager {
           this.__metaProjectsIndexKey
         );
         if (Array.isArray(idx)) return idx;
-      } catch (_) {
-        (loggers.storage || console).debug("loadProjectsIndex fallback:", backend?.backendId, _);
+      } catch (e) {
+        (loggers.storage || console).debug("loadProjectsIndex fallback:", backend?.backendId, e);
       }
     }
     return [];
@@ -421,8 +421,8 @@ class StorageManager {
     try {
       const project = await this.__loadJsonFromBackend(preferred, key);
       if (project) return project;
-    } catch (_) {
-      (loggers.storage || console).debug("loadProjectById preferred failed:", preferred?.backendId, _);
+    } catch (e) {
+      (loggers.storage || console).debug("loadProjectById preferred failed:", preferred?.backendId, e);
     }
 
     for (const backend of fallbacks) {
@@ -431,13 +431,13 @@ class StorageManager {
         if (project) {
           try {
             await this.__saveJsonToBackend(preferred, key, project);
-          } catch (_) {
-            (loggers.storage || console).debug("loadProjectById cross-save failed:", _);
+          } catch (e) {
+            (loggers.storage || console).debug("loadProjectById cross-save failed:", e);
           }
           return project;
         }
-      } catch (_) {
-        (loggers.storage || console).debug("loadProjectById fallback:", backend?.backendId, _);
+      } catch (e) {
+        (loggers.storage || console).debug("loadProjectById fallback:", backend?.backendId, e);
       }
     }
     return null;
@@ -487,8 +487,8 @@ class StorageManager {
           await this.__saveJsonToBackend(durableFallback, this.__legacyCurrentProjectKey, normalized);
           await this.__saveJsonToBackend(durableFallback, this.__metaActiveProjectIdKey, normalized.id);
           await this.__saveJsonToBackend(durableFallback, this.__metaProjectsIndexKey, next);
-        } catch (_) {
-          (loggers.storage || console).debug("saveProject durable fallback sync failed:", _);
+        } catch (e) {
+          (loggers.storage || console).debug("saveProject durable fallback sync failed:", e);
         }
       }
     }
@@ -791,16 +791,16 @@ class StorageManager {
         if (Array.isArray(idx) && idx.length > projectsIndex.length) {
           projectsIndex = idx;
         }
-      } catch (_) {
-        (loggers.storage || console).debug("migrateToBackend loadIndex:", srcId, _);
+      } catch (e) {
+        (loggers.storage || console).debug("migrateToBackend loadIndex:", srcId, e);
       }
 
       if (!activeProjectId) {
         try {
           const aid = await this.__loadJsonFromBackend(src, this.__metaActiveProjectIdKey);
           if (typeof aid === "string" && aid) activeProjectId = aid;
-        } catch (_) {
-          (loggers.storage || console).debug("migrateToBackend loadActiveId:", srcId, _);
+        } catch (e) {
+          (loggers.storage || console).debug("migrateToBackend loadActiveId:", srcId, e);
         }
       }
     }
@@ -824,8 +824,8 @@ class StorageManager {
         try {
           const data = await this.__loadJsonFromBackend(src, key);
           if (data) { projectData = data; break; }
-        } catch (_) {
-          (loggers.storage || console).debug("migrateToBackend loadProject:", srcId, projectId, _);
+        } catch (e) {
+          (loggers.storage || console).debug("migrateToBackend loadProject:", srcId, projectId, e);
         }
       }
 
@@ -864,12 +864,12 @@ class StorageManager {
             await this.__saveJsonToBackend(targetBackend, this.__legacyCurrentProjectKey, legacy);
             break;
           }
-        } catch (_) {
-          (loggers.storage || console).debug("migrateToBackend legacy read:", srcId, _);
+        } catch (e) {
+          (loggers.storage || console).debug("migrateToBackend legacy read:", srcId, e);
         }
       }
-    } catch (_) {
-      (loggers.storage || console).debug("migrateToBackend legacy outer:", _);
+    } catch (e) {
+      (loggers.storage || console).debug("migrateToBackend legacy outer:", e);
     }
 
     (loggers.storage || console).info(
@@ -897,8 +897,8 @@ class StorageManager {
         window.updateStorageBackendStatus();
       }
       return true;
-    } catch (_) {
-      (loggers.storage || console).debug("tryReconnectFilesystem failed:", _);
+    } catch (e) {
+      (loggers.storage || console).debug("tryReconnectFilesystem failed:", e);
       return false;
     }
   }
@@ -1135,12 +1135,12 @@ class StorageManager {
           }
           try {
             await this.__removeFromBackend(backend, key);
-          } catch (_) {
-            (loggers.storage || console).debug("clearAllData removeProject:", backend?.backendId, _);
+          } catch (e) {
+            (loggers.storage || console).debug("clearAllData removeProject:", backend?.backendId, e);
           }
         }
-      } catch (_) {
-        (loggers.storage || console).debug("clearAllData cleanup:", id, _);
+      } catch (e) {
+        (loggers.storage || console).debug("clearAllData cleanup:", id, e);
       }
     }
 

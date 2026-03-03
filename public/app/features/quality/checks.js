@@ -10,7 +10,7 @@ function __getQualityCheckOptions() {
       checkLength: s.checkLength === true,
       checkNumbers: s.checkNumbers !== false,
     };
-  } catch (_) {
+  } catch (e) {
     return {
       checkTerminology: true,
       checkPlaceholders: true,

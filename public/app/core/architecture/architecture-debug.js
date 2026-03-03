@@ -23,13 +23,13 @@
   function setWindowFlag(windowKey, value) {
     try {
       window[windowKey] = value;
-    } catch (_) {}
+    } catch (e) {}
   }
 
   function getWindowFlag(windowKey) {
     try {
       return window[windowKey];
-    } catch (_) {
+    } catch (e) {
       return undefined;
     }
   }
@@ -84,7 +84,7 @@
               try {
                 var App = window.App;
                 return App ? App.__appScriptSuffix : undefined;
-              } catch (_) {
+              } catch (e) {
                 return undefined;
               }
             })();
@@ -105,12 +105,12 @@
             mirrorWindow: false,
           });
         }
-      } catch (_) {}
+      } catch (e) {}
     }
 
     try {
       delete window.__appScriptSuffix;
-    } catch (_) {
+    } catch (e) {
       window.__appScriptSuffix = undefined;
     }
 
@@ -122,22 +122,22 @@
       if (window.App && window.App.__appScriptSuffix !== undefined) {
         try {
           delete window.App.__appScriptSuffix;
-        } catch (_) {
+        } catch (e) {
           window.App.__appScriptSuffix = undefined;
         }
       }
-    } catch (_) {}
+    } catch (e) {}
 
     try {
       if (window.App && window.App.__appBasePath !== undefined) {
         try {
           delete window.App.__appBasePath;
-        } catch (_) {
+        } catch (e) {
           window.App.__appBasePath = undefined;
         }
       }
-    } catch (_) {}
-  } catch (_) {}
+    } catch (e) {}
+  } catch (e) {}
 
   debug.snapshot = function () {
     return {
@@ -158,6 +158,6 @@
       if (ns && !('debug' in ns)) {
         window.namespaceManager.addToNamespace('App.architecture', 'debug', debug);
       }
-    } catch (_) {}
+    } catch (e) {}
   }
 })();

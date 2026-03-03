@@ -18,17 +18,17 @@ function notifyStorageErrorV2(error, action, options = {}) {
       if (typeof window !== 'undefined' && typeof window.notifyIndexedDbFileContentErrorOnceOriginal === 'function') {
         return window.notifyIndexedDbFileContentErrorOnceOriginal(error, action);
       }
-    } catch (_) {}
+    } catch (e) {}
 
     try {
       if (typeof showNotification === 'function') {
         showNotification('warning', '存储异常', `${action || '存储操作'}失败，请重试或刷新页面。`);
       }
-    } catch (_) {}
+    } catch (e) {}
 
     try {
       (window.loggers?.storage || console).warn('notifyStorageErrorV2 fallback:', action, error);
-    } catch (_) {}
+    } catch (e) {}
     return { shouldNotify: false };
   };
   

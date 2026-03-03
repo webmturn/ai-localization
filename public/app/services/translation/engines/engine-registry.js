@@ -208,8 +208,8 @@ const EngineRegistry = {
     for (var i = 0; i < customEngines.length; i++) {
       try {
         this.registerCustom(customEngines[i]);
-      } catch (_) {
-        (loggers.translation || console).warn("EngineRegistry: 恢复自定义引擎失败:", _);
+      } catch (e) {
+        (loggers.translation || console).warn("EngineRegistry: 恢复自定义引擎失败:", e);
       }
     }
   },

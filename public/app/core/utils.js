@@ -93,7 +93,7 @@ var SettingsCache = {
    */
   getCopy: function () {
     var obj = this.get();
-    try { return JSON.parse(JSON.stringify(obj)); } catch (_) { return {}; }
+    try { return JSON.parse(JSON.stringify(obj)); } catch (e) { return {}; }
   },
 
   /**
@@ -151,7 +151,7 @@ var SettingsCache = {
           }
         });
       }
-    } catch (_) {
+    } catch (e) {
       // storage event not supported - safe to ignore
     }
   },
@@ -237,17 +237,17 @@ function switchTabState(tabSelector, panelSelector, tabName, options) {
                   if (App2 && typeof App2.__appScriptSuffix === 'string') {
                     return App2.__appScriptSuffix;
                   }
-                } catch (_) {
+                } catch (e) {
                   // property access guard - safe to ignore
                 }
                 try {
                   return window.__appScriptSuffix;
-                } catch (_) {
+                } catch (e) {
                   return undefined;
                 }
               })();
           suffix = typeof appScriptSuffix === "string" ? appScriptSuffix : "";
-        } catch (_) {
+        } catch (e) {
           // suffix detection guard - safe to ignore
         }
 
@@ -258,7 +258,7 @@ function switchTabState(tabSelector, panelSelector, tabName, options) {
         };
         s.onerror = function () {
           // 移除失败的 script 元素，使后续重试能重新加载而非误判为已存在
-          try { s.remove(); } catch (_) {}
+          try { s.remove(); } catch (e) {}
           reject(new Error("Failed to load script: " + s.src));
         };
 

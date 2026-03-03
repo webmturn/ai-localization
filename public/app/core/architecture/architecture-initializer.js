@@ -44,8 +44,8 @@ class ArchitectureInitializer {
         this.initialized = true;
         return this.getInitializationReport();
       }
-    } catch (_) {
-      (loggers.architecture || console).debug("architecture init guard check:", _);
+    } catch (e) {
+      (loggers.architecture || console).debug("architecture init guard check:", e);
     }
 
     if (this.initialized) {
@@ -138,8 +138,8 @@ class ArchitectureInitializer {
             mirrorWindow: false,
           });
         }
-      } catch (_) {
-        (loggers.architecture || console).debug("ArchDebug setFlag architectureInitialized:", _);
+      } catch (e) {
+        (loggers.architecture || console).debug("ArchDebug setFlag architectureInitialized:", e);
       }
       
       const totalDuration = this.endTime - this.startTime;
@@ -293,8 +293,8 @@ class ArchitectureInitializer {
             mirrorWindow: false,
           });
         }
-      } catch (_) {
-        (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", _);
+      } catch (e) {
+        (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", e);
       }
       return;
     }
@@ -312,8 +312,8 @@ class ArchitectureInitializer {
           mirrorWindow: false,
         });
       }
-    } catch (_) {
-      (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", _);
+    } catch (e) {
+      (loggers.architecture || console).debug("ArchDebug setFlag errorSystemInitialized:", e);
     }
   }
 
@@ -398,8 +398,8 @@ class ArchitectureInitializer {
               showNotification('info', '本地文件模式', '已跳过网络连接测试');
             }
           }
-        } catch (_) {
-          (loggers.architecture || console).debug("network services init:", _);
+        } catch (e) {
+          (loggers.architecture || console).debug("network services init:", e);
         }
       }
     }

@@ -145,7 +145,7 @@ async function loadSettings() {
           if (el) {
             try {
               el.value = JSON.stringify(_primIds || []);
-            } catch (_) {
+            } catch (e) {
               el.value = "[]";
             }
           }
@@ -181,8 +181,8 @@ async function loadSettings() {
             const ids = safeJsonParse(idsEl.value, []);
             countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
           }
-        } catch (_) {
-          (loggers.app || console).debug("settings loadPrimingCount:", _);
+        } catch (e) {
+          (loggers.app || console).debug("settings loadPrimingCount:", e);
         }
       }
 

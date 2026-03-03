@@ -72,7 +72,7 @@ const EventManager = {
         const dupes = existing.filter((l) => l.target === target && l.event === event);
         if (dupes.length > 0) {
           dupes.forEach((l) => {
-            try { l.target.removeEventListener(l.event, l.handler, l.options); } catch (_) {}
+            try { l.target.removeEventListener(l.event, l.handler, l.options); } catch (e) {}
             this._byId.delete(l.id);
           });
           const dupeIds = new Set(dupes.map((l) => l.id));

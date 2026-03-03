@@ -13,7 +13,7 @@
     } else {
       window.__translationsExportShimLoaded = true;
     }
-  } catch (_) {
+  } catch (e) {
     try {
       if (window.ArchDebug) {
         var shimLoaded2 = window.ArchDebug.getFlag('translationsExportShimLoaded');
@@ -23,16 +23,16 @@
         });
         return;
       }
-    } catch (_) {
-      (loggers.app || console).debug("translations export ArchDebug check:", _);
+    } catch (e) {
+      (loggers.app || console).debug("translations export ArchDebug check:", e);
     }
     try {
       if (!window.ArchDebug) {
         if (window.__translationsExportShimLoaded) return;
         window.__translationsExportShimLoaded = true;
       }
-    } catch (_) {
-      (loggers.app || console).debug("translations export shim check:", _);
+    } catch (e) {
+      (loggers.app || console).debug("translations export shim check:", e);
     }
   }
 
@@ -78,7 +78,7 @@
     s.onerror = function (e) {
       try {
         (loggers.app || console).error("Failed to load export module:", s.src, e);
-      } catch (_) { /* console.error itself failed - nothing we can do */ }
+      } catch (e) { /* console.error itself failed - nothing we can do */ }
     };
     document.head.appendChild(s);
   }

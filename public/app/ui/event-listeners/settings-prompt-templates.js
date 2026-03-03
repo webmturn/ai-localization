@@ -11,8 +11,8 @@ function __getDefaultProjectPromptTemplate(engineKey) {
     ) {
       return translationService.getDefaultProjectPromptTemplate(engineKey);
     }
-  } catch (_) {
-    (loggers.app || console).debug("getDefaultPromptTemplate service:", _);
+  } catch (e) {
+    (loggers.app || console).debug("getDefaultPromptTemplate service:", e);
   }
 
   try {
@@ -22,8 +22,8 @@ function __getDefaultProjectPromptTemplate(engineKey) {
         })
       : window.__DEFAULT_PROJECT_PROMPT_TEMPLATES;
     if (dict && dict[engineKey]) return String(dict[engineKey]);
-  } catch (_) {
-    (loggers.app || console).debug("getDefaultPromptTemplate fallback:", _);
+  } catch (e) {
+    (loggers.app || console).debug("getDefaultPromptTemplate fallback:", e);
   }
 
   return "";
@@ -53,7 +53,7 @@ function __loadProjectPromptTemplatesToUI() {
       if (pt && typeof pt === "object") normalized = pt;
       else if (typeof pt === "string") normalized = { general: pt };
     }
-  } catch (_) {
+  } catch (e) {
     normalized = {};
   }
 
@@ -171,7 +171,7 @@ async function __saveProjectPromptTemplatesFromUI() {
       if (pt && typeof pt === "object") existing = pt;
       else if (typeof pt === "string") existing = { general: pt };
     }
-  } catch (_) {
+  } catch (e) {
     existing = {};
   }
 
@@ -204,7 +204,7 @@ async function __saveProjectPromptTemplatesFromUI() {
     if (project.promptTemplate !== undefined) {
       try {
         delete project.promptTemplate;
-      } catch (_) {
+      } catch (e) {
         project.promptTemplate = undefined;
       }
     }
@@ -225,8 +225,8 @@ function registerEventListenersSettingsPromptTemplates(ctx) {
     if (typeof window !== "undefined") {
       window.loadProjectPromptTemplatesToUI = __loadProjectPromptTemplatesToUI;
     }
-  } catch (_) {
-    (loggers.app || console).debug("promptTemplates module init:", _);
+  } catch (e) {
+    (loggers.app || console).debug("promptTemplates module init:", e);
   }
 
   const resetProjectPromptTemplateGeneral = DOMCache.get(

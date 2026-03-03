@@ -18,14 +18,14 @@ function registerEventListenersFilePanels(ctx) {
         debugLogsFlag === true ||
         (typeof localStorage !== "undefined" &&
           localStorage.getItem("debugLogs") === "1");
-    } catch (_) {
+    } catch (e) {
       // debugLogs flag check - safe to ignore
     }
 
     if (isDev && enabled) {
       try {
         console.log(...args);
-      } catch (_) {
+      } catch (e) {
         // dev-only console.log wrapper - safe to ignore
       }
     }
@@ -270,8 +270,8 @@ function registerEventListenersFilePanels(ctx) {
         }
         try {
           findEl?.focus();
-        } catch (_) {
-          (loggers.app || console).debug("file-panels focus findEl:", _);
+        } catch (e) {
+          (loggers.app || console).debug("file-panels focus findEl:", e);
         }
       },
       {

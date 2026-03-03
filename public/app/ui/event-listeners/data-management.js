@@ -42,8 +42,8 @@ function registerEventListenersDataManagement(ctx) {
         if (!handle && typeof fsBackend.loadHandleFromIdb === "function") {
           try {
             handle = await fsBackend.loadHandleFromIdb();
-          } catch (_) {
-            (loggers.storage || console).debug("loadHandleFromIdb failed:", _);
+          } catch (e) {
+            (loggers.storage || console).debug("loadHandleFromIdb failed:", e);
           }
         }
 
@@ -57,8 +57,8 @@ function registerEventListenersDataManagement(ctx) {
             } else if (permission === "denied") {
               statusText = "文件夹存储（未授权）";
             }
-          } catch (_) {
-            (loggers.storage || console).debug("queryPermission failed:", _);
+          } catch (e) {
+            (loggers.storage || console).debug("queryPermission failed:", e);
           }
         }
       }
@@ -762,8 +762,8 @@ function registerEventListenersDataManagement(ctx) {
                   if (p && (p.__isSampleProject || id === "sample-project-1")) {
                     deleteIds.add(id);
                   }
-                } catch (_) {
-                  (loggers.app || console).debug("clearSampleData check project:", _);
+                } catch (e) {
+                  (loggers.app || console).debug("clearSampleData check project:", e);
                 }
               }
 
@@ -782,30 +782,30 @@ function registerEventListenersDataManagement(ctx) {
               try {
                 AppState.translations.items = [];
                 AppState.translations.filtered = [];
-              } catch (_) {
-                (loggers.app || console).debug("clearSampleData reset translations:", _);
+              } catch (e) {
+                (loggers.app || console).debug("clearSampleData reset translations:", e);
               }
 
               try {
                 AppState.terminology.list = [];
                 AppState.terminology.filtered = [];
-              } catch (_) {
-                (loggers.app || console).debug("clearSampleData reset terminology:", _);
+              } catch (e) {
+                (loggers.app || console).debug("clearSampleData reset terminology:", e);
               }
 
               try {
                 AppState.project = null;
                 AppState.fileMetadata = {};
-              } catch (_) {
-                (loggers.app || console).debug("clearSampleData reset project:", _);
+              } catch (e) {
+                (loggers.app || console).debug("clearSampleData reset project:", e);
               }
 
               try {
                 if (translationSearchInput) translationSearchInput.value = "";
                 if (translationSearchInputMobile)
                   translationSearchInputMobile.value = "";
-              } catch (_) {
-                (loggers.app || console).debug("clearSampleData reset search:", _);
+              } catch (e) {
+                (loggers.app || console).debug("clearSampleData reset search:", e);
               }
 
               showNotification("success", "清除成功", "示例数据已清除");

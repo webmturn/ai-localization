@@ -6,8 +6,8 @@ function updateFileTree(files) {
         files,
         project: AppState.project,
       });
-    } catch (_) {
-      (loggers.app || console).debug("fileTree dispatch event:", _);
+    } catch (e) {
+      (loggers.app || console).debug("fileTree dispatch event:", e);
     }
   }
   const fileTree = DOMCache.get("fileTree");
@@ -38,7 +38,7 @@ function updateFileTree(files) {
     if (typeof isDevelopment !== "undefined" && isDevelopment) {
       try {
         (loggers.app || console).info("没有项目或翻译项，显示默认提示");
-      } catch (_) {
+      } catch (e) {
         // dev-only log - safe to ignore
       }
     }
@@ -96,14 +96,14 @@ function updateFileTree(files) {
     Object.keys(fm).forEach((fileName) => {
       if (fileName) uniqueFiles.add(fileName);
     });
-  } catch (_) {
-    (loggers.app || console).debug("fileTree extractFiles:", _);
+  } catch (e) {
+    (loggers.app || console).debug("fileTree extractFiles:", e);
   }
 
   if (typeof isDevelopment !== "undefined" && isDevelopment) {
     try {
       (loggers.app || console).info("提取到的唯一文件名:", Array.from(uniqueFiles));
-    } catch (_) {
+    } catch (e) {
       // dev-only log - safe to ignore
     }
   }

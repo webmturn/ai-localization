@@ -6,14 +6,14 @@ async function __processFilesImpl(files) {
     if (isSampleProject) {
       try {
         AppState.project = null;
-      } catch (_) {
-        (loggers.app || console).debug("processFiles reset project:", _);
+      } catch (e) {
+        (loggers.app || console).debug("processFiles reset project:", e);
       }
 
       try {
         AppState.fileMetadata = {};
-      } catch (_) {
-        (loggers.app || console).debug("processFiles reset fileMetadata:", _);
+      } catch (e) {
+        (loggers.app || console).debug("processFiles reset fileMetadata:", e);
       }
 
       try {
@@ -21,8 +21,8 @@ async function __processFilesImpl(files) {
         AppState.translations.filtered = [];
         AppState.translations.selected = -1;
         AppState.translations.currentPage = 1;
-      } catch (_) {
-        (loggers.app || console).debug("processFiles reset translations:", _);
+      } catch (e) {
+        (loggers.app || console).debug("processFiles reset translations:", e);
       }
 
       showNotification(
@@ -148,14 +148,14 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
         if (AppState.project?.fileMetadata) {
           try {
             delete AppState.project.fileMetadata["default.xml"];
-          } catch (_) {
-            (loggers.app || console).debug("delete default.xml metadata:", _);
+          } catch (e) {
+            (loggers.app || console).debug("delete default.xml metadata:", e);
           }
         }
       }
     }
-  } catch (_) {
-    (loggers.app || console).debug("processFiles sample cleanup:", _);
+  } catch (e) {
+    (loggers.app || console).debug("processFiles sample cleanup:", e);
   }
 
   const existingItems =
@@ -251,8 +251,8 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
       projectStatusEl.className =
         "text-success dark:text-emerald-400 font-medium";
     }
-  } catch (_) {
-    (loggers.app || console).debug("processFiles update projectStatus:", _);
+  } catch (e) {
+    (loggers.app || console).debug("processFiles update projectStatus:", e);
   }
 
   autoSaveManager.markDirty();

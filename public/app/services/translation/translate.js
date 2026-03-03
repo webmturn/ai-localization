@@ -25,7 +25,7 @@ TranslationService.prototype.translate = async function (
       const settings = await this.getSettings();
       const raw = parseInt(settings?.retryCount);
       maxRetries = Number.isFinite(raw) ? raw : 3;
-    } catch (_) {
+    } catch (e) {
       maxRetries = 3;
     }
   }

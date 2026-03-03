@@ -5,7 +5,7 @@ function __devLog() {
     try {
       var logger = (typeof loggers !== "undefined" && loggers.app) || console;
       (logger.debug || logger.log).apply(logger, arguments);
-    } catch (_) {
+    } catch (e) {
       // dev-only console.log wrapper - safe to ignore
     }
   }
@@ -26,8 +26,8 @@ function __waitForTranslationsRendered(minVersion, timeoutMs = 800) {
     const timer = setTimeout(() => {
       try {
         document.removeEventListener("translations:rendered", onRendered);
-      } catch (_) {
-        (loggers.app || console).debug("render removeEventListener:", _);
+      } catch (e) {
+        (loggers.app || console).debug("render removeEventListener:", e);
       }
       finish();
     }, timeoutMs);

@@ -315,8 +315,8 @@ function initEngineModelSync() {
           SettingsCache.update(function (s) {
             s.temperature = Number.isFinite(num) ? num : 0.3;
           });
-        } catch (_) {
-          (loggers.app || console).debug("engineModelSync saveTemperature:", _);
+        } catch (e) {
+          (loggers.app || console).debug("engineModelSync saveTemperature:", e);
         }
       },
       { tag: "engine", scope: "engineModel", label: "temperature:input" },
@@ -358,8 +358,8 @@ function initEngineModelSync() {
       );
       updateSettingsEngineUI(settingsEngine);
     }
-  } catch (_) {
-    (loggers.app || console).debug("engineModelSync init:", _);
+  } catch (e) {
+    (loggers.app || console).debug("engineModelSync init:", e);
   }
 }
 

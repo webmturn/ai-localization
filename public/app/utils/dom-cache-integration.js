@@ -22,7 +22,7 @@ class DOMCacheIntegration {
       "defaultEngine", "translationModel",
     ];
     for (var i = 0; i < ids.length; i++) {
-      try { DOMCache.get(ids[i]); } catch (_) { /* ignore */ }
+      try { DOMCache.get(ids[i]); } catch (e) { /* ignore */ }
     }
   }
 

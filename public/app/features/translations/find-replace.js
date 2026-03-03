@@ -158,7 +158,7 @@ function previewFindReplace(options = {}) {
     if (!text) continue;
     try {
       regex.lastIndex = 0;
-    } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
+    } catch (e) { /* regex.lastIndex reset - safe to ignore */ }
     const m = text.match(regex);
     if (m && m.length) {
       matches += m.length;
@@ -167,7 +167,7 @@ function previewFindReplace(options = {}) {
         let after = "";
         try {
           regex.lastIndex = 0;
-        } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
+        } catch (e) { /* regex.lastIndex reset - safe to ignore */ }
         after = text.replace(regex, replace);
 
         const meta = item.metadata || {};
@@ -239,7 +239,7 @@ function applyFindReplace() {
 
     try {
       regex.lastIndex = 0;
-    } catch (_) { /* regex.lastIndex reset - safe to ignore */ }
+    } catch (e) { /* regex.lastIndex reset - safe to ignore */ }
 
     let changed = false;
     const after = before.replace(regex, () => {
@@ -300,6 +300,6 @@ try {
     window.previewFindReplace = previewFindReplace;
     window.applyFindReplace = applyFindReplace;
   }
-} catch (_) {
-  (loggers.app || console).debug("find-replace module init:", _);
+} catch (e) {
+  (loggers.app || console).debug("find-replace module init:", e);
 }

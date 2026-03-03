@@ -17,8 +17,8 @@
   function __openModal(modalId) {
     try {
       if (typeof openModal === "function") return openModal(modalId);
-    } catch (_) {
-      (loggers.app || console).debug("openModal fallback:", _);
+    } catch (e) {
+      (loggers.app || console).debug("openModal fallback:", e);
     }
     const modal = DOMCache.get(modalId);
     if (modal) modal.classList.remove("hidden");
@@ -27,8 +27,8 @@
   function __closeModal(modalId) {
     try {
       if (typeof closeModal === "function") return closeModal(modalId);
-    } catch (_) {
-      (loggers.app || console).debug("closeModal fallback:", _);
+    } catch (e) {
+      (loggers.app || console).debug("closeModal fallback:", e);
     }
     const modal = DOMCache.get(modalId);
     if (modal) modal.classList.add("hidden");
@@ -90,8 +90,8 @@
       if (targetLanguageEl)
         targetLanguageEl.value =
           project.targetLanguage || targetLanguageEl.value;
-    } catch (_) {
-      (loggers.app || console).debug("loadProjectToUI language sync:", _);
+    } catch (e) {
+      (loggers.app || console).debug("loadProjectToUI language sync:", e);
     }
 
     if (typeof updateFileTree === "function") updateFileTree();
@@ -105,8 +105,8 @@
         projectStatusEl.className =
           "text-success dark:text-emerald-400 font-medium";
       }
-    } catch (_) {
-      (loggers.app || console).debug("project manager update status:", _);
+    } catch (e) {
+      (loggers.app || console).debug("project manager update status:", e);
     }
 
     try {
@@ -118,8 +118,8 @@
       ) {
         window.loadProjectPromptTemplatesToUI();
       }
-    } catch (_) {
-      (loggers.app || console).debug("project manager loadPromptTemplates:", _);
+    } catch (e) {
+      (loggers.app || console).debug("project manager loadPromptTemplates:", e);
     }
   }
 
@@ -270,8 +270,8 @@
 
     try {
       if (nameInput) nameInput.value = "";
-    } catch (_) {
-      (loggers.app || console).debug("project manager reset nameInput:", _);
+    } catch (e) {
+      (loggers.app || console).debug("project manager reset nameInput:", e);
     }
 
     await storageManager.saveProject(project);

@@ -152,8 +152,8 @@ function registerEventListenersSettings(ctx) {
         ) {
           try {
             window.loadProjectPromptTemplatesToUI();
-          } catch (_) {
-            (loggers.app || console).debug("settings loadPromptTemplates:", _);
+          } catch (e) {
+            (loggers.app || console).debug("settings loadPromptTemplates:", e);
           }
         }
         if (
@@ -228,8 +228,8 @@ function registerEventListenersSettings(ctx) {
         try {
           const el = DOMCache.get("translationRequestCacheTTLSeconds");
           if (el) el.value = translationRequestCacheTTLSeconds;
-        } catch (_) {
-          (loggers.app || console).debug("settings cacheTTL sync:", _);
+        } catch (e) {
+          (loggers.app || console).debug("settings cacheTTL sync:", e);
         }
 
         // 保存设置到 localStorage
@@ -383,8 +383,8 @@ function registerEventListenersSettings(ctx) {
               settings.keyboardShortcuts = existing.keyboardShortcuts;
             }
           }
-        } catch (_) {
-          (loggers.app || console).debug("settings merge shortcuts:", _);
+        } catch (e) {
+          (loggers.app || console).debug("settings merge shortcuts:", e);
         }
 
         SettingsCache.save(settings);
@@ -409,8 +409,8 @@ function registerEventListenersSettings(ctx) {
           if (modelInput && modelInput.value !== normalizedModel) {
             modelInput.value = normalizedModel;
           }
-        } catch (_) {
-          (loggers.app || console).debug("settings model sync:", _);
+        } catch (e) {
+          (loggers.app || console).debug("settings model sync:", e);
         }
 
         try {

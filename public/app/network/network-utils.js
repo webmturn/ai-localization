@@ -39,8 +39,8 @@ class NetworkUtils {
         if (cached.data && typeof cached.data.clone === "function") {
           return cached.data.clone();
         }
-      } catch (_) {
-        (loggers.services || console).debug("networkUtils cache clone:", _);
+      } catch (e) {
+        (loggers.services || console).debug("networkUtils cache clone:", e);
       }
       return cached.data;
     }
@@ -79,8 +79,8 @@ class NetworkUtils {
           mirrorWindow: false,
         });
       }
-    } catch (_) {
-      (loggers.services || console).debug("networkUtils ArchDebug flag:", _);
+    } catch (e) {
+      (loggers.services || console).debug("networkUtils ArchDebug flag:", e);
     }
   }
 
@@ -202,7 +202,7 @@ class NetworkUtils {
           return response && typeof response.clone === "function"
             ? response.clone()
             : response;
-        } catch (_) {
+        } catch (e) {
           return response;
         }
       });
@@ -214,7 +214,7 @@ class NetworkUtils {
         let master = response;
         try {
           master = response.clone();
-        } catch (_) {
+        } catch (e) {
           master = response;
         }
 
@@ -243,7 +243,7 @@ class NetworkUtils {
         return response && typeof response.clone === "function"
           ? response.clone()
           : response;
-      } catch (_) {
+      } catch (e) {
         return response;
       }
     });

@@ -18,7 +18,7 @@ async function __readFileAsyncImpl(file) {
         return !!settings.autoDetectEncoding;
       }
       return true;
-    } catch (_) {
+    } catch (e) {
       return true;
     }
   };
@@ -64,7 +64,7 @@ async function __readFileAsyncImpl(file) {
     try {
       const decoder = new TextDecoder(encoding, { fatal: !!fatal });
       return decoder.decode(bytes);
-    } catch (_) {
+    } catch (e) {
       return null;
     }
   };

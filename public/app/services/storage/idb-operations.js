@@ -16,7 +16,7 @@ function notifyIndexedDbFileContentErrorOnce(error, action) {
       storageErrorHandler.handleIndexedDBFileContentError(error, action);
       return;
     }
-  } catch (_) {}
+  } catch (e) {}
 
   // Fallback：storageErrorHandler 尚未就绪时使用原始通知逻辑（全局只通知一次）
   if (__notifiedIdbFileContentError) return;
@@ -106,8 +106,8 @@ function openFileContentDB() {
                 "存储已更新",
                 "检测到数据库版本变更，当前页面的存储连接将被关闭。建议刷新页面以继续正常保存。"
               );
-            } catch (_) {
-              (loggers.storage || console).debug("idb versionchange notification:", _);
+            } catch (e) {
+              (loggers.storage || console).debug("idb versionchange notification:", e);
             }
           }
           try {
@@ -184,8 +184,8 @@ function idbGetFileContent(key) {
         __fileContentLsFallbackWarn("读取");
         return val;
       }
-    } catch (_) {
-      (loggers.storage || console).debug("idb localStorage fallback read:", _);
+    } catch (e) {
+      (loggers.storage || console).debug("idb localStorage fallback read:", e);
     }
     throw e;
   });
@@ -242,8 +242,8 @@ function idbGetProject(key) {
         __projectLsFallbackWarn("读取");
         return val;
       }
-    } catch (_) {
-      (loggers.storage || console).debug("idb project localStorage fallback read:", _);
+    } catch (e) {
+      (loggers.storage || console).debug("idb project localStorage fallback read:", e);
     }
     throw e;
   });

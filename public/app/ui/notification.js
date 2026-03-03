@@ -24,7 +24,7 @@ function showNotification(type, title, message, options) {
           windowKey: '__notificationQueue',
         })
       : window.__notificationQueue;
-  } catch (_) {
+  } catch (e) {
     notificationQueue = window.__notificationQueue;
   }
   if (!Array.isArray(notificationQueue)) notificationQueue = [];
@@ -37,13 +37,13 @@ function showNotification(type, title, message, options) {
     } else {
       window.__notificationQueue = notificationQueue;
     }
-  } catch (_) {
+  } catch (e) {
     try {
       if (!window.ArchDebug) {
         window.__notificationQueue = notificationQueue;
       }
-    } catch (_) {
-      (loggers.app || console).debug("notification queue register:", _);
+    } catch (e) {
+      (loggers.app || console).debug("notification queue register:", e);
     }
   }
 
@@ -214,7 +214,7 @@ function closeNotification() {
           windowKey: '__notificationQueue',
         })
       : window.__notificationQueue;
-  } catch (_) {
+  } catch (e) {
     q = window.__notificationQueue;
   }
   if (Array.isArray(q) && q.length > 0) {
@@ -222,8 +222,8 @@ function closeNotification() {
     setTimeout(() => {
       try {
         showNotification(next.type, next.title, next.message, next.options);
-      } catch (_) {
-        (loggers.app || console).debug("notification queue dispatch:", _);
+      } catch (e) {
+        (loggers.app || console).debug("notification queue dispatch:", e);
       }
     }, 150);
   }

@@ -74,8 +74,8 @@ function openModal(modalId) {
     try {
       modal.scrollTop = 0;
       modal.scrollLeft = 0;
-    } catch (_) {
-      (loggers.app || console).debug("modal scroll reset:", _);
+    } catch (e) {
+      (loggers.app || console).debug("modal scroll reset:", e);
     }
 
     try {
@@ -86,8 +86,8 @@ function openModal(modalId) {
         content.scrollTop = 0;
         content.scrollLeft = 0;
       }
-    } catch (_) {
-      (loggers.app || console).debug("modal content scroll reset:", _);
+    } catch (e) {
+      (loggers.app || console).debug("modal content scroll reset:", e);
     }
     if (modalId === "qualityReportModal" && typeof window.syncQualityRuleCards === "function") {
       window.syncQualityRuleCards();
@@ -95,8 +95,8 @@ function openModal(modalId) {
     if (modalId === "settingsModal" && typeof window.loadProjectPromptTemplatesToUI === "function") {
       try {
         window.loadProjectPromptTemplatesToUI();
-      } catch (_) {
-        (loggers.app || console).debug("modal loadPromptTemplates:", _);
+      } catch (e) {
+        (loggers.app || console).debug("modal loadPromptTemplates:", e);
       }
     }
     // 打开术语库模态框时刷新列表
@@ -209,8 +209,8 @@ function __restoreModalFocus() {
         typeof __modalFocusTrapState.previousActiveElement.focus === 'function') {
       __modalFocusTrapState.previousActiveElement.focus();
     }
-  } catch (_) {
-    (loggers.app || console).debug("modal focus restore:", _);
+  } catch (e) {
+    (loggers.app || console).debug("modal focus restore:", e);
   }
   __modalFocusTrapState.previousActiveElement = null;
 }

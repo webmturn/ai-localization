@@ -51,8 +51,8 @@ async function __runQualityCheckImpl() {
     try {
       const s = SettingsCache.get();
       checkScope = s.qualityCheckScope;
-    } catch (_) {
-      (loggers.app || console).debug("qualityCheck readScope:", _);
+    } catch (e) {
+      (loggers.app || console).debug("qualityCheck readScope:", e);
     }
   }
   if (checkScope !== "file" && checkScope !== "project") {
@@ -89,8 +89,8 @@ async function __runQualityCheckImpl() {
     if (AppState?.project && Array.isArray(originalProjectItems)) {
       AppState.project.translationItems = items;
     }
-  } catch (_) {
-    (loggers.app || console).debug("qualityCheck restoreItems:", _);
+  } catch (e) {
+    (loggers.app || console).debug("qualityCheck restoreItems:", e);
   }
   const progressBar = DOMCache.get("checkProgressBar");
   const progressPercent = DOMCache.get("checkProgressPercent");
@@ -123,8 +123,8 @@ async function __runQualityCheckImpl() {
       try {
         const s = SettingsCache.get();
         checkConcurrency = s.qualityCheckConcurrency;
-      } catch (_) {
-        (loggers.app || console).debug("qualityCheck readConcurrency:", _);
+      } catch (e) {
+        (loggers.app || console).debug("qualityCheck readConcurrency:", e);
       }
     }
     const concurrency = Math.max(
@@ -207,8 +207,8 @@ async function __runQualityCheckImpl() {
       if (AppState?.project && Array.isArray(originalProjectItems)) {
         AppState.project.translationItems = originalProjectItems;
       }
-    } catch (_) {
-      (loggers.app || console).debug("qualityCheck finalRestore:", _);
+    } catch (e) {
+      (loggers.app || console).debug("qualityCheck finalRestore:", e);
     }
 
     __qualityIsChecking = false;

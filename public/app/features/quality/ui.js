@@ -342,8 +342,8 @@ async function __focusTranslationItemImpl(itemId) {
         currentPage: AppState.translations.currentPage,
         itemsPerPage: AppState.translations.itemsPerPage,
       });
-    } catch (_) {
-      (loggers.app || console).debug("quality ui dispatch event:", _);
+    } catch (e) {
+      (loggers.app || console).debug("quality ui dispatch event:", e);
     }
   }
 
@@ -413,7 +413,7 @@ async function __focusTranslationItemImpl(itemId) {
       return CSS && typeof CSS.escape === "function"
         ? CSS.escape(value)
         : value;
-    } catch (_) {
+    } catch (e) {
       return value;
     }
   };

@@ -26,13 +26,13 @@ if (__devEnabled) {
     } else {
       window.__setDropAreaActive = setDropAreaActive;
     }
-  } catch (_) {
+  } catch (e) {
     try {
       if (!window.ArchDebug) {
         window.__setDropAreaActive = setDropAreaActive;
       }
-    } catch (_) {
-      (loggers.app || console).debug("fileDrop global register:", _);
+    } catch (e) {
+      (loggers.app || console).debug("fileDrop global register:", e);
     }
   }
 }

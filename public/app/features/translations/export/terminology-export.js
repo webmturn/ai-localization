@@ -177,8 +177,8 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
           });
         return;
       }
-    } catch (_) {
-      (loggers.app || console).debug("terminology-export XLSX load:", _);
+    } catch (e) {
+      (loggers.app || console).debug("terminology-export XLSX load:", e);
     }
 
     showNotification("error", "导出失败", "Excel库未加载，请刷新页面重试");

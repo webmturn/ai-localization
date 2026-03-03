@@ -147,8 +147,8 @@ class AutoSaveManager {
             (loggers.storage || console).error("IndexedDB写入originalContent失败:", e);
             try {
               notifyIndexedDbFileContentErrorOnce(e, "保存原始内容");
-            } catch (_) {
-              (loggers.storage || console).debug("autoSave idb error notify:", _);
+            } catch (e) {
+              (loggers.storage || console).debug("autoSave idb error notify:", e);
             }
             shouldKeepOriginalContent = true;
           }

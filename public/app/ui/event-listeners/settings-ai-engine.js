@@ -52,8 +52,8 @@ function __updatePrimingSelectedCountLabel() {
     if (!idsEl || !countEl) return;
     const ids = safeJsonParse(idsEl.value, []);
     countEl.textContent = String(Array.isArray(ids) ? ids.length : 0);
-  } catch (_) {
-    (loggers.app || console).debug("ai updatePrimingCount:", _);
+  } catch (e) {
+    (loggers.app || console).debug("ai updatePrimingCount:", e);
   }
 }
 
@@ -75,7 +75,7 @@ function __renderPrimingSamplesModal() {
     selectedIds = __getDefaultPrimingSampleIds(items, desiredCount);
     try {
       idsEl.value = JSON.stringify(selectedIds);
-    } catch (_) {
+    } catch (e) {
       idsEl.value = "[]";
       selectedIds = [];
     }
@@ -231,7 +231,7 @@ function __getAiConversationSnapshot() {
       out[String(key)] = Array.isArray(value) ? value : [];
     }
     return out;
-  } catch (_) {
+  } catch (e) {
     return out;
   }
 }
@@ -292,7 +292,7 @@ function registerEventListenersSettingsAiEngine(ctx) {
         const trimmed = checked.slice(0, desiredCount);
         try {
           idsEl.value = JSON.stringify(trimmed);
-        } catch (_) {
+        } catch (e) {
           idsEl.value = "[]";
         }
         __updatePrimingSelectedCountLabel();
@@ -322,8 +322,8 @@ function registerEventListenersSettingsAiEngine(ctx) {
           ) {
             translationService.aiConversations.clear();
           }
-        } catch (_) {
-          (loggers.app || console).debug("ai clearConversations:", _);
+        } catch (e) {
+          (loggers.app || console).debug("ai clearConversations:", e);
         }
         showNotification("success", "已清空会话", "AI 会话上下文已清空");
       },
@@ -435,7 +435,7 @@ function registerEventListenersSettingsAiEngine(ctx) {
                 } else {
                   throw new Error("clipboard not available");
                 }
-              } catch (_) {
+              } catch (e) {
                 showNotification(
                   "warning",
                   "复制失败",
@@ -535,7 +535,7 @@ function registerEventListenersSettingsAiEngine(ctx) {
       } else {
         categoryFilter.value = "ai";
       }
-    } catch (_) {
+    } catch (e) {
       categoryFilter.value = "ai";
     }
     __syncEngineCategorySections(categoryFilter.value);

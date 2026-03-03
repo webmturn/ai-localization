@@ -22,8 +22,8 @@ async function __onAppDomContentLoaded(bootstrapContext) {
         mirrorWindow: false,
       });
     }
-  } catch (_) {
-    (loggers.startup || console).debug("bootstrap ArchDebug appDomInitialized check:", _);
+  } catch (e) {
+    (loggers.startup || console).debug("bootstrap ArchDebug appDomInitialized check:", e);
   }
 
   if (__appDomInitialized) return;
@@ -36,8 +36,8 @@ async function __onAppDomContentLoaded(bootstrapContext) {
         mirrorWindow: false,
       });
     }
-  } catch (_) {
-    (loggers.startup || console).debug("bootstrap ArchDebug setFlag appDomInitialized:", _);
+  } catch (e) {
+    (loggers.startup || console).debug("bootstrap ArchDebug setFlag appDomInitialized:", e);
   }
 
   (loggers.startup || console).info('🚀 开始应用DOM初始化...');
@@ -740,7 +740,7 @@ function cleanupApplicationResources() {
 
     // 关闭多标签页检测频道
     if (window.__multiTabChannel) {
-      try { window.__multiTabChannel.close(); } catch (_) { /* channel close - safe to ignore */ }
+      try { window.__multiTabChannel.close(); } catch (e) { /* channel close - safe to ignore */ }
       window.__multiTabChannel = null;
     }
 

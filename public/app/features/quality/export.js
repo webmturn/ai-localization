@@ -68,8 +68,8 @@ function __exportQualityReportPdfImpl() {
           });
         return;
       }
-    } catch (_) {
-      (loggers.app || console).debug("quality export Chart.js check:", _);
+    } catch (e) {
+      (loggers.app || console).debug("quality export Chart.js check:", e);
     }
   }
 
@@ -132,7 +132,7 @@ function __exportQualityReportPdfImpl() {
       const el = DOMCache.get(id);
       if (!el || typeof el.toDataURL !== "function") return "";
       return el.toDataURL("image/png", 1.0);
-    } catch (_) {
+    } catch (e) {
       return "";
     }
   }
@@ -163,8 +163,8 @@ function __exportQualityReportPdfImpl() {
       try {
         if (typeof chart.resize === "function") chart.resize(width, height);
         if (typeof chart.update === "function") chart.update("none");
-      } catch (_) {
-        (loggers.app || console).debug("chart resize/update:", _);
+      } catch (e) {
+        (loggers.app || console).debug("chart resize/update:", e);
       }
 
       let url = "";
@@ -172,25 +172,25 @@ function __exportQualityReportPdfImpl() {
         if (typeof chart.toBase64Image === "function") {
           url = chart.toBase64Image();
         }
-      } catch (_) {
-        (loggers.app || console).debug("chart.toBase64Image:", _);
+      } catch (e) {
+        (loggers.app || console).debug("chart.toBase64Image:", e);
       }
       if (!url) {
         try {
           url = canvas.toDataURL("image/png", 1.0);
-        } catch (_) {
-          (loggers.app || console).debug("canvas.toDataURL:", _);
+        } catch (e) {
+          (loggers.app || console).debug("canvas.toDataURL:", e);
         }
       }
 
       try {
         chart.destroy();
-      } catch (_) {
-        (loggers.app || console).debug("chart.destroy:", _);
+      } catch (e) {
+        (loggers.app || console).debug("chart.destroy:", e);
       }
 
       return url || "";
-    } catch (_) {
+    } catch (e) {
       return "";
     }
   }
@@ -515,8 +515,8 @@ function __exportQualityReportPdfImpl() {
   } catch (e) {
     try {
       w.close();
-    } catch (_) {
-      (loggers.app || console).debug("window.close:", _);
+    } catch (e) {
+      (loggers.app || console).debug("window.close:", e);
     }
     showNotification("error", "导出失败", "无法生成 PDF 打印页");
     return;

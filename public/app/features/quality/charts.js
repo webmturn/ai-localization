@@ -78,8 +78,8 @@ function __updateQualityChartsImpl() {
             (loggers.app || console).error("Failed to lazy-load Chart.js:", e);
           });
       }
-    } catch (_) {
-      (loggers.app || console).debug("Chart.js lazy-load check:", _);
+    } catch (e) {
+      (loggers.app || console).debug("Chart.js lazy-load check:", e);
     }
     return;
   }
@@ -90,7 +90,7 @@ function __updateQualityChartsImpl() {
   if (!accuracyCtx) return;
   if (accuracyLabels.length === 0) {
     if (qualityCheckCharts.accuracy) {
-      try { qualityCheckCharts.accuracy.destroy(); } catch (_) { (loggers.app || console).debug("chart.accuracy.destroy:", _); }
+      try { qualityCheckCharts.accuracy.destroy(); } catch (e) { (loggers.app || console).debug("chart.accuracy.destroy:", e); }
       qualityCheckCharts.accuracy = null;
     }
   } else {
@@ -188,7 +188,7 @@ function __updateQualityChartsImpl() {
   if (!consistencyCtx) return;
   if (consistencyLabels.length === 0) {
     if (qualityCheckCharts.consistency) {
-      try { qualityCheckCharts.consistency.destroy(); } catch (_) { (loggers.app || console).debug("chart.consistency.destroy:", _); }
+      try { qualityCheckCharts.consistency.destroy(); } catch (e) { (loggers.app || console).debug("chart.consistency.destroy:", e); }
       qualityCheckCharts.consistency = null;
     }
   } else if (!qualityCheckCharts.consistency) {

@@ -32,7 +32,7 @@
     try {
       const s = SettingsCache.get();
       return s && typeof s.keyboardShortcuts === "object" ? s.keyboardShortcuts : {};
-    } catch (_) {
+    } catch (e) {
       return {};
     }
   }
@@ -114,8 +114,8 @@
       s.keyboardShortcuts = s.keyboardShortcuts || {};
       s.keyboardShortcuts[id] = keyString;
       SettingsCache.save(s);
-    } catch (_) {
-      (loggers.app || console).debug("keyboard saveShortcut:", _);
+    } catch (e) {
+      (loggers.app || console).debug("keyboard saveShortcut:", e);
     }
   }
 
@@ -127,8 +127,8 @@
       s.keyboardShortcuts = s.keyboardShortcuts || {};
       delete s.keyboardShortcuts[id];
       SettingsCache.save(s);
-    } catch (_) {
-      (loggers.app || console).debug("keyboard resetShortcut:", _);
+    } catch (e) {
+      (loggers.app || console).debug("keyboard resetShortcut:", e);
     }
   }
 

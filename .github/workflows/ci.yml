@@ -25,6 +25,9 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
+      - name: 运行测试
+        run: npm test
+
       - name: 构建 CSS
         run: npm run build-css
 

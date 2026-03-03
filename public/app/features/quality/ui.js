@@ -173,7 +173,7 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
 
     const icon = document.createElement("i");
     icon.className =
-      "fa fa-check-circle text-3xl text-green-300 dark:text-green-400 mb-2 block";
+      "fa-solid fa-circle-check text-3xl text-green-300 dark:text-green-400 mb-2 block";
 
     const p1 = document.createElement("p");
     p1.textContent = "暂无问题";
@@ -276,7 +276,7 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
 
     const icon = document.createElement("i");
     icon.className =
-      "fa fa-exclamation-triangle text-yellow-500 dark:text-amber-400 text-2xl";
+      "fa-solid fa-triangle-exclamation text-yellow-500 dark:text-amber-400 text-2xl";
 
     const p1 = document.createElement("p");
     p1.className = "text-sm font-medium text-gray-700 dark:text-gray-200";
@@ -290,7 +290,7 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
     const p2 = document.createElement("p");
     p2.className = "text-xs text-gray-600 dark:text-gray-400";
     const filterIcon = document.createElement("i");
-    filterIcon.className = "fa fa-filter mr-1";
+    filterIcon.className = "fa-solid fa-filter mr-1";
     p2.appendChild(filterIcon);
     p2.appendChild(document.createTextNode("请使用上方的 "));
     const strong = document.createElement("span");

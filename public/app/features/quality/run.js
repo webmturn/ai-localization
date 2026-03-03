@@ -101,7 +101,7 @@ async function __runQualityCheckImpl() {
   if (runBtn) {
     runBtn.disabled = true;
     const icon = document.createElement("i");
-    icon.className = "fa fa-spinner fa-spin mr-2";
+    icon.className = "fa-solid fa-spinner fa-spin mr-2";
     runBtn.replaceChildren(icon, document.createTextNode("检查中..."));
   }
 
@@ -216,7 +216,7 @@ async function __runQualityCheckImpl() {
     if (runBtn) {
       runBtn.disabled = false;
       const icon = document.createElement("i");
-      icon.className = "fa fa-refresh mr-2";
+      icon.className = "fa-solid fa-arrows-rotate mr-2";
       runBtn.replaceChildren(icon, document.createTextNode("重新检查"));
     }
   }

@@ -172,13 +172,12 @@ async function checkVersions() {
   log("yellow", "[1/3] Font Awesome");
   const currentFA = config["font-awesome"].version;
   log("gray", `  当前: v${currentFA}`);
-  const latestFA = await getLatestNpmVersion("@fortawesome/fontawesome-free");
+  const latestFA = await getLatestNpmVersion(config["font-awesome"].npmPackage || "@fortawesome/fontawesome-free");
   if (latestFA) {
-    log("cyan", `  最新 (v5/v6): v${latestFA}`);
-    log("yellow", "  说明：Font Awesome v4.7.0 为最后 v4 版本");
-    log("yellow", "        升级 v5/v6 需修改代码（类名不同）");
+    log("cyan", `  最新: v${latestFA}`);
+    log(latestFA !== currentFA ? "green" : "green", latestFA !== currentFA ? "  有可用更新！" : "  已是最新");
   } else {
-    log("green", "  最新：v4.7.0（最后 v4 版本）");
+    log("yellow", "  无法获取最新版本");
   }
 
   // Chart.js
@@ -287,17 +286,22 @@ async function updateConfig() {
 async function updateCdn(checkOnly = false) {
   const config = readConfig();
 
-  // 解析本地路径
-  const localPaths = {
-    faCss: path.join(PROJECT_ROOT, config["font-awesome"].localPath.css),
-    faFont: path.join(PROJECT_ROOT, config["font-awesome"].localPath.font),
-    chart: path.join(PROJECT_ROOT, config["chart.js"].localPath),
-    sheetjs: path.join(PROJECT_ROOT, config["sheetjs"].localPath),
-  };
+  // 收集所有需要下载的文件
+  const faConfig = config["font-awesome"];
+  const faFiles = faConfig.files || {};
+  const downloads = [];
+
+  // Font Awesome v6 多文件结构
+  for (const [key, fileInfo] of Object.entries(faFiles)) {
+    downloads.push({ label: `FA ${key}`, url: fileInfo.url, localPath: path.join(PROJECT_ROOT, fileInfo.localPath) });
+  }
+  // Chart.js & SheetJS
+  downloads.push({ label: "Chart.js", url: config["chart.js"].url, localPath: path.join(PROJECT_ROOT, config["chart.js"].localPath) });
+  downloads.push({ label: "SheetJS", url: config["sheetjs"].url, localPath: path.join(PROJECT_ROOT, config["sheetjs"].localPath) });
 
   // 确保目录存在
-  for (const p of Object.values(localPaths)) {
-    const dir = path.dirname(p);
+  for (const d of downloads) {
+    const dir = path.dirname(d.localPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
       log("green", `已创建目录：${dir}`);
@@ -308,34 +312,28 @@ async function updateCdn(checkOnly = false) {
   console.log();
 
   // Font Awesome
-  log("yellow", `[1/3] Font Awesome v${config["font-awesome"].version}`);
+  log("yellow", `[1/3] Font Awesome v${faConfig.version}`);
   if (checkOnly) {
-    log("gray", `  当前版本: ${config["font-awesome"].version}`);
-    log("gray", `  CSS: ${config["font-awesome"].css}`);
-    log("gray", `  Font: ${config["font-awesome"].font}`);
+    log("gray", `  当前版本: ${faConfig.version}`);
+    for (const [key, fileInfo] of Object.entries(faFiles)) {
+      log("gray", `  ${key}: ${fileInfo.url}`);
+    }
   } else {
     try {
-      log("gray", "  正在下载 CSS...");
-      await downloadFile(config["font-awesome"].css, localPaths.faCss);
-      log("gray", "  正在下载字体...");
-      await downloadFile(config["font-awesome"].font, localPaths.faFont);
-
-      // 修复字体路径
-      log("gray", "  正在修复字体路径...");
-      let cssContent = fs.readFileSync(localPaths.faCss, "utf-8");
-      cssContent = cssContent.replace(/\.\.\/fonts\//g, "./fonts/");
-      // 简化 @font-face：仅保留 woff2
-      const fontFaceRegex = /@font-face\s*\{[^}]*font-family:\s*['"]FontAwesome['"][^}]*\}/;
-      if (fontFaceRegex.test(cssContent)) {
-        const newFontFace =
-          "@font-face {\n" +
-          "    font-family: 'FontAwesome';\n" +
-          "    src: url('./fonts/fontawesome-webfont.woff2') format('woff2');\n" +
-          "    font-weight: normal; font-style: normal; font-display: swap;\n" +
-          "}";
-        cssContent = cssContent.replace(fontFaceRegex, newFontFace);
+      for (const [key, fileInfo] of Object.entries(faFiles)) {
+        const localPath = path.join(PROJECT_ROOT, fileInfo.localPath);
+        log("gray", `  正在下载 ${key}...`);
+        await downloadFile(fileInfo.url, localPath);
       }
-      fs.writeFileSync(localPaths.faCss, cssContent, "utf-8");
+
+      // 修复 CSS 中的字体路径（CDN 用 ../webfonts/，本地改为 ../webfonts/）
+      const cssLocalPath = faFiles.css ? path.join(PROJECT_ROOT, faFiles.css.localPath) : null;
+      if (cssLocalPath && fs.existsSync(cssLocalPath)) {
+        log("gray", "  正在修复字体路径...");
+        let cssContent = fs.readFileSync(cssLocalPath, "utf-8");
+        cssContent = cssContent.replace(/\.\.\/webfonts\//g, "../webfonts/");
+        fs.writeFileSync(cssLocalPath, cssContent, "utf-8");
+      }
       log("green", "  Font Awesome 更新成功");
     } catch (e) {
       log("red", `  Font Awesome 更新失败：${e.message}`);
@@ -351,7 +349,7 @@ async function updateCdn(checkOnly = false) {
   } else {
     try {
       log("gray", "  正在下载 Chart.js...");
-      await downloadFile(config["chart.js"].url, localPaths.chart);
+      await downloadFile(config["chart.js"].url, path.join(PROJECT_ROOT, config["chart.js"].localPath));
       log("green", "  Chart.js 更新成功");
     } catch (e) {
       log("red", `  Chart.js 更新失败：${e.message}`);
@@ -367,7 +365,7 @@ async function updateCdn(checkOnly = false) {
   } else {
     try {
       log("gray", "  正在下载 SheetJS...");
-      await downloadFile(config["sheetjs"].url, localPaths.sheetjs);
+      await downloadFile(config["sheetjs"].url, path.join(PROJECT_ROOT, config["sheetjs"].localPath));
       log("green", "  SheetJS 更新成功");
     } catch (e) {
       log("red", `  SheetJS 更新失败：${e.message}`);
@@ -381,7 +379,7 @@ async function updateCdn(checkOnly = false) {
     log("cyan", "=== 更新完成 ===");
     console.log();
     log("yellow", "提示：若遇问题可查看各库更新说明");
-    log("gray", "  - Font Awesome: https://fontawesome.com/v4.7.0/");
+    log("gray", "  - Font Awesome: https://fontawesome.com/");
     log("gray", "  - Chart.js: https://www.chartjs.org/docs/latest/getting-started/installation.html");
     log("gray", "  - SheetJS: https://docs.sheetjs.com/");
     console.log();

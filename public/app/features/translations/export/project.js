@@ -82,7 +82,7 @@ function openProject() {
   input.setAttribute("aria-label", "打开项目文件");
   input.title = "打开项目文件";
 
-  input.onchange = function (e) {
+  EventManager.add(input, "change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -181,7 +181,7 @@ function openProject() {
         (loggers.app || console).error("读取项目文件失败:", e);
         showNotification("error", "读取失败", "无法读取项目文件");
       });
-  };
+  }, { label: "openProject:fileInput:change" });
 
   input.click();
 }

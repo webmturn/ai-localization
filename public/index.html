@@ -10,7 +10,7 @@
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml">
     
     <!-- Font Awesome - 本地版本 -->
-    <link rel="stylesheet" href="lib/font-awesome/font-awesome.min.css">
+    <link rel="stylesheet" href="lib/font-awesome/css/all.min.css">
     
     <!-- Tailwind CSS - 本地构建版本（生产环境） -->
     <link rel="stylesheet" href="styles.css">
@@ -23,63 +23,63 @@
     <header class="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm dark:shadow-dark-elevated border-b border-gray-200 dark:border-gray-700">
         <div class="w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
             <div class="flex items-center space-x-1 sm:space-x-2">
-                <i class="fa fa-language text-primary text-xl sm:text-2xl"></i>
+                <i class="fa-solid fa-language text-primary text-xl sm:text-2xl"></i>
                 <h1 class="text-base sm:text-xl font-bold text-primary"><span class="hidden sm:inline">智能翻译工具</span><span class="sm:hidden">翻译</span></h1>
             </div>
             <div class="flex items-center space-x-1 sm:space-x-4">
                 <button id="newProjectBtn" class="flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-xs sm:text-sm min-h-[36px]" title="新建项目 (Ctrl+Alt+N)">
-                    <i class="fa fa-plus sm:mr-2"></i><span class="hidden sm:inline">新建项目</span>
+                    <i class="fa-solid fa-plus sm:mr-2"></i><span class="hidden sm:inline">新建项目</span>
                 </button>
                 <button id="openProjectBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="打开项目">
-                    <i class="fa fa-folder-open mr-2"></i>打开项目
+                    <i class="fa-solid fa-folder-open mr-2"></i>打开项目
                 </button>
                 <button id="projectManagerBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="项目管理">
-                    <i class="fa fa-th-large mr-2"></i>项目管理
+                    <i class="fa-solid fa-table-cells-large mr-2"></i>项目管理
                 </button>
                 <button id="saveProjectBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="保存项目">
-                    <i class="fa fa-save mr-2"></i>保存项目
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>保存项目
                 </button>
                 <!-- 移动端更多菜单 -->
                 <div class="relative sm:hidden">
                     <button id="mobileMoreBtn" class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="更多操作" aria-label="更多操作">
-                        <i class="fa fa-ellipsis-v text-sm"></i>
+                        <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
                     </button>
                     <div id="mobileMoreMenu" class="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-dark-elevated border border-gray-200 dark:border-gray-700 py-2 z-50 hidden">
                         <a href="#" id="mobileOpenProjectBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-folder-open w-5 mr-3 text-gray-400"></i>打开项目
+                            <i class="fa-solid fa-folder-open w-5 mr-3 text-gray-400"></i>打开项目
                         </a>
                         <a href="#" id="mobileProjectManagerBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-th-large w-5 mr-3 text-gray-400"></i>项目管理
+                            <i class="fa-solid fa-table-cells-large w-5 mr-3 text-gray-400"></i>项目管理
                         </a>
                         <a href="#" id="mobileSaveProjectBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-save w-5 mr-3 text-gray-400"></i>保存项目
+                            <i class="fa-solid fa-floppy-disk w-5 mr-3 text-gray-400"></i>保存项目
                         </a>
                         <div class="my-1 border-t border-gray-100 dark:border-gray-700"></div>
                         <a href="#" id="mobileSettingsBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-cog w-5 mr-3 text-gray-400"></i>设置
+                            <i class="fa-solid fa-gear w-5 mr-3 text-gray-400"></i>设置
                         </a>
                         <a href="#" id="mobileHelpBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-question-circle w-5 mr-3 text-gray-400"></i>帮助
+                            <i class="fa-solid fa-circle-question w-5 mr-3 text-gray-400"></i>帮助
                         </a>
                         <a href="#" id="mobileAboutBtn" class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600">
-                            <i class="fa fa-info-circle w-5 mr-3 text-gray-400"></i>关于
+                            <i class="fa-solid fa-circle-info w-5 mr-3 text-gray-400"></i>关于
                         </a>
                     </div>
                 </div>
                 <!-- 桌面端用户菜单 -->
                 <div class="relative hidden sm:block">
                     <button id="userMenuBtn" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="用户菜单" aria-label="用户菜单">
-                        <i class="fa fa-user text-sm"></i>
+                        <i class="fa-solid fa-user text-sm"></i>
                     </button>
                     <div id="userMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg dark:shadow-dark-elevated border border-gray-200 dark:border-gray-700 py-1 z-50 hidden">
                         <a href="#" id="openSettingsMenu" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fa fa-cog mr-2"></i>设置
+                            <i class="fa-solid fa-gear mr-2"></i>设置
                         </a>
                         <a href="#" id="openHelpMenu" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fa fa-question-circle mr-2"></i>帮助
+                            <i class="fa-solid fa-circle-question mr-2"></i>帮助
                         </a>
                         <a href="#" id="openAboutMenu" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fa fa-info-circle mr-2"></i>关于
+                            <i class="fa-solid fa-circle-info mr-2"></i>关于
                         </a>
                     </div>
                 </div>
@@ -93,19 +93,19 @@
         <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-dark-elevated safe-area-bottom">
             <div class="flex items-center justify-around h-14 px-2">
                 <button id="toggleLeftSidebar" class="flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="文件" aria-label="切换文件浏览器">
-                    <i class="fa fa-folder-open text-lg"></i>
+                    <i class="fa-solid fa-folder-open text-lg"></i>
                     <span class="text-[10px]">文件</span>
                 </button>
                 <button id="mobileTranslateBtn" class="flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="翻译" aria-label="翻译选中项">
-                    <i class="fa fa-language text-lg"></i>
+                    <i class="fa-solid fa-language text-lg"></i>
                     <span class="text-[10px]">翻译</span>
                 </button>
                 <button id="mobileSelectAllBtn" class="flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="全选" aria-label="全选当前页">
-                    <i class="fa fa-check-square-o text-lg"></i>
+                    <i class="fa-regular fa-square-check text-lg"></i>
                     <span class="text-[10px]">全选</span>
                 </button>
                 <button id="toggleRightSidebar" class="flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors" title="设置" aria-label="切换设置面板">
-                    <i class="fa fa-cog text-lg"></i>
+                    <i class="fa-solid fa-gear text-lg"></i>
                     <span class="text-[10px]">设置</span>
                 </button>
             </div>
@@ -121,12 +121,12 @@
             <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">项目文件</h2>
                 <button class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('leftSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭文件浏览器" aria-label="关闭文件浏览器">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
                 <div id="fileDropArea" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900/40 data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary transition-colors">
-                    <i class="fa fa-cloud-upload text-2xl sm:text-3xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl sm:text-3xl text-gray-400 dark:text-gray-500 mb-2"></i>
                     <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">拖拽文件到此处或</p>
                     <button id="browseFilesBtn" class="mt-2 px-3 py-1 bg-primary text-white dark:text-white text-xs sm:text-sm rounded hover:bg-primary/90 transition-colors" title="浏览文件" aria-label="浏览文件">
                         浏览文件
@@ -138,7 +138,7 @@
                 <div class="relative p-2 border-b border-gray-200 dark:border-gray-700">
                     <div class="relative">
                         <input type="text" id="searchInput" placeholder="搜索文件..." class="w-full pl-8 pr-2 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索文件" aria-label="搜索文件">
-                        <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs sm:text-sm"></i>
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-gray-400 text-xs sm:text-sm"></i>
                     </div>
                     <!-- 搜索结果面板 -->
                     <div id="searchResultsPanel" class="hidden absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg dark:shadow-dark-elevated z-40 max-h-60 overflow-y-auto scrollbar-thin">
@@ -180,7 +180,7 @@
                             <option value="es">西班牙语</option>
                         </select>
                         <button id="swapLanguagesBtn" class="swap-btn btn-click-spin-trigger" data-spin="180" title="交换语言" aria-label="交换源语言和目标语言">
-                            <i class="fa fa-exchange"></i>
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
                         </button>
                         <select id="targetLanguage" name="target_language" title="选择目标语言" aria-label="目标语言选择">
                             <option value="zh">中文</option>
@@ -196,16 +196,16 @@
                     <!-- 翻译操作按钮 -->
                     <div class="toolbar-actions flex items-center space-x-2 flex-shrink-0">
                         <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm" title="翻译选中项" aria-label="翻译选中项">
-                            <i class="fa fa-language mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">翻译选中</span><span class="sm:hidden">翻译</span>
+                            <i class="fa-solid fa-language mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">翻译选中</span><span class="sm:hidden">翻译</span>
                         </button>
                         <button id="translateAllBtn" class="toolbar-btn hidden sm:flex px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors items-center justify-center text-sm font-medium shadow-sm" title="翻译所有项" aria-label="翻译所有项">
-                            <i class="fa fa-bolt mr-2"></i>全部翻译
+                            <i class="fa-solid fa-bolt mr-2"></i>全部翻译
                         </button>
                     </div>
                     
                     <!-- 翻译引擎选择（仅桌面端） -->
                     <div class="toolbar-engine-select toolbar-control hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
-                        <i class="fa fa-cog text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
+                        <i class="fa-solid fa-gear text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
                         <select id="toolbarEngineCategoryFilter" title="引擎类别" aria-label="引擎类别" class="text-sm bg-transparent border-none focus:outline-none cursor-pointer text-gray-600 dark:text-gray-300">
                             <option value="ai">AI</option>
                             <option value="traditional">传统</option>
@@ -225,22 +225,22 @@
                 <div class="flex items-center justify-between gap-3">
                     <div class="relative flex-1 max-w-md">
                         <input type="text" id="translationSearchInput" placeholder="搜索翻译项..." class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="搜索翻译项" aria-label="搜索翻译项">
-                        <i class="fa fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
                         <button id="clearTranslationSearch" class="hidden absolute right-2 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="清除搜索" aria-label="清除搜索">
-                            <i class="fa fa-times"></i>
+                            <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <button id="openFindReplaceBtn" class="px-3 py-2 text-sm bg-white border border-gray-300 dark:border-gray-600 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600" title="批量查找替换" aria-label="批量查找替换">
-                            <i class="fa fa-exchange"></i>
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
                             <span>查找替换</span>
                         </button>
                         <button id="clearSelectedTargetBtn" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600" title="清除选中项译文" aria-label="清除选中项译文">
-                            <i class="fa fa-eraser"></i>
+                            <i class="fa-solid fa-eraser"></i>
                             <span>清除译文</span>
                         </button>
                         <button id="clearAllSampleData" class="px-3 py-2 text-sm bg-white border border-red-300 dark:border-red-700 text-red-600 rounded-md hover:bg-red-50 transition-colors flex items-center gap-1.5 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600" title="清除所有示例数据" aria-label="清除所有示例数据">
-                            <i class="fa fa-trash-o"></i>
+                            <i class="fa-regular fa-trash-can"></i>
                             <span class="text-red-600 dark:text-red-400">清除示例</span>
                         </button>
                     </div>
@@ -256,9 +256,9 @@
                 <div class="md:hidden flex-shrink-0 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <div class="relative">
                         <input type="text" id="translationSearchInputMobile" placeholder="搜索翻译项..." class="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索翻译项" aria-label="搜索翻译项">
-                        <i class="fa fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-gray-400 text-xs"></i>
                         <button id="clearTranslationSearchMobile" class="hidden absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="清除搜索" aria-label="清除搜索">
-                            <i class="fa fa-times text-xs"></i>
+                            <i class="fa-solid fa-xmark text-xs"></i>
                         </button>
                     </div>
                 </div>
@@ -269,7 +269,7 @@
                         <div class="flex items-center space-x-2">
                             <span id="sourceCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400">0 项</span>
                             <button id="filterSourceBtn" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-primary" title="筛选原文" aria-label="筛选原文">
-                                <i class="fa fa-filter"></i>
+                                <i class="fa-solid fa-filter"></i>
                             </button>
                         </div>
                     </div>
@@ -278,7 +278,7 @@
                         <div class="flex items-center space-x-2">
                             <span id="targetCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400">0 项</span>
                             <button id="filterTargetBtn" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-primary" title="筛选译文" aria-label="筛选译文">
-                                <i class="fa fa-filter"></i>
+                                <i class="fa-solid fa-filter"></i>
                             </button>
                         </div>
                     </div>
@@ -291,14 +291,14 @@
                             <div id="sourceScrollArea" class="flex-1 overflow-visible scrollbar-hide md:flex-initial md:min-h-0">
                                 <div id="mobileCombinedList" class="p-2 md:hidden">
                                     <div class="flex flex-col items-center justify-center gap-3 py-12 px-4">
-                                        <i class="fa fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <i class="fa-solid fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">尚无翻译项</p>
                                         <p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译，<br>或加载示例项目快速体验</p>
                                     </div>
                                 </div>
                                 <div id="sourceList" class="p-2 hidden md:block">
                                     <div class="flex flex-col items-center justify-center gap-3 py-16 px-4">
-                                        <i class="fa fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <i class="fa-solid fa-language text-4xl text-gray-300 dark:text-gray-600"></i>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">尚无翻译项</p>
                                         <p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译</p>
                                     </div>
@@ -310,7 +310,7 @@
                             <div id="targetScrollArea" class="flex-1 overflow-visible scrollbar-hide md:flex-initial md:min-h-0">
                                 <div id="targetList" class="p-2">
                                     <div class="flex flex-col items-center justify-center gap-3 py-16 px-4">
-                                        <i class="fa fa-pencil-square-o text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <i class="fa-regular fa-pen-to-square text-4xl text-gray-300 dark:text-gray-600"></i>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">译文将显示在这里</p>
                                     </div>
                                 </div>
@@ -328,11 +328,11 @@
                     </div>
                     <div id="sourcePagination" class="pagination-controls flex items-center space-x-2 sm:order-2">
                         <button id="sourcePrevBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm dark:shadow-dark-elevated" title="上一页" aria-label="上一页" disabled>
-                            <i class="fa fa-chevron-left text-gray-700 dark:text-gray-200 text-sm"></i>
+                            <i class="fa-solid fa-chevron-left text-gray-700 dark:text-gray-200 text-sm"></i>
                         </button>
                         <div id="sourcePageInfo" class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 min-w-[80px] sm:min-w-[100px] text-center shadow-sm dark:shadow-dark-elevated">第 1 页</div>
                         <button id="sourceNextBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm dark:shadow-dark-elevated" title="下一页" aria-label="下一页">
-                            <i class="fa fa-chevron-right text-gray-700 dark:text-gray-200 text-sm"></i>
+                            <i class="fa-solid fa-chevron-right text-gray-700 dark:text-gray-200 text-sm"></i>
                         </button>
                     </div>
                     <div id="targetPagination" class="hidden"></div>
@@ -346,20 +346,20 @@
             <div class="sidebar-resizer sidebar-resizer-right hidden md:block" data-sidebar="right" title="拖拽调整宽度"></div>
             <!-- 移动端关闭按钮 -->
             <button class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" onclick="document.getElementById('rightSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭设置面板" aria-label="关闭设置面板">
-                <i class="fa fa-times"></i>
+                <i class="fa-solid fa-xmark"></i>
             </button>
             <!-- 标签页导航（增强版） -->
             <div class="sidebar-tabs">
                 <button class="sidebar-tab active" data-tab="settings" title="翻译设置">
-                    <i class="fa fa-sliders tab-icon"></i>
+                    <i class="fa-solid fa-sliders tab-icon"></i>
                     <span class="hidden sm:inline">翻译设置</span>
                 </button>
                 <button class="sidebar-tab" data-tab="terminology" title="术语库">
-                    <i class="fa fa-book tab-icon"></i>
+                    <i class="fa-solid fa-book tab-icon"></i>
                     <span class="hidden sm:inline">术语库</span>
                 </button>
                 <button class="sidebar-tab" data-tab="quality" title="质量检查">
-                    <i class="fa fa-check-circle tab-icon"></i>
+                    <i class="fa-solid fa-circle-check tab-icon"></i>
                     <span class="hidden sm:inline">质量检查</span>
                     <span class="tab-badge hidden" id="qualityIssueBadge">0</span>
                 </button>
@@ -408,7 +408,7 @@
             <!-- 底部操作按钮 -->
             <div id="exportBtnContainer" class="p-4 border-t border-gray-200 dark:border-gray-700">
                 <button id="exportBtn" class="w-full py-2 bg-primary text-white dark:text-white rounded-md hover:bg-primary/90 transition-colors flex items-center justify-center" title="导出翻译文件">
-                    <i class="fa fa-download mr-2"></i>导出翻译
+                    <i class="fa-solid fa-download mr-2"></i>导出翻译
                 </button>
             </div>
         </aside>
@@ -422,7 +422,7 @@
             <div class="flex items-center justify-between gap-3 mb-4">
                 <h3 id="newProjectModalTitle" class="text-lg font-semibold text-gray-900 dark:text-gray-100">新建项目</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
@@ -463,7 +463,7 @@
             <div class="static w-full pt-6 mt-4 flex justify-end space-x-3">
                 <button class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600">取消</button>
                 <button id="createProjectBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center">
-                    <i class="fa fa-plus mr-2"></i>创建项目
+                    <i class="fa-solid fa-plus mr-2"></i>创建项目
                 </button>
             </div>
         </div>
@@ -473,10 +473,10 @@
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-2xl p-4 sm:p-6 fade-in max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
                 <h3 id="projectManagerModalTitle" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    <i class="fa fa-th-large mr-2 text-primary"></i>项目管理
+                    <i class="fa-solid fa-table-cells-large mr-2 text-primary"></i>项目管理
                 </h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
@@ -495,7 +495,7 @@
                 <div class="mb-4 flex justify-between items-center">
                     <div class="text-sm text-gray-600 dark:text-gray-400">在这里切换、重命名、导出或删除项目。</div>
                     <button id="projectManagerRefreshBtn" class="btn-click-spin-trigger px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" data-spin-target="icon" title="刷新列表">
-                        <i class="fa fa-refresh mr-1"></i>刷新
+                        <i class="fa-solid fa-arrows-rotate mr-1"></i>刷新
                     </button>
                 </div>
                 <div id="projectManagerList" class="space-y-2 max-h-[55vh] overflow-auto"></div>
@@ -511,7 +511,7 @@
                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">快速创建一个空项目，然后再导入文件。</div>
                             </div>
                             <button id="projectManagerCreateBtn" type="button" class="flex-shrink-0 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm whitespace-nowrap min-w-[5rem]" title="创建项目">
-                                <i class="fa fa-plus mr-1"></i>创建
+                                <i class="fa-solid fa-plus mr-1"></i>创建
                             </button>
                         </div>
 
@@ -556,12 +556,12 @@
                         </div>
 
                         <div id="projectManagerImportDropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition-colors bg-white dark:bg-gray-900/40 hover:border-primary data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10" data-active="false" title="拖拽 JSON 到此处或点击下方按钮">
-                            <i class="fa fa-cloud-upload text-2xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 dark:text-gray-500 mb-2"></i>
                             <div class="text-sm text-gray-700 dark:text-gray-200">拖拽项目 JSON 到此处，或点击下方按钮选择文件</div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">仅支持 .json</div>
                             <div class="mt-3">
                                 <button type="button" id="projectManagerImportBtn" class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="导入项目 JSON">
-                                    <i class="fa fa-upload mr-1"></i>选择文件
+                                    <i class="fa-solid fa-upload mr-1"></i>选择文件
                                 </button>
                                 <input id="projectManagerImportFile" type="file" accept=".json" class="hidden" title="选择项目 JSON 文件" aria-label="选择项目 JSON 文件" />
                             </div>
@@ -578,7 +578,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="translationProgressModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译进度</h3>
                 <button id="cancelTranslationBtn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="space-y-4">
@@ -601,13 +601,13 @@
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2">
                     <button id="pauseTranslationBtn" class="px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-600" title="暂停翻译" aria-label="暂停翻译">
-                        <i class="fa fa-pause mr-1"></i>暂停
+                        <i class="fa-solid fa-pause mr-1"></i>暂停
                     </button>
                     <button id="resumeTranslationBtn" class="px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-600" title="继续翻译" aria-label="继续翻译">
-                        <i class="fa fa-play mr-1"></i>继续
+                        <i class="fa-solid fa-play mr-1"></i>继续
                     </button>
                     <button id="retryFailedTranslationBtn" class="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="重试失败项" aria-label="重试失败项">
-                        <i class="fa fa-refresh mr-1"></i>重试失败
+                        <i class="fa-solid fa-arrows-rotate mr-1"></i>重试失败
                     </button>
                 </div>
             </div>
@@ -620,7 +620,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="exportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">导出翻译</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="space-y-4">
@@ -661,7 +661,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="findReplaceModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">批量查找替换（译文）</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
@@ -725,7 +725,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="terminologyModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">术语库管理</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             
@@ -745,7 +745,7 @@
                     <div class="flex items-center space-x-4">
                         <div class="relative">
                             <input type="text" id="terminologySearch" placeholder="搜索术语..." class="pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="搜索术语" aria-label="搜索术语">
-                            <i class="fa fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-sm"></i>
                         </div>
                         <select id="terminologyFilter" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="筛选术语" aria-label="筛选术语">
                             <option value="all">全部</option>
@@ -757,7 +757,7 @@
                         </select>
                     </div>
                     <button id="addTermBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center text-sm">
-                        <i class="fa fa-plus mr-2"></i>添加术语
+                        <i class="fa-solid fa-plus mr-2"></i>添加术语
                     </button>
                 </div>
                 
@@ -775,7 +775,7 @@
                             <!-- 术语列表将通过JavaScript动态生成 -->
                             <tr>
                                 <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    <i class="fa fa-book text-3xl text-gray-300 dark:text-gray-600 mb-2 block"></i>
+                                    <i class="fa-solid fa-book text-3xl text-gray-300 dark:text-gray-600 mb-2 block"></i>
                                     <p>暂无术语数据</p>
                                     <p class="text-sm mt-1">点击"添加术语"按钮开始添加术语</p>
                                 </td>
@@ -802,7 +802,7 @@
                         <div>
                             <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">导入术语库</h4>
                             <div id="importDropArea" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900/40 data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
-                                <i class="fa fa-cloud-upload text-3xl text-gray-400 dark:text-gray-500 mb-3"></i>
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 dark:text-gray-500 mb-3"></i>
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">拖拽文件到此处或点击选择文件</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">支持 CSV、JSON、XLSX 格式</p>
                                 <button id="browseImportFileBtn" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 text-sm">
@@ -829,7 +829,7 @@
                             </div>
                             
                             <button id="importTerminologyBtn" class="w-full mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                <i class="fa fa-upload mr-2"></i>导入术语
+                                <i class="fa-solid fa-upload mr-2"></i>导入术语
                             </button>
                             
                             <div id="importProgress" class="mt-4 hidden">
@@ -884,7 +884,7 @@
                             </div>
                             
                             <button id="exportTerminologyBtn" class="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center">
-                                <i class="fa fa-download mr-2"></i>导出术语库
+                                <i class="fa-solid fa-download mr-2"></i>导出术语库
                             </button>
                             
                             <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded text-sm text-gray-600 dark:text-gray-400">
@@ -911,10 +911,10 @@
                 <h3 id="qualityReportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译质量报告</h3>
                 <div class="flex items-center space-x-3">
                     <button id="runQualityCheckBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 text-sm flex items-center">
-                        <i class="fa fa-refresh mr-2"></i>重新检查
+                        <i class="fa-solid fa-arrows-rotate mr-2"></i>重新检查
                     </button>
                     <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                        <i class="fa fa-times"></i>
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
@@ -989,56 +989,56 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="qualityRuleCards">
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="terminology">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-check-circle text-green-500 dark:text-emerald-400 mr-2"></i>
+                            <i class="fa-solid fa-circle-check text-green-500 dark:text-emerald-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">术语一致性</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查翻译中是否使用了术语库中的标准术语</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="placeholders">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-language text-blue-500 dark:text-blue-400 mr-2"></i>
+                            <i class="fa-solid fa-language text-blue-500 dark:text-blue-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">格式保持</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查翻译是否保持了原文的格式和标签</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="length">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-text-width text-purple-500 dark:text-purple-400 mr-2"></i>
+                            <i class="fa-solid fa-text-width text-purple-500 dark:text-purple-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">长度检查</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查译文长度是否在合理范围内</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="empty">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-ban text-red-500 dark:text-red-400 mr-2"></i>
+                            <i class="fa-solid fa-ban text-red-500 dark:text-red-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">空译文检查</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查是否存在未翻译的条目</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="duplicate">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-repeat text-orange-500 dark:text-orange-400 mr-2"></i>
+                            <i class="fa-solid fa-repeat text-orange-500 dark:text-orange-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">重复检查</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查是否存在重复的翻译内容</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="variable">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-code text-cyan-500 dark:text-cyan-400 mr-2"></i>
+                            <i class="fa-solid fa-code text-cyan-500 dark:text-cyan-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">变量检查</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查变量和占位符（如 {{}}、%s、%n$s）是否正确保留</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="punctuation">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-pencil text-teal-500 dark:text-teal-400 mr-2"></i>
+                            <i class="fa-solid fa-pencil text-teal-500 dark:text-teal-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">标点检查</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查句尾标点是否与原文一致</p>
                     </div>
                     <div class="quality-rule-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3" data-check-id="numbers">
                         <div class="flex items-center mb-2">
-                            <i class="fa fa-hashtag text-indigo-500 dark:text-indigo-400 mr-2"></i>
+                            <i class="fa-solid fa-hashtag text-indigo-500 dark:text-indigo-400 mr-2"></i>
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-100">数字一致性</span>
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-300">检查原文中的数字是否在译文中保留</p>
@@ -1057,7 +1057,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div class="flex items-center gap-2">
-                            <i class="fa fa-filter text-gray-500 dark:text-gray-400"></i>
+                            <i class="fa-solid fa-filter text-gray-500 dark:text-gray-400"></i>
                             <span class="text-sm font-medium text-gray-600 dark:text-gray-300">筛选条件：</span>
                         </div>
                         <select id="issueFilterSeverity" class="text-sm border-2 border-primary/30 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-primary/40" title="按严重程度筛选" aria-label="按严重程度筛选">
@@ -1078,7 +1078,7 @@
                             <option value="numbers">🔢 数字问题</option>
                         </select>
                         <button id="resetIssueFilter" class="px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-50 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex items-center gap-1" title="重置筛选条件">
-                            <i class="fa fa-times-circle"></i>
+                            <i class="fa-solid fa-circle-xmark"></i>
                             <span>重置</span>
                         </button>
                     </div>
@@ -1098,7 +1098,7 @@
                         <tbody id="issuesTableBody" class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-600">
                             <tr>
                                 <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    <i class="fa fa-info-circle text-3xl text-gray-300 dark:text-gray-500 mb-2 block"></i>
+                                    <i class="fa-solid fa-circle-info text-3xl text-gray-300 dark:text-gray-500 mb-2 block"></i>
                                     <p>暂无问题</p>
                                     <p class="text-sm mt-1">点击“重新检查”按钮开始质量检查</p>
                                 </td>
@@ -1116,10 +1116,10 @@
                 </div>
                 <div class="flex space-x-3">
                     <button id="exportQualityReport" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
-                        <i class="fa fa-download mr-2"></i>导出报告
+                        <i class="fa-solid fa-download mr-2"></i>导出报告
                     </button>
                     <button id="exportQualityReportPdf" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
-                        <i class="fa fa-file-pdf-o mr-2"></i>导出PDF
+                        <i class="fa-regular fa-file-pdf mr-2"></i>导出PDF
                     </button>
                     <button class="close-modal px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">关闭</button>
                 </div>
@@ -1133,7 +1133,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="addTermModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">添加术语</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="space-y-4">
@@ -1174,7 +1174,7 @@
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 id="settingsModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">设置</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             
@@ -1184,31 +1184,31 @@
                 <div class="sm:w-52 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
                     <nav class="flex sm:flex-col sm:p-2 sm:space-y-1 p-1 gap-1 sm:gap-0">
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated active whitespace-nowrap" data-tab="appearance">
-                            <i class="fa fa-paint-brush sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">外观设置</span><span class="sm:hidden ml-1">外观</span>
+                            <i class="fa-solid fa-paintbrush sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">外观设置</span><span class="sm:hidden ml-1">外观</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="engine">
-                            <i class="fa fa-cog sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">翻译引擎</span><span class="sm:hidden ml-1">引擎</span>
+                            <i class="fa-solid fa-gear sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">翻译引擎</span><span class="sm:hidden ml-1">引擎</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="promptTemplates">
-                            <i class="fa fa-commenting-o sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">Prompt 模板（项目）</span><span class="sm:hidden ml-1">Prompt</span>
+                            <i class="fa-regular fa-comment-dots sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">Prompt 模板（项目）</span><span class="sm:hidden ml-1">Prompt</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="quality">
-                            <i class="fa fa-check-circle sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">质量检查</span><span class="sm:hidden ml-1">质检</span>
+                            <i class="fa-solid fa-circle-check sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">质量检查</span><span class="sm:hidden ml-1">质检</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="shortcuts">
-                            <i class="fa fa-keyboard-o sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">快捷键</span><span class="sm:hidden ml-1">快捷键</span>
+                            <i class="fa-regular fa-keyboard sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">快捷键</span><span class="sm:hidden ml-1">快捷键</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="terminology">
-                            <i class="fa fa-book sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">术语库</span><span class="sm:hidden ml-1">术语</span>
+                            <i class="fa-solid fa-book sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">术语库</span><span class="sm:hidden ml-1">术语</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="file">
-                            <i class="fa fa-file-text sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">文件处理</span><span class="sm:hidden ml-1">文件</span>
+                            <i class="fa-solid fa-file-lines sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">文件处理</span><span class="sm:hidden ml-1">文件</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="api">
-                            <i class="fa fa-key sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">API 密钥</span><span class="sm:hidden ml-1">API</span>
+                            <i class="fa-solid fa-key sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">API 密钥</span><span class="sm:hidden ml-1">API</span>
                         </button>
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated whitespace-nowrap" data-tab="data">
-                            <i class="fa fa-database sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">数据管理</span><span class="sm:hidden ml-1">数据</span>
+                            <i class="fa-solid fa-database sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">数据管理</span><span class="sm:hidden ml-1">数据</span>
                         </button>
                     </nav>
                 </div>
@@ -1505,7 +1505,7 @@
                                         <div class="mt-4 space-y-3">
                                             <div class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-4">
                                                 <div class="flex items-start gap-3">
-                                                    <i class="fa fa-info-circle text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0"></i>
+                                                    <i class="fa-solid fa-circle-info text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0"></i>
                                                     <div class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
                                                         <p>传统翻译引擎无需配置模型、Priming 样本或会话记忆等参数。</p>
                                                         <p>翻译质量取决于引擎本身，可通过并发数量和重试次数优化稳定性。</p>
@@ -1575,7 +1575,7 @@
                         <!-- API 密钥设置 -->
                         <div class="settings-tab-content hidden" data-tab="api">
                             <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-                                <i class="fa fa-key mr-2 text-primary"></i>API 密钥配置
+                                <i class="fa-solid fa-key mr-2 text-primary"></i>API 密钥配置
                             </h4>
                             <div class="space-y-5">
                                 <div>
@@ -1583,7 +1583,7 @@
                                     <div class="relative">
                                         <input type="password" id="deepseekApiKey" placeholder="请输入 DeepSeek API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
                                         <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="deepseekApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 DeepSeek AI 翻译,在 <a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">DeepSeek</a> 获取</p>
@@ -1593,7 +1593,7 @@
                                     <div class="relative">
                                         <input type="password" id="openaiApiKey" placeholder="请输入 OpenAI API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
                                         <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="openaiApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 AI 辅助翻译,在 <a href="https://platform.openai.com/api-keys" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">OpenAI</a> 获 取</p>
@@ -1603,7 +1603,7 @@
                                     <div class="relative">
                                         <input type="password" id="googleApiKey" placeholder="请输入 Google Translate API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
                                         <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="googleApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于谷歌翻译服务,在 <a href="https://console.cloud.google.com/apis" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Google Cloud</a> 获取</p>
@@ -1613,7 +1613,7 @@
                                     <div class="relative">
                                         <input type="password" id="geminiApiKey" placeholder="请输入 Gemini API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
                                         <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="geminiApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 Google Gemini AI 翻译,在 <a href="https://aistudio.google.com/apikey" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Google AI Studio</a> 获取</p>
@@ -1623,14 +1623,14 @@
                                     <div class="relative">
                                         <input type="password" id="claudeApiKey" placeholder="请输入 Claude API 密钥" class="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm">
                                         <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 z-10 bg-transparent border-none focus:outline-none cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 toggle-password" data-target="claudeApiKey" title="显示/隐藏密钥" aria-label="显示或隐藏密钥">
-                                            <i class="fa fa-eye"></i>
+                                            <i class="fa-solid fa-eye"></i>
                                         </button>
                                     </div>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">用于 Anthropic Claude AI 翻译,在 <a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">Anthropic Console</a> 获取</p>
                                 </div>
                                 <div class="bg-yellow-50 dark:bg-amber-900 border border-yellow-200 dark:border-amber-700 rounded-md p-3">
                                     <div class="flex items-start">
-                                        <i class="fa fa-exclamation-triangle text-yellow-600 dark:text-amber-400 mt-0.5 mr-2 flex-shrink-0"></i>
+                                        <i class="fa-solid fa-triangle-exclamation text-yellow-600 dark:text-amber-400 mt-0.5 mr-2 flex-shrink-0"></i>
                                         <div class="text-xs text-yellow-800 dark:text-amber-100">
                                             <p class="font-medium mb-1">安全提示</p>
                                             <p>API 密钥经加密后存储在浏览器本地,不会上传到服务器。请勿在公共或共享设备上保存密钥,建议定期轮换密钥以确保安全。</p>
@@ -1788,7 +1788,7 @@
                                 </div>
                                 <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800 rounded-md p-3 mt-4">
                                     <div class="flex items-start">
-                                        <i class="fa fa-info-circle text-blue-600 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0"></i>
+                                        <i class="fa-solid fa-circle-info text-blue-600 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0"></i>
                                         <div class="text-xs text-blue-800 dark:text-blue-100">
                                             <p class="font-medium mb-1">提示</p>
                                             <p>快捷键在所有页面自动生效。可点击「修改」录制新按键，「恢复默认」还原为默认。</p>
@@ -1929,10 +1929,10 @@
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">文件存储</h5>
                                     <div class="space-y-2">
                                         <button id="requestFileSystemAccessBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
-                                            <i class="fa fa-folder-open mr-2 text-gray-500 dark:text-gray-400"></i>启用文件夹存储
+                                            <i class="fa-solid fa-folder-open mr-2 text-gray-500 dark:text-gray-400"></i>启用文件夹存储
                                         </button>
                                         <button id="disconnectFileSystemBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 rounded-md hover:bg-orange-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center" style="display:none;">
-                                            <i class="fa fa-times-circle mr-2"></i>停用文件夹存储，切回浏览器本地
+                                            <i class="fa-solid fa-circle-xmark mr-2"></i>停用文件夹存储，切回浏览器本地
                                         </button>
                                         <div id="storageBackendStatus" class="text-xs text-gray-500 dark:text-gray-400">当前存储：浏览器本地（IndexedDB/localStorage）</div>
                                     </div>
@@ -1943,17 +1943,17 @@
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">导出数据</h5>
                                     <div class="space-y-2">
                                         <button id="exportAllBtn" class="w-full py-2.5 px-4 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors text-left flex items-center justify-between">
-                                            <span><i class="fa fa-download mr-2"></i>导出所有数据</span>
+                                            <span><i class="fa-solid fa-download mr-2"></i>导出所有数据</span>
                                             <span class="text-xs opacity-80">设置+术语+项目</span>
                                         </button>
                                         <button id="exportSettingsBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
-                                            <i class="fa fa-cog mr-2 text-gray-500 dark:text-gray-400"></i>仅导出设置配置
+                                            <i class="fa-solid fa-gear mr-2 text-gray-500 dark:text-gray-400"></i>仅导出设置配置
                                         </button>
                                         <button id="exportTermsBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
-                                            <i class="fa fa-book mr-2 text-gray-500 dark:text-gray-400"></i>仅导出术语库
+                                            <i class="fa-solid fa-book mr-2 text-gray-500 dark:text-gray-400"></i>仅导出术语库
                                         </button>
                                         <button id="exportProjectBtn" class="w-full py-2.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left flex items-center">
-                                            <i class="fa fa-file-text mr-2 text-gray-500 dark:text-gray-400"></i>导出当前项目
+                                            <i class="fa-solid fa-file-lines mr-2 text-gray-500 dark:text-gray-400"></i>导出当前项目
                                         </button>
                                     </div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">导出的文件为JSON格式，包含您选择的数据</p>
@@ -1962,7 +1962,7 @@
                                 <div class="border-t border-gray-200 pt-5">
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">导入数据</h5>
                                     <button id="importSettingsBtn" class="w-full py-2.5 px-4 bg-white border-2 border-primary border-dashed text-primary rounded-md hover:bg-blue-50 transition-colors text-left flex items-center justify-center dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600">
-                                        <i class="fa fa-upload mr-2"></i>选择文件导入
+                                        <i class="fa-solid fa-upload mr-2"></i>选择文件导入
                                     </button>
                                     <input type="file" id="importSettingsFile" accept=".json" class="hidden" title="选择导入JSON文件" aria-label="选择导入JSON文件">
                                     <div class="mt-3 space-y-2">
@@ -1985,7 +1985,7 @@
                                 <div class="border-t border-gray-200 pt-5">
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">数据清理</h5>
                                     <button id="clearCacheBtn" class="w-full py-2.5 px-4 bg-red-50 border border-red-200 text-red-600 rounded-md hover:bg-red-100 transition-colors text-left flex items-center dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600">
-                                        <i class="fa fa-trash mr-2"></i>清理缓存数据
+                                        <i class="fa-solid fa-trash mr-2"></i>清理缓存数据
                                     </button>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">此操作将弹出清理范围选择，可选择“仅清除当前项目（保留设置/术语库）”或“清除全部（不可恢复）”</p>
                                 </div>
@@ -2012,7 +2012,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h3 id="clearCacheModalTitle" class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">清除缓存</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
@@ -2044,14 +2044,14 @@
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 id="helpModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">帮助文档</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="p-4 sm:p-6 overflow-y-auto flex-1">
                 <!-- 快速开始 -->
                 <section class="mb-8">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa fa-rocket text-primary mr-2"></i>快速开始
+                        <i class="fa-solid fa-rocket text-primary mr-2"></i>快速开始
                     </h4>
                     <div class="space-y-4">
                         <div class="pl-6">
@@ -2076,7 +2076,7 @@
                 <!-- 主要功能 -->
                 <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa fa-star text-primary mr-2"></i>主要功能
+                        <i class="fa-solid fa-star text-primary mr-2"></i>主要功能
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -2105,7 +2105,7 @@
                 <!-- 快捷键 -->
                 <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa fa-keyboard-o text-primary mr-2"></i>快捷键
+                        <i class="fa-regular fa-keyboard text-primary mr-2"></i>快捷键
                     </h4>
                     <div class="space-y-2">
                         <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
@@ -2174,7 +2174,7 @@
                 <!-- 常见问题 -->
                 <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa fa-question-circle text-primary mr-2"></i>常见问题
+                        <i class="fa-solid fa-circle-question text-primary mr-2"></i>常见问题
                     </h4>
                     <div class="space-y-4">
                         <div>
@@ -2207,7 +2207,7 @@
                 <!-- 开发与部署 -->
                 <section class="border-t border-gray-200 dark:border-gray-700 pt-8">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa fa-folder-open text-primary mr-2"></i>开发与部署
+                        <i class="fa-solid fa-folder-open text-primary mr-2"></i>开发与部署
                     </h4>
                     <div class="space-y-4">
                         <div class="pl-6">
@@ -2237,10 +2237,10 @@
         <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md">
             <div class="p-6 text-center">
                 <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
                 <div class="w-20 h-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                    <i class="fa fa-language text-4xl text-primary"></i>
+                    <i class="fa-solid fa-language text-4xl text-primary"></i>
                 </div>
                 <h3 id="aboutModalTitle" class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">智能翻译工具</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">版本 1.1.0（本地运行）</p>
@@ -2286,7 +2286,7 @@
         <div class="p-4">
             <div class="flex items-start">
                 <div id="notificationIcon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-green-50 text-green-800 dark:bg-emerald-500/20 dark:text-emerald-400 mr-3">
-                    <i id="notificationIconInner" class="fa fa-check-circle"></i>
+                    <i id="notificationIconInner" class="fa-solid fa-circle-check"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
@@ -2299,7 +2299,7 @@
                     </div>
                 </div>
                 <button id="closeNotification" class="ml-3 flex-shrink-0 text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭通知" aria-label="关闭通知">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
         </div>
@@ -2313,7 +2313,7 @@
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 id="aiPrimingSamplesModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">选择 Priming 样本</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="p-4 sm:p-6 overflow-y-auto">
@@ -2335,7 +2335,7 @@
             <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 <h3 id="aiConversationViewerModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">AI 会话查看器</h3>
                 <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa fa-times"></i>
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             <div class="p-4 sm:p-6 flex-1 overflow-hidden min-h-0">

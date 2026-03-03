@@ -1,13 +1,22 @@
 ﻿{
-    "font-awesome":  {
-                         "version":  "4.7.0",
-                         "css":  "https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css",
-                         "font":  "https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/fonts/fontawesome-webfont.woff2",
-                         "localPath":  {
-                                           "css":  "public/lib/font-awesome/font-awesome.min.css",
-                                           "font":  "public/lib/font-awesome/fonts/fontawesome-webfont.woff2"
-                                       }
-                     },
+    "font-awesome": {
+        "version": "6.7.2",
+        "npmPackage": "@fortawesome/fontawesome-free",
+        "files": {
+            "css": {
+                "url": "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css",
+                "localPath": "public/lib/font-awesome/css/all.min.css"
+            },
+            "webfont-solid": {
+                "url": "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/webfonts/fa-solid-900.woff2",
+                "localPath": "public/lib/font-awesome/webfonts/fa-solid-900.woff2"
+            },
+            "webfont-regular": {
+                "url": "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/webfonts/fa-regular-400.woff2",
+                "localPath": "public/lib/font-awesome/webfonts/fa-regular-400.woff2"
+            }
+        }
+    },
     "chart.js":  {
                      "version":  "4.5.1",
                      "url":  "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js",

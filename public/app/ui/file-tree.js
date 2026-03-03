@@ -46,7 +46,7 @@ function updateFileTree(files) {
     li.className = "p-6 text-center";
     li.innerHTML =
       '<div class="flex flex-col items-center gap-2">' +
-        '<i class="fa fa-folder-open-o text-3xl text-gray-300 dark:text-gray-600"></i>' +
+        '<i class="fa-regular fa-folder-open text-3xl text-gray-300 dark:text-gray-600"></i>' +
         '<p class="text-sm text-gray-500 dark:text-gray-400">暂无文件</p>' +
         '<p class="text-xs text-gray-400 dark:text-gray-500">拖拽文件到上方区域或点击浏览</p>' +
       '</div>';

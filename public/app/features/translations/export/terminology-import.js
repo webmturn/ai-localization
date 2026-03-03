@@ -29,7 +29,7 @@ function handleImportFileSelect(e) {
   const importFileInput = DOMCache.get("importFileInput");
   if (importDropArea) {
     const icon = document.createElement("i");
-    icon.className = "fa fa-file-text text-2xl text-primary mb-2";
+    icon.className = "fa-solid fa-file-lines text-2xl text-primary mb-2";
 
     const nameEl = document.createElement("p");
     nameEl.className = "text-sm font-medium text-gray-700 dark:text-gray-200";
@@ -286,7 +286,7 @@ async function importTerminology() {
       if (importDropArea) {
         const icon = document.createElement("i");
         icon.className =
-          "fa fa-cloud-upload text-3xl text-gray-400 dark:text-gray-500 mb-3";
+          "fa-solid fa-cloud-arrow-up text-3xl text-gray-400 dark:text-gray-500 mb-3";
 
         const p1 = document.createElement("p");
         p1.className = "text-sm text-gray-600 dark:text-gray-300 mb-1";

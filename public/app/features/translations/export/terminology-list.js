@@ -127,7 +127,7 @@ function updateTerminologyList() {
 
     const icon = document.createElement("i");
     icon.className =
-      "fa fa-search text-3xl text-gray-300 dark:text-gray-600 mb-2 block";
+      "fa-solid fa-magnifying-glass text-3xl text-gray-300 dark:text-gray-600 mb-2 block";
 
     const p1 = document.createElement("p");
     p1.textContent = "没有找到匹配的术语";

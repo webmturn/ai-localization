@@ -96,6 +96,14 @@ describe("SecurityUtils.validateApiKey", () => {
   it("claude: 太短失败", () => {
     expect(su.validateApiKey("sk-ant-abc", "claude")).toBe(false);
   });
+
+  // --- None (自定义引擎) ---
+  it("none: 任何值都通过（包括空值）", () => {
+    expect(su.validateApiKey(null, "none")).toBe(true);
+    expect(su.validateApiKey("", "none")).toBe(true);
+    expect(su.validateApiKey(undefined, "none")).toBe(true);
+    expect(su.validateApiKey("any-key", "none")).toBe(true);
+  });
 });
 
 describe("SecurityUtils.sanitizeInput", () => {

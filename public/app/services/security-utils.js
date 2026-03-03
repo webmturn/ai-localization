@@ -181,6 +181,9 @@ class SecurityUtils {
 
   // 验证API密钥格式
   validateApiKey(key, type = "generic") {
+    // 自定义引擎无需 API Key（如本地 Ollama）
+    if (type === "none") return true;
+
     if (!key || typeof key !== "string") return false;
 
     key = key.trim();

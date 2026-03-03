@@ -185,14 +185,21 @@ var TranslationMemory = (function () {
     saveBatch: function (pairs, sourceLang, targetLang, meta) {
       var self = this;
       var saved = 0;
+      // 分批处理，每批 50 条，避免单事务过大
+      var CHUNK = 50;
       var chain = Promise.resolve();
-      pairs.forEach(function (pair) {
-        chain = chain.then(function () {
-          return self.save(pair.sourceText, pair.targetText, sourceLang, targetLang, meta).then(function () {
-            saved++;
+      for (var start = 0; start < pairs.length; start += CHUNK) {
+        (function (chunk) {
+          chain = chain.then(function () {
+            var promises = chunk.map(function (pair) {
+              return self.save(pair.sourceText, pair.targetText, sourceLang, targetLang, meta).then(function () {
+                saved++;
+              });
+            });
+            return Promise.all(promises);
           });
-        });
-      });
+        })(pairs.slice(start, start + CHUNK));
+      }
       return chain.then(function () { return saved; });
     },
 
@@ -212,7 +219,8 @@ var TranslationMemory = (function () {
           if (cursor) {
             // 校验实际文本（防哈希碰撞）
             if (normalizeText(cursor.value.sourceText) === normalized) {
-              found = cursor.value;
+              resolve(cursor.value);
+              return;
             }
             cursor.continue();
           } else {
@@ -317,7 +325,7 @@ var TranslationMemory = (function () {
           } else {
             var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
             xml += '<tmx version="1.4">\n';
-            xml += '  <header creationtool="translation-tool" creationtoolversion="1.2.2" segtype="sentence" o-tmf="translation-tool" adminlang="zh" srclang="*all*" datatype="plaintext"/>\n';
+            xml += '  <header creationtool="translation-tool" creationtoolversion="1.3.0" segtype="sentence" o-tmf="translation-tool" adminlang="zh" srclang="*all*" datatype="plaintext"/>\n';
             xml += '  <body>\n';
             entries.forEach(function (e) {
               var srcEscaped = e.sourceText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

@@ -87,12 +87,16 @@
     "app/services/translation/engines/providers/gemini.js",
     "app/services/translation/engines/providers/claude.js",
     "app/services/translation/engines/providers/google-translate.js",
+    "app/services/translation/engines/providers/custom-engine.js",  // 自定义引擎接入
     // 翻译服务核心
     "app/services/translation/service-class.js",
     "app/services/translation/compat.js",
     "app/services/translation/settings.js",
     "app/services/translation/terminology.js",
     "app/services/translation/helpers.js",
+    "app/services/translation/translation-memory.js",   // 翻译记忆库
+    "app/services/translation/translation-diff.js",     // 增量翻译 Diff
+    "app/services/translation/batch-resume.js",         // 批量翻译断点续传
     "app/services/translation/rate-limit.js",
     "app/services/translation/translate.js",
     "app/services/translation/batch.js",

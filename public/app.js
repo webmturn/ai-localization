@@ -98,6 +98,8 @@
     "app/services/translation/translation-diff.js",     // 增量翻译 Diff
     "app/services/translation/batch-resume.js",         // 批量翻译断点续传
     "app/services/translation/rate-limit.js",
+    "app/services/translation/placeholder-guard.js", // 占位符保护
+    "app/services/translation/tm-auto-apply.js",      // TM 自动应用
     "app/services/translation/translate.js",
     "app/services/translation/batch.js",
     "app/services/translation-service.js"

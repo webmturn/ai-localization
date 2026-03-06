@@ -317,13 +317,29 @@ TranslationService.prototype.translateBatch = async function (
           item.id,
       };
 
-      const translated = await this.translate(
-        item.sourceText,
-        sourceLang,
-        targetLang,
-        normalizedEngine,
-        context
-      );
+      // TM 自动查询：精确匹配直接使用，跳过 API 调用
+      var _tmResult = typeof TMAutoApply !== "undefined"
+        ? await TMAutoApply.lookup(item.sourceText, sourceLang, targetLang)
+        : { hit: false };
+      var translated;
+      if (_tmResult.hit && _tmResult.exact) {
+        translated = _tmResult.translation;
+        if (typeof addProgressLog === "function") {
+          addProgressLog({ level: "info", message: "[TM] 精确命中: " + (item.sourceText.length > 30 ? item.sourceText.substring(0, 30) + "..." : item.sourceText) });
+        }
+      } else {
+        translated = await this.translate(
+          item.sourceText,
+          sourceLang,
+          targetLang,
+          normalizedEngine,
+          context
+        );
+        // TM 自动保存
+        if (typeof TMAutoApply !== "undefined") {
+          TMAutoApply.save(item.sourceText, translated, sourceLang, targetLang, normalizedEngine);
+        }
+      }
 
       if (!AppState.translations.isInProgress) {
         errors.push({

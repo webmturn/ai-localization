@@ -31,6 +31,10 @@ TranslationService.prototype.translate = async function (
   }
   maxRetries = Math.max(0, Math.min(10, parseInt(maxRetries)));
 
+  // 占位符保护：提取占位符替换为安全标记，翻译后恢复
+  var _phGuard = typeof PlaceholderGuard !== "undefined" ? PlaceholderGuard.protect(text) : null;
+  var _safeText = _phGuard && _phGuard.hasPlaceholders ? _phGuard.text : text;
+
   let lastError;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -42,12 +46,17 @@ TranslationService.prototype.translate = async function (
       let result;
       if (config.category === "ai") {
         result = await AIEngineBase.translateSingle(
-          engineId, text, sourceLang, targetLang, context, this
+          engineId, _safeText, sourceLang, targetLang, context, this
         );
       } else {
         result = await TraditionalEngineBase.translateSingle(
-          engineId, text, sourceLang, targetLang, this
+          engineId, _safeText, sourceLang, targetLang, this
         );
+      }
+
+      // 恢复占位符
+      if (_phGuard && _phGuard.hasPlaceholders) {
+        result = PlaceholderGuard.restore(result, _phGuard.map);
       }
 
       return result;

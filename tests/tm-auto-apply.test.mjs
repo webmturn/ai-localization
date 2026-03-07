@@ -49,7 +49,7 @@ describe("TMAutoApply.lookup", () => {
   it("精确未命中但模糊匹配命中", async () => {
     mockTM.lookupExact.mockResolvedValue(null);
     mockTM.fuzzyMatch.mockResolvedValue([
-      { targetText: "你好世界", sourceText: "Hello World", similarity: 0.85 },
+      { entry: { targetText: "你好世界", sourceText: "Hello World" }, similarity: 0.85 },
     ]);
     const r = await TMAutoApply.lookup("Hello World!", "en", "zh");
     expect(r.hit).toBe(true);
@@ -84,13 +84,13 @@ describe("TMAutoApply.save", () => {
   it("保存翻译条目到 TM", async () => {
     mockTM.save.mockResolvedValue();
     await TMAutoApply.save("Hello", "你好", "en", "zh", "deepseek");
-    expect(mockTM.save).toHaveBeenCalledWith({
-      sourceText: "Hello",
-      targetText: "你好",
-      sourceLang: "en",
-      targetLang: "zh",
-      engine: "deepseek",
-    });
+    expect(mockTM.save).toHaveBeenCalledWith(
+      "Hello",
+      "你好",
+      "en",
+      "zh",
+      { engine: "deepseek" }
+    );
   });
 
   it("空源文或空译文不保存", async () => {
@@ -119,7 +119,9 @@ describe("TMAutoApply.saveBatch", () => {
     expect(mockTM.saveBatch).toHaveBeenCalledTimes(1);
     const entries = mockTM.saveBatch.mock.calls[0][0];
     expect(entries.length).toBe(2);
-    expect(entries[0].engine).toBe("openai");
+    expect(mockTM.saveBatch.mock.calls[0][1]).toBe("en");
+    expect(mockTM.saveBatch.mock.calls[0][2]).toBe("zh");
+    expect(mockTM.saveBatch.mock.calls[0][3]).toEqual({ engine: "openai" });
   });
 
   it("过滤掉空源文/译文", async () => {
@@ -134,6 +136,7 @@ describe("TMAutoApply.saveBatch", () => {
     );
     const entries = mockTM.saveBatch.mock.calls[0][0];
     expect(entries.length).toBe(1);
+    expect(mockTM.saveBatch.mock.calls[0][3]).toEqual({ engine: "unknown" });
   });
 });
 

@@ -104,7 +104,16 @@ TranslationService.prototype.translateBatch = async function (
         }
 
         const item = items[i];
-        const translated = translatedList[i];
+        let translated = translatedList[i];
+
+        // 占位符恢复（AI 批量路径绕过 translate.js，需在此处补偿）
+        if (typeof PlaceholderGuard !== "undefined" && translated) {
+          var _batchPh = PlaceholderGuard.protect(item.sourceText);
+          if (_batchPh.hasPlaceholders) {
+            translated = PlaceholderGuard.restore(translated, _batchPh.map);
+          }
+        }
+
         item.targetText = translated;
         item.status = "translated";
 
@@ -145,6 +154,18 @@ TranslationService.prototype.translateBatch = async function (
       }
 
       flushLogs();
+
+      // TM 批量保存（AI 批量路径）
+      if (typeof TMAutoApply !== "undefined" && results.length > 0) {
+        try {
+          TMAutoApply.saveBatch(
+            results.map(function (r) { return { sourceText: r.item.sourceText, targetText: r.result }; }),
+            sourceLang, targetLang, normalizedEngine
+          );
+        } catch (_tmErr) {
+          (loggers.translation || console).debug("TM batch save error:", _tmErr);
+        }
+      }
 
       (loggers.translation || console).info(
         `批量翻译结束: 成功 ${results.length}, 失败 ${errors.length}`

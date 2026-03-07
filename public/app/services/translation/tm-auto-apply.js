@@ -5,14 +5,14 @@
 var TMAutoApply = (function () {
 
   var _enabled = true;
-  var _fuzzyThreshold = 0.75;
+  var _fuzzyThreshold = 75;
   var _stats = { exactHits: 0, fuzzyHits: 0, saved: 0 };
 
   // ==================== 配置 ====================
 
   function setEnabled(val) { _enabled = !!val; }
   function isEnabled() { return _enabled; }
-  function setFuzzyThreshold(val) { _fuzzyThreshold = Math.max(0, Math.min(1, parseFloat(val) || 0.75)); }
+  function setFuzzyThreshold(val) { _fuzzyThreshold = Math.max(0, Math.min(100, parseFloat(val) || 75)); }
   function getStats() { return Object.assign({}, _stats); }
   function resetStats() { _stats = { exactHits: 0, fuzzyHits: 0, saved: 0 }; }
 
@@ -41,14 +41,14 @@ var TMAutoApply = (function () {
       // 2. 模糊匹配
       var fuzzy = await TranslationMemory.fuzzyMatch(sourceText, sourceLang, targetLang, _fuzzyThreshold);
       if (fuzzy && fuzzy.length > 0) {
-        var best = fuzzy[0]; // fuzzyMatch 返回按相似度降序
+        var best = fuzzy[0]; // fuzzyMatch 返回 { entry, similarity }
         _stats.fuzzyHits++;
         return {
           hit: true,
           exact: false,
-          translation: best.targetText,
+          translation: best.entry.targetText,
           similarity: best.similarity,
-          sourceMatch: best.sourceText
+          sourceMatch: best.entry.sourceText
         };
       }
     } catch (e) {
@@ -73,13 +73,13 @@ var TMAutoApply = (function () {
     if (!sourceText || !targetText) return;
 
     try {
-      await TranslationMemory.save({
-        sourceText: sourceText,
-        targetText: targetText,
-        sourceLang: sourceLang,
-        targetLang: targetLang,
-        engine: engine || "unknown"
-      });
+      await TranslationMemory.save(
+        sourceText,
+        targetText,
+        sourceLang,
+        targetLang,
+        { engine: engine || "unknown" }
+      );
       _stats.saved++;
     } catch (e) {
       (loggers.translation || console).debug("TMAutoApply save error:", e);
@@ -111,7 +111,7 @@ var TMAutoApply = (function () {
         });
 
       if (entries.length > 0) {
-        await TranslationMemory.saveBatch(entries);
+        await TranslationMemory.saveBatch(entries, sourceLang, targetLang, { engine: engine || "unknown" });
         _stats.saved += entries.length;
       }
     } catch (e) {

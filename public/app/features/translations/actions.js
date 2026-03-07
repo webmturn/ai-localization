@@ -849,7 +849,8 @@ async function retryFailedTranslations() {
       }
     }
 
-    autoSaveManager.markDirty();
+    const _autoSave = getServiceSafely('autoSaveManager', 'autoSaveManager');
+    if (_autoSave) _autoSave.markDirty();
     if (typeof invalidateSearchCache === "function") invalidateSearchCache();
     
     // 使用通用的UI更新函数（如果可用）

@@ -35,7 +35,8 @@ var TMAutoApply = (function () {
       var exact = await TranslationMemory.lookupExact(sourceText, sourceLang, targetLang);
       if (exact) {
         _stats.exactHits++;
-        return { hit: true, exact: true, translation: exact.targetText, similarity: 1.0 };
+        // similarity 与 fuzzyMatch 量纲对齐（0-100），不是 0-1
+        return { hit: true, exact: true, translation: exact.targetText, similarity: 100 };
       }
 
       // 2. 模糊匹配

@@ -26,7 +26,7 @@
 - 🔔 引擎切换 Toast 通知 + 友好错误消息
 - ⏱️ 批量翻译 ETA 预估（预计剩余时间）
 
-## � 截图预览
+## 📸 截图预览
 
 ### 主界面 — 翻译列表 + DeepSeek 引擎
 ![主界面](docs/screenshots/01-main-interface.png)
@@ -48,7 +48,7 @@
 
 </details>
 
-## �🚀 快速开始
+## 🚀 快速开始
 
 > **⚠️ 首次使用必读**：必须先执行 `npm install` 和 `npm run build`，否则打开页面将无样式且加载缓慢。`public/styles.css` 和 `public/app.bundle.js` 由构建生成，未提交到仓库。
 

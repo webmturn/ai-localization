@@ -43,19 +43,21 @@ describe("TMAutoApply.lookup", () => {
     expect(r.hit).toBe(true);
     expect(r.exact).toBe(true);
     expect(r.translation).toBe("你好");
-    expect(r.similarity).toBe(1.0);
+    // similarity 与 TranslationMemory.fuzzyMatch / _fuzzyThreshold 同量纲（0-100）
+    expect(r.similarity).toBe(100);
   });
 
   it("精确未命中但模糊匹配命中", async () => {
     mockTM.lookupExact.mockResolvedValue(null);
+    // TranslationMemory.fuzzyMatch 实际返回 0-100 整数（见 _similarity 实现）
     mockTM.fuzzyMatch.mockResolvedValue([
-      { entry: { targetText: "你好世界", sourceText: "Hello World" }, similarity: 0.85 },
+      { entry: { targetText: "你好世界", sourceText: "Hello World" }, similarity: 85 },
     ]);
     const r = await TMAutoApply.lookup("Hello World!", "en", "zh");
     expect(r.hit).toBe(true);
     expect(r.exact).toBe(false);
     expect(r.translation).toBe("你好世界");
-    expect(r.similarity).toBe(0.85);
+    expect(r.similarity).toBe(85);
   });
 
   it("无匹配时返回 hit=false", async () => {

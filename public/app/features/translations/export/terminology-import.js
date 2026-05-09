@@ -130,6 +130,16 @@ async function importTerminology() {
         (loggers.storage || console).error("保存术语到项目存储失败:", e);
       }
 
+      // localStorage 兜底，与 saveTerm/deleteTerm 一致；无项目时也能持久化
+      try {
+        localStorage.setItem(
+          "terminologyList",
+          JSON.stringify(AppState.terminology.list)
+        );
+      } catch (e) {
+        (loggers.storage || console).error("保存术语库到 localStorage 失败:", e);
+      }
+
       if (!savedToProject) {
         try {
           if (
@@ -194,17 +204,34 @@ async function importTerminology() {
       importFormat === "csv" ||
       (importFormat === "auto" && file.name.endsWith(".csv"))
     ) {
-      const lines = fileContent.split("\n").filter((line) => line.trim());
-      const headers = lines[0]
-        .split(",")
-        .map((h) => h.trim().toLowerCase());
+      // 使用 RFC 合规的 CSV 解析器（支持带逗号/引号/换行的字段）
+      const parser =
+        typeof parseCSVLines === "function" ? parseCSVLines : null;
+      let rows;
+      if (parser) {
+        rows = parser(fileContent, ",").filter(
+          (row) => row.length > 0 && row.some((cell) => String(cell || "").trim() !== "")
+        );
+      } else {
+        // 兜底：旧的简化解析（不支持引号字段）
+        rows = fileContent
+          .split("\n")
+          .filter((line) => line.trim())
+          .map((line) => line.split(","));
+      }
 
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",");
+      if (rows.length === 0) {
+        throw new Error("CSV 文件为空");
+      }
+
+      const headers = rows[0].map((h) => String(h || "").trim().toLowerCase());
+
+      for (let i = 1; i < rows.length; i++) {
+        const values = rows[i];
         const term = {};
 
         headers.forEach((header, index) => {
-          term[header] = values[index]?.trim() || "";
+          term[header] = String(values[index] || "").trim();
         });
 
         if (term.source && term.target) {

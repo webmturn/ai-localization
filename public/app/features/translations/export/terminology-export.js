@@ -266,6 +266,11 @@ function generateTerminologyExcel(terms, includeDefinition, includeMetadata) {
   // 导出文件
   try {
     XLSX.writeFile(wb, filename);
+    showNotification(
+      "success",
+      "导出成功",
+      `已导出 ${terms.length} 个术语`
+    );
   } catch (error) {
     (loggers.app || console).error("Excel导出失败:", error);
     showNotification("error", "导出失败", error.message || "Excel文件生成失败");

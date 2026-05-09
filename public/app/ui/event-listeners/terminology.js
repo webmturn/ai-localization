@@ -337,6 +337,20 @@ function registerEventListenersTerminology(ctx) {
       addTermBtn,
       "click",
       () => {
+        // 重置编辑状态，避免之前未保存就关闭的编辑残留污染新增流程
+        const saveBtn = DOMCache.get("saveTermBtn");
+        if (saveBtn) {
+          delete saveBtn.dataset.editingId;
+          saveBtn.textContent = "保存";
+        }
+        const sourceTermInput = DOMCache.get("sourceTerm");
+        const targetTermInput = DOMCache.get("targetTerm");
+        const partOfSpeechInput = DOMCache.get("partOfSpeech");
+        const termDefinitionInput = DOMCache.get("termDefinition");
+        if (sourceTermInput) sourceTermInput.value = "";
+        if (targetTermInput) targetTermInput.value = "";
+        if (partOfSpeechInput) partOfSpeechInput.value = "noun";
+        if (termDefinitionInput) termDefinitionInput.value = "";
         DOMCache.get("addTermModal").classList.remove("hidden");
       },
       {

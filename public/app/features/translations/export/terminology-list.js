@@ -74,6 +74,16 @@ function saveTerm() {
     (loggers.storage || console).error("触发项目保存失败:", e);
   }
 
+  // localStorage 兜底，与 deleteTerm 保持一致；无项目时刷新仍可恢复
+  try {
+    localStorage.setItem(
+      "terminologyList",
+      JSON.stringify(AppState.terminology.list)
+    );
+  } catch (e) {
+    (loggers.storage || console).error("保存术语库到 localStorage 失败:", e);
+  }
+
   // 重置表单
   DOMCache.get("sourceTerm").value = "";
   DOMCache.get("targetTerm").value = "";

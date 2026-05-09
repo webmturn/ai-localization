@@ -263,9 +263,10 @@ TranslationService.prototype.translateBatch = async function (
   // ========== 预检 API Key（通用，基于 EngineRegistry） ==========
   const __batchSettings = await this.getSettings().catch(() => ({}));
   if (engineConfig) {
+    const noKeyNeeded = engineConfig.apiKeyValidationType === "none";
     const key = __batchSettings[engineConfig.apiKeyField];
-    const missing = !key;
-    const invalid = !missing && !securityUtils.validateApiKey(key, engineConfig.apiKeyValidationType || normalizedEngine);
+    const missing = !noKeyNeeded && !key;
+    const invalid = !noKeyNeeded && !missing && !securityUtils.validateApiKey(key, engineConfig.apiKeyValidationType || normalizedEngine);
 
     if (missing || invalid) {
       const keyMsg = missing

@@ -69,6 +69,65 @@ const EngineRegistry = {
     return this._engines.has(engineId);
   },
 
+  _matchesModelRule: function (model, rule) {
+    if (!model || !rule) return false;
+    if (rule instanceof RegExp) return rule.test(model);
+    if (Array.isArray(rule)) {
+      for (var i = 0; i < rule.length; i++) {
+        if (this._matchesModelRule(model, rule[i])) return true;
+      }
+      return false;
+    }
+    return String(rule) === String(model);
+  },
+
+  getModelCapability: function (engineId, model) {
+    var config = this.get(engineId);
+    var capability = {
+      supportsJsonMode: !!(config && config.supportsJsonMode !== false),
+      supportsBatch: !!(config && config.supportsBatch !== false),
+      isReasoningModel: false,
+      disablesTemperature: false,
+      usesMaxCompletionTokens: false,
+      mergesSystemIntoUser: false,
+      hints: [],
+    };
+    if (!config) return capability;
+
+    var unsupported = Array.isArray(config.jsonModeUnsupportedModels)
+      ? config.jsonModeUnsupportedModels
+      : [];
+    for (var ui = 0; ui < unsupported.length; ui++) {
+      if (this._matchesModelRule(model, unsupported[ui])) {
+        capability.supportsJsonMode = false;
+        break;
+      }
+    }
+
+    var entries = Array.isArray(config.modelCapabilities)
+      ? config.modelCapabilities
+      : [];
+    for (var ei = 0; ei < entries.length; ei++) {
+      var entry = entries[ei] || {};
+      var rule = entry.match || entry.matches || entry.model || entry.models;
+      if (rule && !this._matchesModelRule(model, rule)) continue;
+      if (entry.supportsJsonMode === false) capability.supportsJsonMode = false;
+      if (entry.supportsBatch === false) capability.supportsBatch = false;
+      if (entry.isReasoningModel) capability.isReasoningModel = true;
+      if (entry.disablesTemperature) capability.disablesTemperature = true;
+      if (entry.usesMaxCompletionTokens) capability.usesMaxCompletionTokens = true;
+      if (entry.mergesSystemIntoUser) capability.mergesSystemIntoUser = true;
+      if (Array.isArray(entry.hints)) {
+        for (var hi = 0; hi < entry.hints.length; hi++) {
+          if (entry.hints[hi] && capability.hints.indexOf(entry.hints[hi]) === -1) {
+            capability.hints.push(entry.hints[hi]);
+          }
+        }
+      }
+    }
+    return capability;
+  },
+
   /**
    * 获取指定分类下的所有引擎
    * @param {string} category - "ai" | "traditional"
@@ -125,15 +184,25 @@ const EngineRegistry = {
    */
   registerCustom: function (userConfig) {
     var id = userConfig.id || ("custom-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
+    id = String(id).trim().toLowerCase();
+    if (id.indexOf("custom-") !== 0) id = "custom-" + id;
     var authType = userConfig.authType || "bearer";
+    var maxTokens = Number(userConfig.maxTokens) || 4096;
+    var extraBodyParams = Object.assign(
+      {},
+      userConfig.extraBodyParams || {},
+      { max_tokens: maxTokens }
+    );
     var config = {
       id: id,
       name: userConfig.name || id,
       category: "ai",
       apiUrl: userConfig.apiUrl || "",
       apiKeyField: "customApiKey_" + id,
-      apiKeyValidationType: "generic",
+      apiKeyValidationType: userConfig.requiresApiKey === false ? "none" : "generic",
       defaultModel: userConfig.model || "",
+      model: userConfig.model || "",
+      maxTokens: maxTokens,
       authType: authType,
       authHeaderBuilder: function (key) {
         if (authType === "x-api-key") {
@@ -143,8 +212,10 @@ const EngineRegistry = {
       },
       supportsJsonMode: userConfig.supportsJsonMode !== false,
       supportsBatch: userConfig.supportsBatch !== false,
-      extraBodyParams: userConfig.extraBodyParams || {},
+      extraBodyParams: extraBodyParams,
+      extraBatchBodyParams: extraBodyParams,
       rateLimitPerSecond: userConfig.rateLimitPerSecond || 3,
+      availableModels: userConfig.model ? [userConfig.model] : [],
       isCustom: true,
     };
     this.register(config);
@@ -179,9 +250,11 @@ const EngineRegistry = {
           apiUrl: config.apiUrl,
           model: config.defaultModel,
           authType: config.authType || "bearer",
+          requiresApiKey: config.apiKeyValidationType !== "none",
           supportsJsonMode: config.supportsJsonMode,
           supportsBatch: config.supportsBatch,
           rateLimitPerSecond: config.rateLimitPerSecond,
+          maxTokens: config.maxTokens,
         });
       }
     });

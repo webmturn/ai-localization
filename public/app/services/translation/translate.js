@@ -97,6 +97,24 @@ TranslationService.prototype.translate = async function (
         break;
       }
 
+      // 上下文长度超限：重试也无效，必失败，立即停止避免浪费冷却时间
+      const isContextLengthExceeded =
+        /context[_\s]*length[_\s]*exceeded/i.test(message) ||
+        /maximum\s+context\s+length/i.test(message) ||
+        /prompt\s+is\s+too\s+long/i.test(message) ||
+        /exceeds?\s+the\s+max(?:imum)?\s+(?:input\s+)?tokens?/i.test(message) ||
+        /input\s+(?:is\s+)?too\s+long/i.test(message) ||
+        /range\s+of\s+input\s+length/i.test(message) ||
+        /token\s+limit/i.test(message);
+
+      if (isContextLengthExceeded) {
+        (loggers.translation || console).warn("上下文长度超限，停止重试:", message);
+        lastError = new Error(config.name + " 上下文长度超限，请减小批量大小或缩短文本");
+        lastError.code = "CONTEXT_LENGTH_EXCEEDED";
+        lastError.status = status;
+        break;
+      }
+
       const isRateLimited =
         !isQuotaError && (
           status === 429 ||

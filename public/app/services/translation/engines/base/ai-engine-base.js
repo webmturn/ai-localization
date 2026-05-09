@@ -115,6 +115,42 @@ function _aiChunkItems(items, maxChars, maxItems) {
   return chunks;
 }
 
+function _aiIsAdaptiveBatchError(error) {
+  var code = error && error.code ? String(error.code) : "";
+  var status = error && error.status;
+  var msg = error && error.message ? String(error.message) : String(error || "");
+  if (code === "CONTEXT_LENGTH_EXCEEDED" || code === "EMPTY_RESPONSE") return true;
+  if (code === "BATCH_JSON_PARSE_FAILED" || code === "BATCH_OUTPUT_MISMATCH") return true;
+  if (code === "BATCH_OUTPUT_TRUNCATED" || status === 413) return true;
+  return /上下文长度超限/i.test(msg) ||
+    /context[_\s-]*length[_\s-]*exceeded/i.test(msg) ||
+    /maximum\s+context\s+length/i.test(msg) ||
+    /prompt\s+is\s+too\s+long/i.test(msg) ||
+    /exceeds?\s+the\s+max(?:imum)?\s+(?:input\s+)?tokens?/i.test(msg) ||
+    /input\s+(?:is\s+)?too\s+long/i.test(msg) ||
+    /token\s+limit/i.test(msg) ||
+    /json\s*解析失败/i.test(msg) ||
+    /unexpected\s+end/i.test(msg) ||
+    /unterminated\s+string/i.test(msg) ||
+    /translations\s+数量不匹配/i.test(msg) ||
+    /truncat/i.test(msg) ||
+    /output\s+too\s+long/i.test(msg);
+}
+
+function _aiIsTruncatedBatchResponse(respData) {
+  var choice = respData?.choices?.[0];
+  var finishReason = choice?.finish_reason || choice?.finishReason;
+  if (finishReason && /^(length|max_tokens|MAX_TOKENS)$/i.test(String(finishReason))) return true;
+  var candidates = respData?.candidates;
+  if (Array.isArray(candidates)) {
+    for (var i = 0; i < candidates.length; i++) {
+      var reason = candidates[i]?.finishReason;
+      if (reason && /^(MAX_TOKENS|length|max_tokens)$/i.test(String(reason))) return true;
+    }
+  }
+  return false;
+}
+
 function _aiCollectChunkContext(allItems, chunkItems, windowSize) {
   if (!allItems || !chunkItems || windowSize <= 0) return { before: [], after: [] };
 
@@ -207,6 +243,52 @@ function _aiMakeCancelError(partialOutputs) {
   return err;
 }
 
+/**
+ * 解析使用的模型，避免 settings.model 跨引擎污染
+ * - 若引擎声明了 availableModels 列表，仅接受列表内的 model，否则回退 defaultModel
+ * - 若未声明 availableModels（自定义引擎未填模型、老配置等），则保持向后兼容不做校验
+ */
+function _aiResolveModel(settings, config) {
+  var requested = settings && settings.model ? String(settings.model) : "";
+  var available = Array.isArray(config && config.availableModels)
+    ? config.availableModels
+    : null;
+
+  if (!available || available.length === 0) {
+    return requested || (config && config.defaultModel) || "";
+  }
+
+  if (requested && available.indexOf(requested) !== -1) {
+    return requested;
+  }
+
+  if (requested && (loggers.translation || console).debug) {
+    (loggers.translation || console).debug(
+      "_aiResolveModel: settings.model=" + requested +
+      " 不在 " + (config && config.id) + " 的 availableModels 中，回退到 defaultModel=" +
+      ((config && config.defaultModel) || "")
+    );
+  }
+  return (config && config.defaultModel) || available[0] || "";
+}
+
+function _aiSupportsJsonMode(config, model) {
+  if (typeof EngineRegistry !== "undefined" && typeof EngineRegistry.getModelCapability === "function") {
+    return !!EngineRegistry.getModelCapability(config && config.id, model).supportsJsonMode;
+  }
+  if (!config || config.supportsJsonMode === false) return false;
+  var unsupported = Array.isArray(config.jsonModeUnsupportedModels)
+    ? config.jsonModeUnsupportedModels
+    : [];
+  if (!model || unsupported.length === 0) return true;
+  for (var i = 0; i < unsupported.length; i++) {
+    var rule = unsupported[i];
+    if (rule instanceof RegExp && rule.test(model)) return false;
+    if (typeof rule === "string" && rule === model) return false;
+  }
+  return true;
+}
+
 function _aiCreateCancelWatcher(partialOutputs) {
   var intervalId = null;
   var cancelled = false;
@@ -260,7 +342,8 @@ var AIEngineBase = {
 
     var settings = await service.getSettings();
     var apiKey = settings[config.apiKeyField];
-    var model = settings.model || config.defaultModel;
+    var model = _aiResolveModel(settings, config);
+    var noKeyNeeded = config.apiKeyValidationType === "none";
 
     var cacheEnabled = !!settings.translationRequestCacheEnabled;
     var rawCacheTtl = parseInt(settings.translationRequestCacheTTLSeconds);
@@ -268,18 +351,20 @@ var AIEngineBase = {
       ? Math.max(1, Math.min(600, rawCacheTtl))
       : 5;
 
-    // 校验 API Key
-    if (!apiKey) {
-      var err1 = new Error(config.name + " API密钥未配置");
-      err1.code = "API_KEY_MISSING";
-      err1.provider = engineId;
-      throw err1;
-    }
-    if (!securityUtils.validateApiKey(apiKey, config.apiKeyValidationType || engineId)) {
-      var err2 = new Error(config.name + " API密钥格式不正确");
-      err2.code = "API_KEY_INVALID";
-      err2.provider = engineId;
-      throw err2;
+    // 校验 API Key（自定义引擎可能配置为无需 API Key，例如本地 Ollama）
+    if (!noKeyNeeded) {
+      if (!apiKey) {
+        var err1 = new Error(config.name + " API密钥未配置");
+        err1.code = "API_KEY_MISSING";
+        err1.provider = engineId;
+        throw err1;
+      }
+      if (!securityUtils.validateApiKey(apiKey, config.apiKeyValidationType || engineId)) {
+        var err2 = new Error(config.name + " API密钥格式不正确");
+        err2.code = "API_KEY_INVALID";
+        err2.provider = engineId;
+        throw err2;
+      }
     }
 
     var sourceLanguage = _AI_LANG_NAMES[sourceLang] || sourceLang;
@@ -353,10 +438,19 @@ var AIEngineBase = {
 
     try {
       var headers = { "Content-Type": "application/json" };
-      var authHeaders = config.authHeaderBuilder(apiKey);
-      var authKeys = Object.keys(authHeaders);
-      for (var ak = 0; ak < authKeys.length; ak++) {
-        headers[authKeys[ak]] = authHeaders[authKeys[ak]];
+      if (apiKey && typeof config.authHeaderBuilder === "function") {
+        var authHeaders = config.authHeaderBuilder(apiKey) || {};
+        var authKeys = Object.keys(authHeaders);
+        for (var ak = 0; ak < authKeys.length; ak++) {
+          headers[authKeys[ak]] = authHeaders[authKeys[ak]];
+        }
+      }
+      // 自定义引擎可注入额外请求头（例如本地代理需要的私有 token）
+      if (config.customHeaders && typeof config.customHeaders === "object") {
+        var chKeys = Object.keys(config.customHeaders);
+        for (var ch = 0; ch < chKeys.length; ch++) {
+          headers[chKeys[ch]] = config.customHeaders[chKeys[ch]];
+        }
       }
 
       var response = await networkUtils.fetchWithDedupe(
@@ -406,7 +500,10 @@ var AIEngineBase = {
         resultText = data?.choices?.[0]?.message?.content;
       }
       if (!resultText && resultText !== "") {
-        throw new Error(config.name + " API 返回数据结构异常");
+        var errEmpty = new Error(config.name + " API 返回数据结构异常或响应为空");
+        errEmpty.code = "EMPTY_RESPONSE";
+        errEmpty.provider = engineId;
+        throw errEmpty;
       }
       return resultText.trim();
     } catch (error) {
@@ -431,22 +528,25 @@ var AIEngineBase = {
 
     var settings = await service.getSettings();
     var apiKey = settings[config.apiKeyField];
-    var model = settings.model || config.defaultModel;
+    var model = _aiResolveModel(settings, config);
+    var noKeyNeeded = config.apiKeyValidationType === "none";
 
     var onProgress = options && typeof options.onProgress === "function" ? options.onProgress : null;
     var onLog = options && typeof options.onLog === "function" ? options.onLog : null;
 
-    if (!apiKey) {
-      var err1 = new Error(config.name + " API密钥未配置");
-      err1.code = "API_KEY_MISSING";
-      err1.provider = engineId;
-      throw err1;
-    }
-    if (!securityUtils.validateApiKey(apiKey, config.apiKeyValidationType || engineId)) {
-      var err2 = new Error(config.name + " API密钥格式不正确");
-      err2.code = "API_KEY_INVALID";
-      err2.provider = engineId;
-      throw err2;
+    if (!noKeyNeeded) {
+      if (!apiKey) {
+        var err1 = new Error(config.name + " API密钥未配置");
+        err1.code = "API_KEY_MISSING";
+        err1.provider = engineId;
+        throw err1;
+      }
+      if (!securityUtils.validateApiKey(apiKey, config.apiKeyValidationType || engineId)) {
+        var err2 = new Error(config.name + " API密钥格式不正确");
+        err2.code = "API_KEY_INVALID";
+        err2.provider = engineId;
+        throw err2;
+      }
     }
 
     var sourceLanguage = _AI_LANG_NAMES[sourceLang] || sourceLang;
@@ -531,6 +631,7 @@ var AIEngineBase = {
 
       var chunk = chunks[c];
 
+      try {
       if (onLog) {
         onLog(config.name + " 批量请求 " + (c + 1) + "/" + chunks.length + "（" + chunk.length + " 项）...");
       }
@@ -608,13 +709,15 @@ var AIEngineBase = {
         messages: messages,
         temperature: settings.temperature != null ? Number(settings.temperature) : 0.1,
       };
-      if (config.supportsJsonMode) {
+      if (_aiSupportsJsonMode(config, model)) {
         batchBody.response_format = { type: "json_object" };
       }
-      if (config.extraBodyParams) {
-        var bExtraKeys = Object.keys(config.extraBodyParams);
+      // 批量路径优先使用 extraBatchBodyParams（例如更大的 max_tokens 防止 JSON 截断）
+      var batchExtraParams = config.extraBatchBodyParams || config.extraBodyParams;
+      if (batchExtraParams) {
+        var bExtraKeys = Object.keys(batchExtraParams);
         for (var bek = 0; bek < bExtraKeys.length; bek++) {
-          batchBody[bExtraKeys[bek]] = config.extraBodyParams[bExtraKeys[bek]];
+          batchBody[bExtraKeys[bek]] = batchExtraParams[bExtraKeys[bek]];
         }
       }
       // 引擎专用请求体变换
@@ -624,10 +727,19 @@ var AIEngineBase = {
 
       // 请求
       var batchHeaders = { "Content-Type": "application/json" };
-      var batchAuth = config.authHeaderBuilder(apiKey);
-      var batchAuthKeys = Object.keys(batchAuth);
-      for (var bak = 0; bak < batchAuthKeys.length; bak++) {
-        batchHeaders[batchAuthKeys[bak]] = batchAuth[batchAuthKeys[bak]];
+      if (apiKey && typeof config.authHeaderBuilder === "function") {
+        var batchAuth = config.authHeaderBuilder(apiKey) || {};
+        var batchAuthKeys = Object.keys(batchAuth);
+        for (var bak = 0; bak < batchAuthKeys.length; bak++) {
+          batchHeaders[batchAuthKeys[bak]] = batchAuth[batchAuthKeys[bak]];
+        }
+      }
+      // 自定义引擎额外请求头
+      if (config.customHeaders && typeof config.customHeaders === "object") {
+        var bchKeys = Object.keys(config.customHeaders);
+        for (var bch = 0; bch < bchKeys.length; bch++) {
+          batchHeaders[bchKeys[bch]] = config.customHeaders[bchKeys[bch]];
+        }
       }
 
       var watcher = _aiCreateCancelWatcher(outputs);
@@ -679,6 +791,12 @@ var AIEngineBase = {
       }
 
       var respData = await response.json();
+      if (_aiIsTruncatedBatchResponse(respData)) {
+        var errBatchTruncated = new Error(config.name + " 批量响应被截断，请减小批量大小");
+        errBatchTruncated.code = "BATCH_OUTPUT_TRUNCATED";
+        errBatchTruncated.provider = engineId;
+        throw errBatchTruncated;
+      }
       var content;
       if (typeof config._parseResponseText === "function") {
         content = (config._parseResponseText(respData) || "").trim();
@@ -686,7 +804,10 @@ var AIEngineBase = {
         content = (respData?.choices?.[0]?.message?.content || "").trim();
       }
       if (!content) {
-        throw new Error(config.name + " 返回空内容（可能为 JSON 输出不稳定），请重试");
+        var errBatchEmpty = new Error(config.name + " 返回空内容（可能为 JSON 输出不稳定或被截断），请重试或减小批量大小");
+        errBatchEmpty.code = "EMPTY_RESPONSE";
+        errBatchEmpty.provider = engineId;
+        throw errBatchEmpty;
       }
 
       if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
@@ -699,15 +820,21 @@ var AIEngineBase = {
       try {
         parsedResp = JSON.parse(content);
       } catch (parseErr) {
-        throw new Error(config.name + " JSON 解析失败：" + parseErr.message);
+        var errBatchParse = new Error(config.name + " JSON 解析失败：" + parseErr.message);
+        errBatchParse.code = "BATCH_JSON_PARSE_FAILED";
+        errBatchParse.provider = engineId;
+        throw errBatchParse;
       }
 
       var translations = parsedResp?.translations;
       if (!Array.isArray(translations) || translations.length !== chunk.length) {
-        throw new Error(
+        var errBatchMismatch = new Error(
           config.name + " 返回 translations 数量不匹配：期望 " + chunk.length +
           "，实际 " + (Array.isArray(translations) ? translations.length : 0)
         );
+        errBatchMismatch.code = "BATCH_OUTPUT_MISMATCH";
+        errBatchMismatch.provider = engineId;
+        throw errBatchMismatch;
       }
 
       for (var ti = 0; ti < translations.length; ti++) {
@@ -774,6 +901,30 @@ var AIEngineBase = {
         }
 
         history = trimmedHistory;
+      }
+      } catch (chunkError) {
+        if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+
+        if (_aiIsAdaptiveBatchError(chunkError) && chunk.length > 1) {
+          var splitAt = Math.ceil(chunk.length / 2);
+          var firstHalf = chunk.slice(0, splitAt);
+          var secondHalf = chunk.slice(splitAt);
+          chunks.splice(c, 1, firstHalf, secondHalf);
+          if (onLog) {
+            onLog(
+              config.name + " 当前批次过大或输出不完整，已将 " + chunk.length +
+              " 项拆分为 " + firstHalf.length + " + " + secondHalf.length + " 后重试"
+            );
+          }
+          c--;
+          continue;
+        }
+
+        if (_aiIsAdaptiveBatchError(chunkError) && chunk.length <= 1 && !chunkError.code) {
+          chunkError.code = "BATCH_ITEM_TOO_LARGE";
+          chunkError.provider = engineId;
+        }
+        throw chunkError;
       }
     }
 

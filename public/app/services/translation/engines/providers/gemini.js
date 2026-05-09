@@ -14,6 +14,19 @@ EngineRegistry.register({
   },
   supportsJsonMode: true,
   supportsBatch: true,
-  extraBodyParams: {},
+  extraBodyParams: { max_tokens: 2000 },
+  extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 0.25,
+  availableModels: [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+  ],
+  modelLabels: {
+    "gemini-2.0-flash": "Gemini 2.0 Flash (推荐)",
+    "gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
+    "gemini-1.5-pro": "Gemini 1.5 Pro",
+    "gemini-1.5-flash": "Gemini 1.5 Flash",
+  },
 });

@@ -18,7 +18,19 @@ EngineRegistry.register({
   supportsJsonMode: false,
   supportsBatch: true,
   extraBodyParams: { max_tokens: 4096 },
+  // 批量翻译：JSON 数组输出可能超过 4096，预留 8000
+  extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 3,
+  availableModels: [
+    "claude-sonnet-4-20250514",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-haiku-20241022",
+  ],
+  modelLabels: {
+    "claude-sonnet-4-20250514": "Claude Sonnet 4 (推荐)",
+    "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
+    "claude-3-5-haiku-20241022": "Claude 3.5 Haiku",
+  },
 
   // Claude Messages API 请求体变换：
   // - 提取 system 角色消息为顶层 system 字段

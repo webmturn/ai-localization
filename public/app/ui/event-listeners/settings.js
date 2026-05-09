@@ -108,6 +108,54 @@ function refreshShortcutsList() {
   }
 }
 
+async function __buildEngineConnectionTestSettings(engineId, config) {
+  const saved = typeof translationService !== "undefined" && translationService?.getSettings
+    ? await translationService.getSettings()
+    : SettingsCache.getCopy();
+  const settings = Object.assign({}, saved || {});
+  const model = DOMCache.get("translationModel")?.value || config.defaultModel || settings.model || settings.translationModel || "";
+  const timeout = parseInt(DOMCache.get("apiTimeout")?.value);
+  settings.defaultEngine = engineId;
+  settings.translationEngine = engineId;
+  settings.model = model;
+  settings.translationModel = model;
+  settings.apiTimeout = Number.isFinite(timeout) ? Math.max(5, Math.min(120, timeout)) : (settings.apiTimeout || 30);
+  settings.retryCount = 0;
+  settings.translationRequestCacheEnabled = false;
+
+  if (config.apiKeyField && config.apiKeyValidationType !== "none") {
+    const keyInput = DOMCache.get(config.apiKeyField);
+    const key = keyInput?.value || settings[config.apiKeyField] || "";
+    settings[config.apiKeyField] = key;
+  }
+
+  return settings;
+}
+
+async function __runEngineConnectionTest(engineId, settings) {
+  const config = EngineRegistry.get(engineId);
+  const service = {
+    getSettings: async function () { return settings; },
+    buildProjectSystemPrompt: function () {
+      return "你是一个连接测试助手。只返回翻译结果，不要解释。";
+    },
+    findTerminologyMatches: function (text) {
+      try {
+        return translationService?.findTerminologyMatches
+          ? translationService.findTerminologyMatches(text)
+          : [];
+      } catch (e) {
+        return [];
+      }
+    },
+  };
+
+  if (config.category === "ai") {
+    return AIEngineBase.translateSingle(engineId, "Connection test", "en", "zh", null, service);
+  }
+  return TraditionalEngineBase.translateSingle(engineId, "Connection test", "en", "zh", service);
+}
+
 function registerEventListenersSettings(ctx) {
   // 设置标签页切换（事件委托 + 缓存引用）
   const settingsNav = DOMCache.query("#settingsModal nav, #settingsModal .settings-nav");
@@ -174,6 +222,58 @@ function registerEventListenersSettings(ctx) {
   // Prompt 模板管理已拆分到 settings-prompt-templates.js
   if (typeof registerEventListenersSettingsPromptTemplates === "function") {
     registerEventListenersSettingsPromptTemplates(ctx);
+  }
+
+  const testEngineConnectionBtn = DOMCache.get("testEngineConnection");
+  const testEngineConnectionStatus = DOMCache.get("testEngineConnectionStatus");
+  if (testEngineConnectionBtn) {
+    EventManager.add(
+      testEngineConnectionBtn,
+      "click",
+      async () => {
+        const rawEngine = DOMCache.get("defaultEngine")?.value || EngineRegistry.getDefaultEngineId();
+        const engineId = EngineRegistry.has(String(rawEngine))
+          ? String(rawEngine)
+          : EngineRegistry.getDefaultEngineId();
+        const config = EngineRegistry.get(engineId);
+        if (!config) {
+          showNotification("error", "连接测试失败", "未知的翻译引擎");
+          return;
+        }
+
+        testEngineConnectionBtn.disabled = true;
+        testEngineConnectionBtn.classList.add("opacity-60", "cursor-not-allowed");
+        if (testEngineConnectionStatus) {
+          testEngineConnectionStatus.textContent = "正在测试 " + config.name + "...";
+          testEngineConnectionStatus.className = "text-xs text-gray-500 dark:text-gray-400";
+        }
+
+        try {
+          const settings = await __buildEngineConnectionTestSettings(engineId, config);
+          await __runEngineConnectionTest(engineId, settings);
+          if (testEngineConnectionStatus) {
+            testEngineConnectionStatus.textContent = config.name + " 连接正常";
+            testEngineConnectionStatus.className = "text-xs text-green-600 dark:text-green-400";
+          }
+          showNotification("success", "连接测试成功", config.name + " 可正常访问");
+        } catch (error) {
+          const msg = error?.message || String(error);
+          if (testEngineConnectionStatus) {
+            testEngineConnectionStatus.textContent = "连接失败：" + msg;
+            testEngineConnectionStatus.className = "text-xs text-red-600 dark:text-red-400";
+          }
+          showNotification("error", "连接测试失败", msg);
+        } finally {
+          testEngineConnectionBtn.disabled = false;
+          testEngineConnectionBtn.classList.remove("opacity-60", "cursor-not-allowed");
+        }
+      },
+      {
+        tag: "settings",
+        scope: "settingsModal",
+        label: "testEngineConnection:click",
+      },
+    );
   }
 
   // 保存设置按钮
@@ -382,6 +482,11 @@ function registerEventListenersSettings(ctx) {
             if (existing && typeof existing.keyboardShortcuts === "object" && Object.keys(existing.keyboardShortcuts).length > 0) {
               settings.keyboardShortcuts = existing.keyboardShortcuts;
             }
+            Object.keys(existing).forEach(function (key) {
+              if (key.indexOf("customApiKey_") === 0) {
+                settings[key] = existing[key];
+              }
+            });
           }
         } catch (e) {
           (loggers.app || console).debug("settings merge shortcuts:", e);

@@ -180,7 +180,8 @@ class UniversalValidators {
   requiresApiKey(engine) {
     // 通过 EngineRegistry 判断：所有注册的引擎都需要 API Key
     if (typeof EngineRegistry !== 'undefined' && EngineRegistry.has(engine)) {
-      return true;
+      var config = EngineRegistry.get(engine);
+      return !(config && config.apiKeyValidationType === 'none');
     }
     // 向后兼容硬编码列表
     const apiKeyEngines = ['openai', 'deepseek', 'anthropic', 'google', 'gemini', 'claude'];

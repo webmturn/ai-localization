@@ -2,6 +2,7 @@
 
 var CustomEngineUI = (function () {
   var _editingId = null; // null = 新增, string = 编辑
+  var _modalObserver = null;
 
   // ==================== 初始化 ====================
 
@@ -31,6 +32,30 @@ var CustomEngineUI = (function () {
     if (saveFormBtn) {
       EventManager.add(saveFormBtn, "click", _saveForm);
     }
+
+    var requiresKey = document.getElementById("ceFieldRequiresKey");
+    if (requiresKey) {
+      EventManager.add(requiresKey, "change", _syncApiKeyField);
+    }
+
+    var modal = document.getElementById("customEngineModal");
+    if (modal) {
+      modal.querySelectorAll(".close-modal").forEach(function (btn) {
+        EventManager.add(btn, "click", _hideForm, {
+          tag: "custom-engine",
+          scope: "customEngineModal",
+          label: "customEngineModalClose:click",
+        });
+      });
+      if (typeof MutationObserver !== "undefined" && !_modalObserver) {
+        _modalObserver = new MutationObserver(function () {
+          if (modal.classList.contains("hidden")) {
+            _hideForm();
+          }
+        });
+        _modalObserver.observe(modal, { attributes: true, attributeFilter: ["class"] });
+      }
+    }
   }
 
   // ==================== 列表渲染 ====================
@@ -53,14 +78,14 @@ var CustomEngineUI = (function () {
     }
 
     var html = engines.map(function (engine) {
-      var engineId = engine.id.startsWith("custom-") ? engine.id : "custom-" + engine.id;
+      var engineId = _normalizeCustomEngineId(engine.id);
       var urlShort = (engine.apiUrl || "").replace(/^https?:\/\//, "").substring(0, 50);
       return '<div class="flex items-center gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900/50">' +
         '<div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">' +
           '<i class="fa-solid fa-plug text-xs text-green-600 dark:text-green-400"></i>' +
         '</div>' +
         '<div class="flex-1 min-w-0">' +
-          '<div class="text-sm font-medium text-gray-800 dark:text-gray-100">' + _escapeHtml(engine.name || engineId) + '</div>' +
+          '<div class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate" title="' + _escapeHtml(engine.name || engineId) + '">' + _escapeHtml(engine.name || engineId) + '</div>' +
           '<div class="text-xs text-gray-400 dark:text-gray-500 truncate">' + _escapeHtml(urlShort) + (engine.model ? ' · ' + _escapeHtml(engine.model) : '') + '</div>' +
         '</div>' +
         '<button class="p-1.5 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors" data-ce-edit="' + _escapeHtml(engineId) + '" title="编辑">' +
@@ -79,7 +104,7 @@ var CustomEngineUI = (function () {
       EventManager.add(btn, "click", function () {
         var id = btn.getAttribute("data-ce-edit");
         var engine = engines.find(function (e) {
-          return (e.id.startsWith("custom-") ? e.id : "custom-" + e.id) === id;
+          return _normalizeCustomEngineId(e.id) === id;
         });
         if (engine) _showForm(engine);
       });
@@ -96,7 +121,7 @@ var CustomEngineUI = (function () {
   // ==================== 表单 ====================
 
   function _showForm(engine) {
-    _editingId = engine ? (engine.id.startsWith("custom-") ? engine.id : "custom-" + engine.id) : null;
+    _editingId = engine ? _normalizeCustomEngineId(engine.id) : null;
     var formEl = document.getElementById("ceFormSection");
     var titleEl = document.getElementById("ceFormTitle");
     if (!formEl) return;
@@ -108,16 +133,21 @@ var CustomEngineUI = (function () {
     var fieldModel = document.getElementById("ceFieldModel");
     var fieldMaxTokens = document.getElementById("ceFieldMaxTokens");
     var fieldRequiresKey = document.getElementById("ceFieldRequiresKey");
+    var fieldSupportsJsonMode = document.getElementById("ceFieldSupportsJsonMode");
+    var fieldApiKey = document.getElementById("ceFieldApiKey");
 
     if (engine) {
       if (titleEl) titleEl.textContent = "编辑引擎";
-      var rawId = engine.id.replace(/^custom-/, "");
+      var rawId = _normalizeCustomEngineId(engine.id).replace(/^custom-/, "");
       if (fieldId) { fieldId.value = rawId; fieldId.disabled = true; }
       if (fieldName) fieldName.value = engine.name || "";
       if (fieldUrl) fieldUrl.value = engine.apiUrl || "";
       if (fieldModel) fieldModel.value = engine.model || "";
       if (fieldMaxTokens) fieldMaxTokens.value = engine.maxTokens || 4096;
       if (fieldRequiresKey) fieldRequiresKey.checked = !!engine.requiresApiKey;
+      if (fieldApiKey) fieldApiKey.value = "";
+      // supportsJsonMode 未显式设置时默认 true，保持与旧配置起有一致
+      if (fieldSupportsJsonMode) fieldSupportsJsonMode.checked = engine.supportsJsonMode !== false;
     } else {
       if (titleEl) titleEl.textContent = "添加引擎";
       if (fieldId) { fieldId.value = ""; fieldId.disabled = false; }
@@ -126,8 +156,11 @@ var CustomEngineUI = (function () {
       if (fieldModel) fieldModel.value = "";
       if (fieldMaxTokens) fieldMaxTokens.value = 4096;
       if (fieldRequiresKey) fieldRequiresKey.checked = false;
+      if (fieldApiKey) fieldApiKey.value = "";
+      if (fieldSupportsJsonMode) fieldSupportsJsonMode.checked = true;
     }
 
+    _syncApiKeyField();
     formEl.classList.remove("hidden");
     if (fieldId && !fieldId.disabled) fieldId.focus();
   }
@@ -139,18 +172,42 @@ var CustomEngineUI = (function () {
 
     var fieldId = document.getElementById("ceFieldId");
     if (fieldId) fieldId.disabled = false;
+    if (fieldId) fieldId.value = "";
+    var fieldName = document.getElementById("ceFieldName");
+    if (fieldName) fieldName.value = "";
+    var fieldUrl = document.getElementById("ceFieldUrl");
+    if (fieldUrl) fieldUrl.value = "";
+    var fieldModel = document.getElementById("ceFieldModel");
+    if (fieldModel) fieldModel.value = "";
+    var fieldMaxTokens = document.getElementById("ceFieldMaxTokens");
+    if (fieldMaxTokens) fieldMaxTokens.value = 4096;
+    var fieldRequiresKey = document.getElementById("ceFieldRequiresKey");
+    if (fieldRequiresKey) fieldRequiresKey.checked = false;
+    var fieldApiKey = document.getElementById("ceFieldApiKey");
+    if (fieldApiKey) fieldApiKey.value = "";
+    var fieldSupportsJsonMode = document.getElementById("ceFieldSupportsJsonMode");
+    if (fieldSupportsJsonMode) fieldSupportsJsonMode.checked = true;
+    _syncApiKeyField();
   }
 
-  function _saveForm() {
+  async function _saveForm() {
     var fieldId = document.getElementById("ceFieldId");
     var fieldName = document.getElementById("ceFieldName");
     var fieldUrl = document.getElementById("ceFieldUrl");
     var fieldModel = document.getElementById("ceFieldModel");
     var fieldMaxTokens = document.getElementById("ceFieldMaxTokens");
     var fieldRequiresKey = document.getElementById("ceFieldRequiresKey");
+    var fieldSupportsJsonMode = document.getElementById("ceFieldSupportsJsonMode");
+    var fieldApiKey = document.getElementById("ceFieldApiKey");
 
-    var rawId = (fieldId && fieldId.value.trim()) || (_editingId ? _editingId.replace(/^custom-/, "") : "");
+    var rawId = ((fieldId && fieldId.value.trim()) || (_editingId ? _editingId.replace(/^custom-/, "") : "")).replace(/^custom-/i, "").toLowerCase();
     var apiUrl = fieldUrl && fieldUrl.value.trim();
+    var modelName = (fieldModel && fieldModel.value.trim()) || "";
+    var requiresApiKey = !!(fieldRequiresKey && fieldRequiresKey.checked);
+    var engineId = "custom-" + rawId;
+    var apiKeyField = "customApiKey_" + engineId;
+    var apiKey = (fieldApiKey && fieldApiKey.value.trim()) || "";
+    var existingSettings = typeof SettingsCache !== "undefined" ? SettingsCache.get() : {};
 
     if (!rawId) {
       _fieldError(fieldId, "引擎 ID 不能为空");
@@ -160,15 +217,41 @@ var CustomEngineUI = (function () {
       _fieldError(fieldUrl, "API 端点 URL 不能为空");
       return;
     }
+    // 模型必填：大多数 OpenAI 兼容端点在 model 为空时返回 400 “model is required”
+    if (!modelName) {
+      _fieldError(fieldModel, "模型名称不能为空（例如 llama3、qwen2.5）");
+      return;
+    }
+    if (requiresApiKey && !apiKey && !(existingSettings && existingSettings[apiKeyField])) {
+      _fieldError(fieldApiKey, "请填写自定义引擎 API Key，或取消勾选需要 API Key");
+      return;
+    }
 
     var config = {
       id: rawId,
       name: (fieldName && fieldName.value.trim()) || rawId,
       apiUrl: apiUrl,
-      model: (fieldModel && fieldModel.value.trim()) || "",
+      model: modelName,
       maxTokens: parseInt((fieldMaxTokens && fieldMaxTokens.value) || "4096", 10),
-      requiresApiKey: !!(fieldRequiresKey && fieldRequiresKey.checked),
+      requiresApiKey: requiresApiKey,
+      // 记录用户选择；默认 true 保持向后兼容
+      supportsJsonMode: fieldSupportsJsonMode ? !!fieldSupportsJsonMode.checked : true,
     };
+
+    var pendingSettings = null;
+    var originalSettings = null;
+    try {
+      originalSettings = typeof SettingsCache !== "undefined" ? Object.assign({}, SettingsCache.get() || {}) : null;
+      pendingSettings = await _prepareCustomApiKeySettings(engineId, apiKey, requiresApiKey);
+      if (pendingSettings) {
+        SettingsCache.save(pendingSettings);
+      }
+    } catch (e) {
+      if (typeof showNotification === "function") {
+        showNotification("error", "保存失败", "API Key 加密保存失败");
+      }
+      return;
+    }
 
     var ok = typeof CustomEngineManager !== "undefined"
       ? CustomEngineManager.add(config)
@@ -177,11 +260,14 @@ var CustomEngineUI = (function () {
     if (ok) {
       _hideForm();
       _loadList();
-      _syncEngineSelectDropdown();
+      _syncEngineSelectDropdown(engineId);
       if (typeof showNotification === "function") {
-        showNotification("success", "已保存", "自定义引擎 custom-" + rawId + " 已注册");
+        showNotification("success", "已保存", "自定义引擎 " + engineId + " 已注册");
       }
     } else {
+      if (pendingSettings && originalSettings) {
+        try { SettingsCache.save(originalSettings); } catch (e) {}
+      }
       if (typeof showNotification === "function") {
         showNotification("error", "保存失败", "请检查 ID 和 URL 是否填写正确");
       }
@@ -193,6 +279,7 @@ var CustomEngineUI = (function () {
     if (typeof CustomEngineManager !== "undefined") {
       CustomEngineManager.remove(engineId);
     }
+    _removeCustomApiKey(engineId);
     _loadList();
     _syncEngineSelectDropdown();
     if (typeof showNotification === "function") {
@@ -201,27 +288,78 @@ var CustomEngineUI = (function () {
   }
 
   // 同步侧边栏引擎下拉选项
-  function _syncEngineSelectDropdown() {
-    var select = document.getElementById("sidebarTranslationEngine");
-    if (!select || typeof CustomEngineManager === "undefined") return;
-    var engines = CustomEngineManager.getAll();
-
-    // 移除旧的自定义选项
-    var toRemove = [];
-    for (var i = 0; i < select.options.length; i++) {
-      if (select.options[i].value.startsWith("custom-")) {
-        toRemove.push(select.options[i]);
-      }
+  function _syncEngineSelectDropdown(preferredEngine) {
+    if (typeof window.refreshEngineModelSelectors === "function") {
+      window.refreshEngineModelSelectors(preferredEngine);
+      return;
     }
-    toRemove.forEach(function (opt) { select.removeChild(opt); });
-
-    // 添加新的自定义选项
-    engines.forEach(function (engine) {
-      var opt = document.createElement("option");
-      opt.value = engine.id.startsWith("custom-") ? engine.id : "custom-" + engine.id;
-      opt.textContent = engine.name || opt.value;
-      select.appendChild(opt);
+    if (typeof EngineRegistry === "undefined") return;
+    var target = preferredEngine && EngineRegistry.has(preferredEngine)
+      ? preferredEngine
+      : EngineRegistry.getDefaultEngineId();
+    ["translationEngine", "sidebarTranslationEngine", "defaultEngine"].forEach(function (id) {
+      var select = document.getElementById(id);
+      if (!select) return;
+      select.replaceChildren();
+      var engines = EngineRegistry.getByCategory("ai");
+      engines.forEach(function (engine) {
+        var opt = document.createElement("option");
+        opt.value = engine.id;
+        opt.textContent = engine.name;
+        select.appendChild(opt);
+      });
+      if (Array.from(select.options).some(function (opt) { return opt.value === target; })) {
+        select.value = target;
+      }
+      select.dispatchEvent(new Event("change"));
     });
+  }
+
+  function _normalizeCustomEngineId(id) {
+    var s = String(id || "").trim().toLowerCase();
+    return s.indexOf("custom-") === 0 ? s : "custom-" + s;
+  }
+
+  function _syncApiKeyField() {
+    var requiresKey = document.getElementById("ceFieldRequiresKey");
+    var row = document.getElementById("ceApiKeyFieldRow");
+    var field = document.getElementById("ceFieldApiKey");
+    var enabled = !!(requiresKey && requiresKey.checked);
+    if (row) row.classList.toggle("hidden", !enabled);
+    if (field) {
+      field.disabled = !enabled;
+      if (!enabled) field.value = "";
+    }
+  }
+
+  async function _prepareCustomApiKeySettings(engineId, apiKey, requiresApiKey) {
+    if (typeof SettingsCache === "undefined") {
+      if (requiresApiKey && apiKey) throw new Error("SettingsCache unavailable");
+      return null;
+    }
+    var settings = Object.assign({}, SettingsCache.get() || {});
+    var apiKeyField = "customApiKey_" + _normalizeCustomEngineId(engineId);
+    if (!requiresApiKey) {
+      delete settings[apiKeyField];
+      return settings;
+    }
+    if (apiKey) {
+      settings[apiKeyField] = typeof securityUtils !== "undefined" && typeof securityUtils.encrypt === "function"
+        ? await securityUtils.encrypt(apiKey)
+        : apiKey;
+      return settings;
+    }
+    return null;
+  }
+
+  function _removeCustomApiKey(engineId) {
+    if (typeof SettingsCache === "undefined") return;
+    var settings = Object.assign({}, SettingsCache.get() || {});
+    var apiKeyField = "customApiKey_" + _normalizeCustomEngineId(engineId);
+    if (settings[apiKeyField]) {
+      delete settings[apiKeyField];
+      SettingsCache.save(settings);
+    }
   }
 
   // ==================== 工具 ====================

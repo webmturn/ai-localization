@@ -22,9 +22,18 @@ TranslationService.prototype.getSettings = async function () {
     // 加密后的 Base64 字符串通常远长于原始 API Key，50 为安全阈值
     const _encryptedMinLen = 50;
     const _apiKeyFields = ['openaiApiKey', 'googleApiKey', 'deepseekApiKey', 'geminiApiKey', 'claudeApiKey'];
+    Object.keys(copy).forEach(function (field) {
+      if (field.indexOf('customApiKey_') === 0 && _apiKeyFields.indexOf(field) === -1) {
+        _apiKeyFields.push(field);
+      }
+    });
     for (const field of _apiKeyFields) {
       if (copy[field] && copy[field].length > _encryptedMinLen) {
-        copy[field] = await securityUtils.decrypt(copy[field]);
+        try {
+          copy[field] = await securityUtils.decrypt(copy[field]);
+        } catch (e) {
+          (loggers.translation || console).debug("解密 API Key 失败:", field, e);
+        }
       }
     }
 

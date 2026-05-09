@@ -28,6 +28,11 @@
     }
   }
 
+  function normalizeCustomEngineId(id) {
+    var s = String(id || "").trim().toLowerCase();
+    return s.indexOf("custom-") === 0 ? s : "custom-" + s;
+  }
+
   /**
    * 注册一个自定义引擎到 EngineRegistry
    * @param {Object} config - 引擎配置
@@ -46,18 +51,34 @@
       return false;
     }
 
-    // 确保 ID 以 custom- 开头，避免与内置引擎冲突
-    var engineId = config.id.startsWith("custom-") ? config.id : "custom-" + config.id;
+    var engineId = normalizeCustomEngineId(config.id);
+
+    var maxTokens = Number(config.maxTokens) || 4096;
+    var extraBodyParams = Object.assign(
+      {},
+      config.extraBodyParams || {},
+      { max_tokens: maxTokens }
+    );
 
     var engineConfig = {
       id: engineId,
       name: config.name || engineId,
       category: "ai",
       apiUrl: config.apiUrl,
+      apiKeyField: "customApiKey_" + engineId,
+      defaultModel: config.model || "",
       model: config.model || "",
       rateLimitPerSecond: config.rateLimitPerSecond || 2,
-      maxTokens: config.maxTokens || 4096,
+      maxTokens: maxTokens,
       apiKeyValidationType: config.requiresApiKey ? "generic" : "none",
+      authHeaderBuilder: function (key) {
+        return key ? { "Authorization": "Bearer " + key } : {};
+      },
+      supportsJsonMode: config.supportsJsonMode !== false,
+      supportsBatch: config.supportsBatch !== false,
+      extraBodyParams: extraBodyParams,
+      extraBatchBodyParams: extraBodyParams,
+      availableModels: config.model ? [config.model] : [],
       isCustom: true,
       customHeaders: config.headers || {},
     };
@@ -77,12 +98,13 @@
    * 注销自定义引擎
    */
   function unregisterCustomEngine(engineId) {
-    if (typeof EngineRegistry !== "undefined" && EngineRegistry.unregister) {
-      EngineRegistry.unregister(engineId);
+    engineId = normalizeCustomEngineId(engineId);
+    if (typeof EngineRegistry !== "undefined" && typeof EngineRegistry.removeCustom === "function") {
+      EngineRegistry.removeCustom(engineId);
     }
     // 从存储中移除
     var engines = loadCustomEngines();
-    engines = engines.filter(function (e) { return e.id !== engineId; });
+    engines = engines.filter(function (e) { return normalizeCustomEngineId(e.id) !== engineId; });
     saveCustomEngines(engines);
   }
 
@@ -92,10 +114,10 @@
   function addCustomEngine(config) {
     if (!registerCustomEngine(config)) return false;
 
-    var engineId = config.id.startsWith("custom-") ? config.id : "custom-" + config.id;
+    var engineId = normalizeCustomEngineId(config.id);
     var engines = loadCustomEngines();
     // 更新或新增
-    var idx = engines.findIndex(function (e) { return e.id === engineId; });
+    var idx = engines.findIndex(function (e) { return normalizeCustomEngineId(e.id) === engineId; });
     var stored = Object.assign({}, config, { id: engineId });
     if (idx >= 0) {
       engines[idx] = stored;

@@ -236,6 +236,32 @@ function __getAiConversationSnapshot() {
   }
 }
 
+function __updateAiBatchTokenEstimate() {
+  const estimateEl = DOMCache.get("aiBatchTokenEstimate");
+  if (!estimateEl) return;
+
+  const charsInput = DOMCache.get("aiBatchMaxChars");
+  const itemsInput = DOMCache.get("aiBatchMaxItems");
+  const rawChars = parseInt(charsInput?.value);
+  const rawItems = parseInt(itemsInput?.value);
+  const chars = Number.isFinite(rawChars) ? Math.max(1000, Math.min(20000, rawChars)) : 6000;
+  const items = Number.isFinite(rawItems) ? Math.max(5, Math.min(100, rawItems)) : 40;
+  const approxTokens = Math.ceil(chars / 3.5);
+  const avgChars = Math.max(1, Math.floor(chars / items));
+
+  estimateEl.textContent =
+    `单批约 ${chars.toLocaleString()} 字符 ≈ ${approxTokens.toLocaleString()} tokens；` +
+    `每项平均约 ${avgChars} 字符，Prompt/上下文会额外占用 token`;
+
+  if (chars >= 12000 || approxTokens >= 3500) {
+    estimateEl.classList.remove("text-gray-500", "dark:text-gray-400");
+    estimateEl.classList.add("text-amber-600", "dark:text-amber-400");
+  } else {
+    estimateEl.classList.remove("text-amber-600", "dark:text-amber-400");
+    estimateEl.classList.add("text-gray-500", "dark:text-gray-400");
+  }
+}
+
 function registerEventListenersSettingsAiEngine(ctx) {
   const selectPrimingBtn = DOMCache.get(
     "selectAiPrimingSamples",
@@ -485,6 +511,20 @@ function registerEventListenersSettingsAiEngine(ctx) {
     EventManager.add(ctxSlider, "input", () => {
       ctxLabel.textContent = `前后 ${ctxSlider.value} 条`;
     }, { tag: "settings", scope: "settingsModal", label: "aiContextWindowSize:input" });
+  }
+
+  const batchMaxItemsInput = DOMCache.get("aiBatchMaxItems");
+  const batchMaxCharsInput = DOMCache.get("aiBatchMaxChars");
+  __updateAiBatchTokenEstimate();
+  if (batchMaxItemsInput) {
+    EventManager.add(batchMaxItemsInput, "input", __updateAiBatchTokenEstimate, {
+      tag: "settings", scope: "settingsModal", label: "aiBatchMaxItems:input"
+    });
+  }
+  if (batchMaxCharsInput) {
+    EventManager.add(batchMaxCharsInput, "input", __updateAiBatchTokenEstimate, {
+      tag: "settings", scope: "settingsModal", label: "aiBatchMaxChars:input"
+    });
   }
 
   __updatePrimingSelectedCountLabel();

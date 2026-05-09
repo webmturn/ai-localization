@@ -19,42 +19,75 @@ function initEngineModelSync() {
   const temperatureDiv = DOMCache.get("temperatureDiv");
   const temperatureInput = DOMCache.get("temperature");
   const temperatureValue = DOMCache.get("temperatureValue");
+  const modelCapabilityHint = DOMCache.get("modelCapabilityHint");
 
   const settingsEngineSelect = DOMCache.get("defaultEngine");
   const settingsModelSelect = DOMCache.get("translationModel");
   const settingsModelContainer = settingsModelSelect
     ? settingsModelSelect.closest("div")
     : null;
+  const concurrentLimitSelect = DOMCache.get("concurrentLimit");
+  const concurrentLimitHint = DOMCache.get("concurrentLimitHint");
+  const translationModelHint = DOMCache.get("translationModelHint");
 
   if (!engineSelect || !sidebarEngineSelect) return;
 
-  // 引擎模型定义（工具栏和设置页共享，避免重复）
-  var __engineModelDefs = {
-    deepseek: [
-      { value: "deepseek-chat", label: "DeepSeek Chat (推荐)" },
-      { value: "deepseek-reasoner", label: "DeepSeek Reasoner (推理)" },
-    ],
-    openai: [
-      { value: "gpt-4o-mini", label: "GPT-4o mini (快速/经济)" },
-      { value: "gpt-4o", label: "GPT-4o (推荐)" },
-      { value: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-      { value: "gpt-4.1", label: "GPT-4.1" },
-      { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-      { value: "gpt-4", label: "GPT-4 (经典)" },
-      { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-    ],
-    gemini: [
-      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (推荐)" },
-      { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
-      { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-      { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-    ],
-    claude: [
-      { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4 (推荐)" },
-      { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-      { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
-    ],
-  };
+  /**
+   * 从 EngineRegistry 运行时解析引擎的可用模型列表（含友好 label）
+   * - 优先使用 config.availableModels + config.modelLabels（内置引擎）
+   * - 自定义引擎只有 defaultModel：返回 [{value: defaultModel, label: defaultModel}]
+   * - 无任何信息时返回空数组（UI 隐藏模型下拉）
+   */
+  function _resolveEngineModels(engineId) {
+    var cfg = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
+    if (!cfg) return [];
+
+    var available = Array.isArray(cfg.availableModels) ? cfg.availableModels : null;
+    var labels = (cfg.modelLabels && typeof cfg.modelLabels === "object") ? cfg.modelLabels : {};
+
+    if (available && available.length > 0) {
+      return available.map(function (id) {
+        return { value: id, label: labels[id] || id };
+      });
+    }
+    if (cfg.defaultModel) {
+      return [{ value: cfg.defaultModel, label: labels[cfg.defaultModel] || cfg.defaultModel }];
+    }
+    return [];
+  }
+
+  function _buildModelCapabilityHint(engineId, model) {
+    var cfg = EngineRegistry.get(engineId);
+    if (!cfg || !model) return "选择使用的AI模型（根据当前引擎自动切换）";
+    var capability = typeof EngineRegistry.getModelCapability === "function"
+      ? EngineRegistry.getModelCapability(engineId, model)
+      : {
+        supportsJsonMode: cfg.supportsJsonMode !== false,
+        supportsBatch: cfg.supportsBatch !== false,
+        hints: [],
+      };
+    var parts = Array.isArray(capability.hints) ? capability.hints.slice() : [];
+    if (capability.supportsJsonMode === false && parts.join("；").indexOf("JSON") === -1) {
+      parts.push("该模型不支持强制 JSON mode，系统会自动关闭 response_format");
+    }
+    if (capability.supportsBatch === false) {
+      parts.push("该引擎不支持批量 JSON 路径，将使用逐条翻译");
+    }
+    return parts.length > 0
+      ? parts.join("；")
+      : "选择使用的AI模型（根据当前引擎自动切换）";
+  }
+
+  function _setCapabilityHint(el, engineId, model) {
+    if (!el) return;
+    var text = _buildModelCapabilityHint(engineId, model);
+    el.textContent = text;
+    var isWarn = text.indexOf("不支持") !== -1 || text.indexOf("推理模型") !== -1;
+    el.classList.toggle("text-amber-600", isWarn);
+    el.classList.toggle("dark:text-amber-400", isWarn);
+    el.classList.toggle("text-gray-500", !isWarn);
+    el.classList.toggle("dark:text-gray-400", !isWarn);
+  }
 
   const toolbarCategoryFilter = DOMCache.get("toolbarEngineCategoryFilter");
   const sidebarCategoryFilter = DOMCache.get("sidebarEngineCategoryFilter");
@@ -104,14 +137,8 @@ function initEngineModelSync() {
       if (modelSelect) {
         modelSelect.replaceChildren();
 
-        var optionDefs = __engineModelDefs[selectedEngine];
-        // 自定义引擎：显示一个可编辑的默认模型
-        if (!optionDefs && engineConfig) {
-          optionDefs = engineConfig.defaultModel
-            ? [{ value: engineConfig.defaultModel, label: engineConfig.defaultModel }]
-            : [];
-        }
-        if (!optionDefs) optionDefs = [];
+        // 运行时从 EngineRegistry 读取 availableModels + modelLabels（内置引擎、自定义引擎走同一路径）
+        var optionDefs = _resolveEngineModels(selectedEngine);
 
         optionDefs.forEach(({ value, label }) => {
           const opt = document.createElement("option");
@@ -137,6 +164,7 @@ function initEngineModelSync() {
           s.model = modelSelect.value;
           s.translationModel = modelSelect.value;
         });
+        _setCapabilityHint(modelCapabilityHint, selectedEngine, modelSelect.value);
       }
     } else {
       modelDiv?.classList.add("hidden");
@@ -157,6 +185,7 @@ function initEngineModelSync() {
 
     var settingsConfig = EngineRegistry.get(engine);
     var settingsIsAI = settingsConfig && settingsConfig.category === "ai";
+    updateConcurrentLimitHint(engine);
 
     if (!settingsIsAI) {
       if (settingsModelContainer)
@@ -168,11 +197,7 @@ function initEngineModelSync() {
       settingsModelContainer.classList.remove("hidden");
 
     // 动态重建模型下拉框：只显示当前引擎的模型（无 optgroup 标题）
-    var models = __engineModelDefs[engine];
-    if (!models && settingsConfig && settingsConfig.defaultModel) {
-      models = [{ value: settingsConfig.defaultModel, label: settingsConfig.defaultModel }];
-    }
-    if (!models) models = [];
+    var models = _resolveEngineModels(engine);
 
     var prevModel = settingsModelSelect.value;
     settingsModelSelect.replaceChildren();
@@ -192,7 +217,66 @@ function initEngineModelSync() {
     } else if (settingsModelSelect.options.length > 0) {
       settingsModelSelect.value = settingsModelSelect.options[0].value;
     }
+    _setCapabilityHint(translationModelHint, engine, settingsModelSelect.value);
   }
+
+  function updateConcurrentLimitHint(selectedEngine) {
+    if (!concurrentLimitHint) return;
+    var engine = String(selectedEngine || settingsEngineSelect?.value || "").toLowerCase();
+    var cfg = EngineRegistry.get(engine);
+    var userLimit = parseInt(concurrentLimitSelect?.value, 10);
+    if (!Number.isFinite(userLimit)) userLimit = 5;
+    var rps = Number(cfg?.rateLimitPerSecond);
+    if (!cfg || !Number.isFinite(rps)) {
+      concurrentLimitHint.textContent = "同时进行的翻译请求数，过高可能触发限流";
+      concurrentLimitHint.classList.remove("text-amber-600", "dark:text-amber-400");
+      concurrentLimitHint.classList.add("text-gray-500", "dark:text-gray-400");
+      return;
+    }
+
+    var maxByEngine = rps < 1 ? 1 : Math.ceil(rps);
+    if (userLimit > maxByEngine) {
+      concurrentLimitHint.textContent =
+        cfg.name + " 速率较低，实际并发将自动限制为 " + maxByEngine + "，避免触发限流";
+      concurrentLimitHint.classList.remove("text-gray-500", "dark:text-gray-400");
+      concurrentLimitHint.classList.add("text-amber-600", "dark:text-amber-400");
+    } else {
+      concurrentLimitHint.textContent = "同时进行的翻译请求数，过高可能触发限流";
+      concurrentLimitHint.classList.remove("text-amber-600", "dark:text-amber-400");
+      concurrentLimitHint.classList.add("text-gray-500", "dark:text-gray-400");
+    }
+  }
+
+  window.refreshEngineModelSelectors = function (preferredEngine) {
+    var targetEngine = preferredEngine && EngineRegistry.has(preferredEngine)
+      ? preferredEngine
+      : (EngineRegistry.has(engineSelect.value) ? engineSelect.value : EngineRegistry.getDefaultEngineId());
+    var targetConfig = EngineRegistry.get(targetEngine);
+    var category = (targetConfig && targetConfig.category) || "ai";
+    syncToolbarCategory(category, targetEngine);
+    var settingsCategoryFilter = DOMCache.get("engineCategoryFilter");
+    if (settingsCategoryFilter) settingsCategoryFilter.value = category;
+    var aiSection = DOMCache.get("aiEngineSettingsSection");
+    var traditionalSection = DOMCache.get("traditionalEngineSettingsSection");
+    if (aiSection) aiSection.style.display = category === "ai" ? "" : "none";
+    if (traditionalSection) traditionalSection.style.display = category === "traditional" ? "" : "none";
+    if (settingsEngineSelect) {
+      settingsEngineSelect.replaceChildren();
+      var engines = EngineRegistry.getByCategory(category);
+      for (var i = 0; i < engines.length; i++) {
+        var opt = document.createElement("option");
+        opt.value = engines[i].id;
+        opt.textContent = engines[i].name;
+        settingsEngineSelect.appendChild(opt);
+      }
+      if (Array.from(settingsEngineSelect.options).some(function (o) { return o.value === targetEngine; })) {
+        settingsEngineSelect.value = targetEngine;
+      } else if (settingsEngineSelect.options.length > 0) {
+        settingsEngineSelect.value = settingsEngineSelect.options[0].value;
+      }
+      updateSettingsEngineUI(settingsEngineSelect.value);
+    }
+  };
 
   // 同步两个选择器
   function syncEngineSelects(source, target, value) {
@@ -286,6 +370,21 @@ function initEngineModelSync() {
     );
   }
 
+  if (concurrentLimitSelect) {
+    EventManager.add(
+      concurrentLimitSelect,
+      "change",
+      function () {
+        updateConcurrentLimitHint(settingsEngineSelect?.value);
+      },
+      {
+        tag: "engine",
+        scope: "engineModel",
+        label: "concurrentLimit:change",
+      },
+    );
+  }
+
   // 模型选择器变更事件
   const modelSelect = DOMCache.get("modelSelect");
   if (modelSelect) {
@@ -297,8 +396,28 @@ function initEngineModelSync() {
           s.model = modelSelect.value;
           s.translationModel = modelSelect.value;
         });
+        _setCapabilityHint(modelCapabilityHint, engineSelect.value, modelSelect.value);
       },
       { tag: "engine", scope: "engineModel", label: "modelSelect:change" },
+    );
+  }
+
+  if (settingsModelSelect) {
+    EventManager.add(
+      settingsModelSelect,
+      "change",
+      function () {
+        SettingsCache.update(function (s) {
+          s.model = settingsModelSelect.value;
+          s.translationModel = settingsModelSelect.value;
+        });
+        _setCapabilityHint(
+          translationModelHint,
+          settingsEngineSelect?.value,
+          settingsModelSelect.value,
+        );
+      },
+      { tag: "engine", scope: "engineModel", label: "translationModel:change" },
     );
   }
 

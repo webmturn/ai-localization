@@ -204,13 +204,13 @@
                     </div>
                     
                     <!-- 翻译引擎选择（仅桌面端） -->
-                    <div class="toolbar-engine-select toolbar-control hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
+                    <div class="toolbar-engine-select toolbar-control hidden sm:flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 min-w-0">
                         <i class="fa-solid fa-gear text-gray-500 dark:text-gray-400 text-sm flex-shrink-0"></i>
-                        <select id="toolbarEngineCategoryFilter" title="引擎类别" aria-label="引擎类别" class="text-sm bg-transparent border-none focus:outline-none cursor-pointer text-gray-600 dark:text-gray-300">
+                        <select id="toolbarEngineCategoryFilter" title="引擎类别" aria-label="引擎类别" class="text-sm bg-transparent border-none focus:outline-none cursor-pointer text-gray-600 dark:text-gray-300 flex-shrink-0">
                             <option value="ai">AI</option>
                             <option value="traditional">传统</option>
                         </select>
-                        <select id="translationEngine" name="translation_engine" title="选择翻译引擎" aria-label="翻译引擎选择">
+                        <select id="translationEngine" name="translation_engine" title="选择翻译引擎" aria-label="翻译引擎选择" class="min-w-0">
                             <option value="deepseek">DeepSeek</option>
                             <option value="openai">OpenAI</option>
                             <option value="gemini">Gemini</option>
@@ -392,6 +392,7 @@
                             <select id="modelSelect" name="model" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="选择AI模型" aria-label="AI模型选择">
                                 <!-- 模型选项将根据引擎动态生成 -->
                             </select>
+                            <p id="modelCapabilityHint" class="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
                         </div>
                         <div id="temperatureDiv" class="hidden">
                             <label for="temperature" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">温度 <span id="temperatureValue" class="text-primary">0.3</span></label>
@@ -1314,35 +1315,18 @@
                                     </select>
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">选择默认使用的翻译引擎</p>
                                 </div>
+                                <div class="flex items-center gap-3">
+                                    <button type="button" id="testEngineConnection" class="inline-flex items-center px-3 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded-md text-sm font-medium transition-colors">
+                                        <i class="fa-solid fa-plug mr-2"></i>测试连接
+                                    </button>
+                                    <span id="testEngineConnectionStatus" class="text-xs text-gray-500 dark:text-gray-400"></span>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">翻译模型</label>
                                     <select id="translationModel" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="翻译模型" aria-label="翻译模型">
-                                        <optgroup label="DeepSeek">
-                                            <option value="deepseek-chat" selected>DeepSeek Chat</option>
-                                            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-                                        </optgroup>
-                                        <optgroup label="OpenAI">
-                                            <option value="gpt-4o-mini">GPT-4o mini</option>
-                                            <option value="gpt-4o">GPT-4o</option>
-                                            <option value="gpt-4.1-mini">GPT-4.1 mini</option>
-                                            <option value="gpt-4.1">GPT-4.1</option>
-                                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                                            <option value="gpt-4">GPT-4</option>
-                                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                        </optgroup>
-                                        <optgroup label="Gemini">
-                                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                                        </optgroup>
-                                        <optgroup label="Claude">
-                                            <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                                            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                                            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                                        </optgroup>
+                                        <!-- 选项由 engine-model-sync.js 运行时根据 EngineRegistry.availableModels + modelLabels 动态生成 -->
                                     </select>
-                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">选择使用的AI模型</p>
+                                    <p id="translationModelHint" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">选择使用的AI模型（根据当前默认引擎自动切换）</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API请求超时（秒）</label>
@@ -1357,7 +1341,7 @@
                                         <option value="5" selected>5</option>
                                         <option value="10">10</option>
                                     </select>
-                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">同时进行的翻译请求数，过高可能触发限流</p>
+                                    <p id="concurrentLimitHint" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">同时进行的翻译请求数，过高可能触发限流</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">失败重试次数</label>
@@ -1498,7 +1482,7 @@
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">每批最多字符（约）</label>
                                                 <input type="number" id="aiBatchMaxChars" value="6000" min="1000" max="20000" step="500" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="每批约最大字符" aria-label="每批最多字符">
-                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">单批内容约最大字符，先到先切（1000–20000，默认 6000）</p>
+                                                <p id="aiBatchTokenEstimate" class="mt-1 text-xs text-gray-500 dark:text-gray-400">单批内容约最大字符，先到先切（1000–20000，默认 6000）</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2418,7 +2402,7 @@
 
     <!-- 自定义引擎配置模态框 -->
     <div id="customEngineModal" role="dialog" aria-modal="true" aria-labelledby="customEngineModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-2xl p-4 sm:p-6 fade-in max-h-[90vh] flex flex-col">
+        <div class="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-2xl p-4 sm:p-6 fade-in max-h-[90vh] flex flex-col min-h-0">
             <div class="flex items-center justify-between mb-4 flex-shrink-0">
                 <h3 id="customEngineModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">
                     <i class="fa-solid fa-plug mr-2 text-green-500"></i>自定义引擎配置
@@ -2442,10 +2426,10 @@
                 </div>
             </div>
             <!-- 添加/编辑表单 -->
-            <div id="ceFormSection" class="hidden border-t border-gray-200 dark:border-gray-700 pt-4 flex-1 overflow-y-auto">
+            <div id="ceFormSection" class="hidden border-t border-gray-200 dark:border-gray-700 pt-4 flex-1 min-h-0 overflow-y-auto">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3" id="ceFormTitle">添加引擎</h4>
                 <div class="space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">引擎 ID <span class="text-red-500">*</span></label>
                             <input type="text" id="ceFieldId" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="ollama-llama3" aria-label="引擎ID">
@@ -2460,7 +2444,7 @@
                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">API 端点 URL <span class="text-red-500">*</span></label>
                         <input type="text" id="ceFieldUrl" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="http://localhost:11434/v1/chat/completions" aria-label="API端点URL">
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">模型名称</label>
                             <input type="text" id="ceFieldModel" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="llama3" aria-label="模型名称">
@@ -2473,6 +2457,18 @@
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="ceFieldRequiresKey" class="rounded" aria-label="是否需要API Key">
                         <label for="ceFieldRequiresKey" class="text-xs text-gray-600 dark:text-gray-400">需要 API Key（Bearer Token）</label>
+                    </div>
+                    <div id="ceApiKeyFieldRow" class="hidden">
+                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">API Key</label>
+                        <input type="password" id="ceFieldApiKey" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="请输入自定义引擎 API Key" aria-label="自定义引擎API Key">
+                        <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">仅在勾选需要 API Key 时使用；编辑时留空表示保持已有密钥</p>
+                    </div>
+                    <div class="flex items-start gap-2 min-w-0">
+                        <input type="checkbox" id="ceFieldSupportsJsonMode" class="rounded mt-0.5" checked aria-label="支持JSON输出模式">
+                        <div class="min-w-0">
+                            <label for="ceFieldSupportsJsonMode" class="text-xs text-gray-600 dark:text-gray-400">支持 JSON 输出模式（response_format）</label>
+                            <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 break-words">不确定请取消勾选；本地 Ollama / vLLM / LiteLLM 等部分版本不支持 <code class="text-xs break-all">response_format: json_object</code></p>
+                        </div>
                     </div>
                 </div>
                 <div class="mt-4 flex justify-end gap-2">

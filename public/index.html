@@ -18,7 +18,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-50 min-h-screen flex flex-col">
     <!-- 视口容器：固定高度 100vh，防止内部内容撑开整页和左右侧栏 -->
-    <div id="appViewport" class="h-screen flex flex-col overflow-hidden">
+    <div id="appViewport" class="flex flex-col overflow-hidden">
     <!-- 顶部导航栏 -->
     <header class="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm dark:shadow-dark-elevated border-b border-gray-200 dark:border-gray-700">
         <div class="w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
@@ -115,7 +115,7 @@
         <div id="sidebarBackdrop" class="md:hidden fixed inset-0 bg-black/40 z-[41] hidden transition-opacity duration-300 opacity-0" aria-hidden="true"></div>
 
         <!-- 左侧文件浏览器 -->
-        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-left" style="--sidebar-width: 320px;">
+        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-left" style="--sidebar-width: 320px;">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-left hidden md:block" data-sidebar="left" title="拖拽调整宽度"></div>
             <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -341,7 +341,7 @@
         </section>
 
         <!-- 右侧工具栏和设置面板 -->
-        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right" style="--sidebar-width: 384px;">
+        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right" style="--sidebar-width: 384px;">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-right hidden md:block" data-sidebar="right" title="拖拽调整宽度"></div>
             <!-- 移动端关闭按钮 -->
@@ -358,9 +358,9 @@
                     <i class="fa-solid fa-book tab-icon"></i>
                     <span class="hidden sm:inline">术语库</span>
                 </button>
-                <button class="sidebar-tab" data-tab="quality" title="质量检查">
+                <button class="sidebar-tab" data-tab="quality" title="质量报告">
                     <i class="fa-solid fa-circle-check tab-icon"></i>
-                    <span class="hidden sm:inline">质量检查</span>
+                    <span class="hidden sm:inline">质量报告</span>
                     <span class="tab-badge hidden" id="qualityIssueBadge">0</span>
                 </button>
             </div>
@@ -407,6 +407,7 @@
             </div>
 
             <div class="px-4 pb-3 space-y-2">
+                <button id="openFullSettingsBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="打开完整设置"><i class="fa-solid fa-sliders mr-2 text-blue-500"></i>完整设置<span class="ml-auto text-xs text-gray-400 dark:text-gray-500">API/外观/高级</span></button>
                 <button id="openTMManagerBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="翻译记忆库管理"><i class="fa-solid fa-brain mr-2 text-purple-500"></i>翻译记忆库<span id="tmCountBadge" class="ml-auto text-xs text-gray-400 dark:text-gray-500"></span></button>
                 <button id="openCustomEngineBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="自定义引擎配置"><i class="fa-solid fa-plug mr-2 text-green-500"></i>自定义引擎<span id="customEngineCountBadge" class="ml-auto text-xs text-gray-400 dark:text-gray-500"></span></button>
             </div>
@@ -810,11 +811,11 @@
                             <div id="importDropArea" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900/40 data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
                                 <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 dark:text-gray-500 mb-3"></i>
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">拖拽文件到此处或点击选择文件</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">支持 CSV、JSON、XLSX 格式</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">支持 CSV、JSON 格式</p>
                                 <button id="browseImportFileBtn" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 text-sm">
                                     选择文件
                                 </button>
-                                <input type="file" id="importFileInput" class="hidden" accept=".csv,.json,.xlsx,.xls" title="选择要导入的术语文件" aria-label="选择要导入的术语文件">
+                                <input type="file" id="importFileInput" class="hidden" accept=".csv,.json" title="选择要导入的术语文件" aria-label="选择要导入的术语文件">
                             </div>
                             
                             <div class="mt-4 space-y-3">
@@ -824,7 +825,6 @@
                                         <option value="auto">自动检测</option>
                                         <option value="csv">CSV</option>
                                         <option value="json">JSON</option>
-                                        <option value="excel">Excel</option>
                                     </select>
                                 </div>
                                 
@@ -1187,7 +1187,7 @@
             <!-- 主体内容：移动端上下分栏 / 桌面端左右分栏 -->
             <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
                 <!-- 导航栏：移动端横向滚动 / 桌面端竖向列表 -->
-                <div class="sm:w-52 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
+                <div class="settings-nav-scroll sm:w-52 bg-gray-50 dark:bg-gray-900 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 overflow-x-auto sm:overflow-x-visible sm:overflow-y-auto flex-shrink-0">
                     <nav class="flex sm:flex-col sm:p-2 sm:space-y-1 p-1 gap-1 sm:gap-0">
                         <button class="settings-tab-btn flex-shrink-0 sm:w-full text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 hover:[&:not(.active)]:bg-gray-200 dark:hover:[&:not(.active)]:bg-gray-700 [&.active]:bg-white [&.active]:text-blue-600 [&.active]:shadow-sm dark:[&.active]:bg-gray-700 dark:[&.active]:text-blue-400 dark:[&.active]:shadow-dark-elevated active whitespace-nowrap" data-tab="appearance">
                             <i class="fa-solid fa-paintbrush sm:mr-2 w-4 text-center"></i><span class="hidden sm:inline">外观设置</span><span class="sm:hidden ml-1">外观</span>
@@ -2419,7 +2419,7 @@
                         <i class="fa-solid fa-plus text-xs"></i>添加引擎
                     </button>
                 </div>
-                <div id="ceEngineList" class="space-y-2 max-h-48 overflow-y-auto">
+                <div id="ceEngineList" class="space-y-2 max-h-60 overflow-y-auto">
                     <div class="text-center py-4 text-gray-400 dark:text-gray-500 text-sm">
                         <i class="fa-solid fa-plug text-xl mb-1 block opacity-30"></i>暂无自定义引擎
                     </div>

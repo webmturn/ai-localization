@@ -443,7 +443,11 @@ function registerEventListenersSettingsAiEngine(ctx) {
           }
           __renderAiConversationMessages(messages);
           if (copyBtn) {
-            EventManager.add(copyBtn, "click", async () => {
+            if (copyBtn.__aiConversationCopyListenerId) {
+              EventManager.removeById(copyBtn.__aiConversationCopyListenerId);
+              copyBtn.__aiConversationCopyListenerId = null;
+            }
+            copyBtn.__aiConversationCopyListenerId = EventManager.add(copyBtn, "click", async () => {
               try {
                 const raw = snapshot[k] || [];
                 const payload = JSON.stringify(
@@ -473,7 +477,11 @@ function registerEventListenersSettingsAiEngine(ctx) {
         };
 
         if (keySelect) {
-          EventManager.add(keySelect, "change", renderSelected, {
+          if (keySelect.__aiConversationChangeListenerId) {
+            EventManager.removeById(keySelect.__aiConversationChangeListenerId);
+            keySelect.__aiConversationChangeListenerId = null;
+          }
+          keySelect.__aiConversationChangeListenerId = EventManager.add(keySelect, "change", renderSelected, {
             tag: "settings", scope: "settingsModal", label: "aiConversationKeySelect:change"
           });
         }

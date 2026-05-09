@@ -1,5 +1,16 @@
 async function loadSettings() {
   const settings = SettingsCache.get();
+  const setDecryptedApiKey = async function (field, elementId) {
+    if (!settings[field]) return;
+    const input = DOMCache.get(elementId);
+    if (!input) return;
+    try {
+      input.value = await securityUtils.decrypt(settings[field]);
+    } catch (e) {
+      input.value = "";
+      (loggers.app || console).warn("API 密钥解密失败:", field, e);
+    }
+  };
   if (settings && Object.keys(settings).length > 0) {
     try {
 
@@ -281,44 +292,11 @@ async function loadSettings() {
         if (auto) auto.checked = settings.autoTranslateOnImport;
       }
 
-      // 加载并解密 API 密钥
-      if (settings.deepseekApiKey) {
-        const deepseekKey = DOMCache.get("deepseekApiKey");
-        if (deepseekKey) {
-          const decrypted = await securityUtils.decrypt(
-            settings.deepseekApiKey
-          );
-          deepseekKey.value = decrypted;
-        }
-      }
-      if (settings.openaiApiKey) {
-        const openaiKey = DOMCache.get("openaiApiKey");
-        if (openaiKey) {
-          const decrypted = await securityUtils.decrypt(settings.openaiApiKey);
-          openaiKey.value = decrypted;
-        }
-      }
-      if (settings.googleApiKey) {
-        const googleKey = DOMCache.get("googleApiKey");
-        if (googleKey) {
-          const decrypted = await securityUtils.decrypt(settings.googleApiKey);
-          googleKey.value = decrypted;
-        }
-      }
-      if (settings.geminiApiKey) {
-        const geminiKey = DOMCache.get("geminiApiKey");
-        if (geminiKey) {
-          const decrypted = await securityUtils.decrypt(settings.geminiApiKey);
-          geminiKey.value = decrypted;
-        }
-      }
-      if (settings.claudeApiKey) {
-        const claudeKey = DOMCache.get("claudeApiKey");
-        if (claudeKey) {
-          const decrypted = await securityUtils.decrypt(settings.claudeApiKey);
-          claudeKey.value = decrypted;
-        }
-      }
+      await setDecryptedApiKey("deepseekApiKey", "deepseekApiKey");
+      await setDecryptedApiKey("openaiApiKey", "openaiApiKey");
+      await setDecryptedApiKey("googleApiKey", "googleApiKey");
+      await setDecryptedApiKey("geminiApiKey", "geminiApiKey");
+      await setDecryptedApiKey("claudeApiKey", "claudeApiKey");
 
       // 应用设置
       applySettings(settings);

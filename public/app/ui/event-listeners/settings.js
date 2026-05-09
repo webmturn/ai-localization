@@ -283,6 +283,10 @@ function registerEventListenersSettings(ctx) {
       saveSettingsBtn,
       "click",
       async () => {
+        if (saveSettingsBtn.disabled) return;
+        saveSettingsBtn.disabled = true;
+        saveSettingsBtn.classList.add("opacity-60", "cursor-not-allowed");
+        try {
         const rawAutosaveSeconds = parseInt(
           DOMCache.get("autosaveIntervalSeconds")?.value,
         );
@@ -475,6 +479,11 @@ function registerEventListenersSettings(ctx) {
         try {
           const existing = SettingsCache.get();
           if (existing) {
+            ["deepseekApiKey", "openaiApiKey", "googleApiKey", "geminiApiKey", "claudeApiKey"].forEach(function (key) {
+              if (!settings[key] && existing[key]) {
+                settings[key] = existing[key];
+              }
+            });
             if (existing?.preferredStorageBackend) {
               settings.preferredStorageBackend =
                 existing.preferredStorageBackend;
@@ -518,18 +527,39 @@ function registerEventListenersSettings(ctx) {
           (loggers.app || console).debug("settings model sync:", e);
         }
 
+        let promptTemplateError = null;
         try {
           await __saveProjectPromptTemplatesFromUI();
         } catch (e) {
+          promptTemplateError = e;
           (loggers.app || console).error("保存项目 Prompt 模板失败:", e);
         }
 
-        showNotification(
-          "success",
-          "设置已保存",
-          "您的设置已成功保存（API密钥已加密）",
-        );
+        if (promptTemplateError) {
+          showNotification(
+            "warning",
+            "设置已保存（Prompt 模板保存失败）",
+            "全局设置与 API 密钥已保存；项目 Prompt 模板未能保存，请重试或检查项目状态",
+          );
+        } else {
+          showNotification(
+            "success",
+            "设置已保存",
+            "您的设置已成功保存（API密钥已加密）",
+          );
+        }
         closeModal("settingsModal");
+        } catch (e) {
+          (loggers.app || console).error("保存设置失败:", e);
+          showNotification(
+            "error",
+            "保存失败",
+            "保存设置时出现错误，请查看控制台日志",
+          );
+        } finally {
+          saveSettingsBtn.disabled = false;
+          saveSettingsBtn.classList.remove("opacity-60", "cursor-not-allowed");
+        }
       },
       {
         tag: "settings",

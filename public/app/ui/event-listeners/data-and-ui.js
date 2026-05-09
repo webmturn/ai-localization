@@ -131,14 +131,17 @@ function registerEventListenersDataAndUi(ctx) {
   const applySidebarWidthsForLayout = () => {
     const desktop = isDesktopLayout();
     const viewportWidth = window.innerWidth || 0;
+    const reservedMainWidth = viewportWidth < 1100 ? 300 : (viewportWidth < 1280 ? 420 : 560);
+    const maxTotalSidebarWidth = Math.max(480, viewportWidth - reservedMainWidth);
+    const maxLeftWidth = Math.min(500, Math.floor(maxTotalSidebarWidth * 0.45));
+    const maxRightWidth = Math.min(600, Math.floor(maxTotalSidebarWidth * 0.55));
 
     if (leftSidebar) {
       if (desktop) {
         leftSidebar.style.removeProperty("max-width");
         const savedLeftWidth = localStorage.getItem("leftSidebarWidth");
         if (savedLeftWidth) {
-          const maxLeft = Math.min(500, Math.floor(viewportWidth * 0.45));
-          const width = Math.max(200, Math.min(maxLeft, Number(savedLeftWidth)));
+          const width = Math.max(200, Math.min(maxLeftWidth, Number(savedLeftWidth)));
           leftSidebar.style.width = width + "px";
           leftSidebar.style.setProperty("--sidebar-width", width + "px");
         } else {
@@ -157,8 +160,7 @@ function registerEventListenersDataAndUi(ctx) {
         rightSidebar.style.removeProperty("max-width");
         const savedRightWidth = localStorage.getItem("rightSidebarWidth");
         if (savedRightWidth) {
-          const maxRight = Math.min(600, Math.floor(viewportWidth * 0.45));
-          const width = Math.max(280, Math.min(maxRight, Number(savedRightWidth)));
+          const width = Math.max(280, Math.min(maxRightWidth, Number(savedRightWidth)));
           rightSidebar.style.width = width + "px";
           rightSidebar.style.setProperty("--sidebar-width", width + "px");
         } else {
@@ -453,7 +455,7 @@ function registerEventListenersDataAndUi(ctx) {
     let startWidth = 0;
     let sidebar = null;
     
-    const onMouseDown = (e) => {
+    const onPointerDown = (e) => {
       e.preventDefault();
       isResizing = true;
       startX = e.clientX;
@@ -465,11 +467,14 @@ function registerEventListenersDataAndUi(ctx) {
         startWidth = sidebar.offsetWidth;
         document.body.classList.add("sidebar-resizing");
         resizer.classList.add("resizing");
+        if (typeof resizer.setPointerCapture === "function" && e.pointerId != null) {
+          try { resizer.setPointerCapture(e.pointerId); } catch (err) {}
+        }
       }
     };
     
     let rafPending = false;
-    const onMouseMove = (e) => {
+    const onPointerMove = (e) => {
       if (!isResizing || !sidebar) return;
       if (rafPending) return;
       rafPending = true;
@@ -486,8 +491,14 @@ function registerEventListenersDataAndUi(ctx) {
           newWidth = startWidth - (e.clientX - startX);
         }
 
+        const viewportWidth = window.innerWidth || 0;
+        const reservedMainWidth = viewportWidth < 1100 ? 300 : (viewportWidth < 1280 ? 420 : 560);
+        const maxTotalSidebarWidth = Math.max(480, viewportWidth - reservedMainWidth);
+        const otherSidebar = sidebarType === "left" ? rightSidebar : leftSidebar;
+        const otherWidth = otherSidebar ? otherSidebar.offsetWidth : 0;
         const minWidth = sidebarType === "left" ? 200 : 280;
-        const maxWidth = sidebarType === "left" ? 500 : 600;
+        const absoluteMaxWidth = sidebarType === "left" ? 500 : 600;
+        const maxWidth = Math.max(minWidth, Math.min(absoluteMaxWidth, maxTotalSidebarWidth - otherWidth));
         newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
 
         sidebar.style.width = newWidth + "px";
@@ -495,12 +506,15 @@ function registerEventListenersDataAndUi(ctx) {
       });
     };
     
-    const onMouseUp = () => {
+    const finishResize = (e) => {
       if (isResizing && sidebar) {
         // 保存宽度到 localStorage
         const sidebarType = resizer.dataset.sidebar;
         const key = sidebarType === "left" ? "leftSidebarWidth" : "rightSidebarWidth";
         localStorage.setItem(key, sidebar.offsetWidth);
+      }
+      if (typeof resizer.releasePointerCapture === "function" && e && e.pointerId != null) {
+        try { resizer.releasePointerCapture(e.pointerId); } catch (err) {}
       }
       
       isResizing = false;
@@ -509,27 +523,50 @@ function registerEventListenersDataAndUi(ctx) {
       resizer.classList.remove("resizing");
     };
     
-    EventManager.add(resizer, "mousedown", onMouseDown, {
+    EventManager.add(resizer, "pointerdown", onPointerDown, {
       tag: "ui",
       scope: "sidebar",
-      label: "sidebarResizer:mousedown",
+      label: "sidebarResizer:pointerdown",
     });
     
-    EventManager.add(document, "mousemove", onMouseMove, {
+    EventManager.add(resizer, "pointermove", onPointerMove, {
       tag: "ui",
       scope: "sidebar",
-      label: "sidebarResizer:mousemove",
+      label: "sidebarResizer:pointermove",
     });
     
-    EventManager.add(document, "mouseup", onMouseUp, {
+    EventManager.add(resizer, "pointerup", finishResize, {
       tag: "ui",
       scope: "sidebar",
-      label: "sidebarResizer:mouseup",
+      label: "sidebarResizer:pointerup",
+    });
+
+    EventManager.add(resizer, "pointercancel", finishResize, {
+      tag: "ui",
+      scope: "sidebar",
+      label: "sidebarResizer:pointercancel",
+    });
+
+    EventManager.add(window, "blur", finishResize, {
+      tag: "ui",
+      scope: "sidebar",
+      label: "sidebarResizer:blur",
     });
   });
 
   // ==================== 右侧面板标签页增强 ====================
   const sidebarTabs = DOMCache.queryAll(".sidebar-tab");
+  const openFullSettingsBtn = DOMCache.get("openFullSettingsBtn");
+  if (openFullSettingsBtn) {
+    EventManager.add(
+      openFullSettingsBtn,
+      "click",
+      () => {
+        if (typeof openModal === "function") openModal("settingsModal");
+      },
+      { tag: "settings", scope: "sidebar", label: "openFullSettingsBtn:click" }
+    );
+  }
   
   sidebarTabs.forEach((tab) => {
     EventManager.add(
@@ -542,21 +579,14 @@ function registerEventListenersDataAndUi(ctx) {
         sidebarTabs.forEach((t) => t.classList.remove("active"));
         tab.classList.add("active");
         
-        // 切换设置面板和导出按钮的显示状态
         const settingsPanel = DOMCache.get("settingsPanel");
         const exportBtnContainer = DOMCache.get("exportBtnContainer");
-        if (tabName === "settings") {
-          if (settingsPanel) settingsPanel.classList.remove("hidden");
-          if (exportBtnContainer) exportBtnContainer.classList.remove("hidden");
-        } else {
-          if (settingsPanel) settingsPanel.classList.add("hidden");
-          if (exportBtnContainer) exportBtnContainer.classList.add("hidden");
-        }
+        if (settingsPanel) settingsPanel.classList.remove("hidden");
+        if (exportBtnContainer) exportBtnContainer.classList.remove("hidden");
         
         // 根据标签页打开相应的模态框
         if (tabName === "terminology") {
-          const terminologyModal = DOMCache.get("terminologyModal");
-          if (terminologyModal) terminologyModal.classList.remove("hidden");
+          if (typeof openModal === "function") openModal("terminologyModal");
           if (typeof window.updateTerminologyList === "function") {
             window.updateTerminologyList();
           }
@@ -564,9 +594,14 @@ function registerEventListenersDataAndUi(ctx) {
             window.updateTerminologyPagination();
           }
         } else if (tabName === "quality") {
-          const qualityReportModal = DOMCache.get("qualityReportModal");
-          if (qualityReportModal) qualityReportModal.classList.remove("hidden");
+          if (typeof openModal === "function") openModal("qualityReportModal");
           if (typeof window.syncQualityRuleCards === "function") window.syncQualityRuleCards();
+        }
+
+        if (tabName !== "settings") {
+          sidebarTabs.forEach((t) => t.classList.remove("active"));
+          const settingsTab = Array.from(sidebarTabs).find((t) => t.dataset.tab === "settings");
+          if (settingsTab) settingsTab.classList.add("active");
         }
       },
       { tag: "ui", scope: "tabs", label: "sidebarTab:click" }

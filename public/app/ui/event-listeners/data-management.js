@@ -497,7 +497,7 @@ function registerEventListenersDataManagement(ctx) {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
-          reader.onload = (event) => {
+          reader.onload = async (event) => {
             try {
               const data = JSON.parse(event.target.result);
 
@@ -516,7 +516,7 @@ function registerEventListenersDataManagement(ctx) {
               // 导入设置
               if (includeSettings && data.settings) {
                 SettingsCache.save(data.settings);
-                loadSettings();
+                await loadSettings();
                 applySettings(data.settings);
                 importCount++;
               }
@@ -572,11 +572,7 @@ function registerEventListenersDataManagement(ctx) {
                     autoSaveManager
                   ) {
                     autoSaveManager.markDirty();
-                    Promise.resolve(autoSaveManager.saveProject()).catch(
-                      (e) => {
-                        (loggers.storage || console).error("保存术语到项目存储失败:", e);
-                      }
-                    );
+                    await autoSaveManager.saveProject();
                   } else if (typeof storageManager !== "undefined") {
                     const payload = {
                       ...(AppState.project || {}),
@@ -587,11 +583,7 @@ function registerEventListenersDataManagement(ctx) {
                       terminologyList: mergedTerms,
                       fileMetadata: AppState.fileMetadata || {},
                     };
-                    Promise.resolve(
-                      storageManager.saveCurrentProject(payload)
-                    ).catch((e) => {
-                      (loggers.storage || console).error("保存术语到项目存储失败:", e);
-                    });
+                    await storageManager.saveCurrentProject(payload);
                   }
                 } catch (e) {
                   (loggers.storage || console).error("触发项目保存失败:", e);
@@ -627,11 +619,7 @@ function registerEventListenersDataManagement(ctx) {
                 projectsToSave.forEach((p) => byId.set(p.id, p));
                 const uniqueProjects = Array.from(byId.values());
 
-                uniqueProjects.forEach((p) => {
-                  Promise.resolve(storageManager.saveProject(p)).catch((e) => {
-                    (loggers.storage || console).error("导入项目失败:", e);
-                  });
-                });
+                await Promise.all(uniqueProjects.map((p) => storageManager.saveProject(p)));
 
                 const indexFromProjects = uniqueProjects.map((p) => ({
                   id: p.id,
@@ -649,11 +637,7 @@ function registerEventListenersDataManagement(ctx) {
                       ? data.projectsIndex
                       : indexFromProjects;
 
-                  Promise.resolve(storageManager.saveProjectsIndex(idx)).catch(
-                    (e) => {
-                      (loggers.storage || console).error("导入 projectsIndex 失败:", e);
-                    }
-                  );
+                  await storageManager.saveProjectsIndex(idx);
 
                   const nextActive =
                     data.activeProjectId ||
@@ -663,9 +647,7 @@ function registerEventListenersDataManagement(ctx) {
                     indexFromProjects[0]?.id ||
                     null;
                   if (nextActive) {
-                    Promise.resolve(
-                      storageManager.setActiveProjectId(nextActive)
-                    ).catch((e) => { (loggers.storage || console).debug('设置活动项目ID失败:', e); });
+                    await storageManager.setActiveProjectId(nextActive);
                   }
 
                   importCount++;
@@ -673,16 +655,10 @@ function registerEventListenersDataManagement(ctx) {
                   Array.isArray(data.projectsIndex) &&
                   data.projectsIndex.length > 0
                 ) {
-                  Promise.resolve(
-                    storageManager.saveProjectsIndex(data.projectsIndex)
-                  ).catch((e) => {
-                    (loggers.storage || console).error("导入 projectsIndex 失败:", e);
-                  });
+                  await storageManager.saveProjectsIndex(data.projectsIndex);
 
                   if (data.activeProjectId) {
-                    Promise.resolve(
-                      storageManager.setActiveProjectId(data.activeProjectId)
-                    ).catch((e) => { (loggers.storage || console).debug('设置活动项目ID失败:', e); });
+                    await storageManager.setActiveProjectId(data.activeProjectId);
                   }
                   importCount++;
                 }

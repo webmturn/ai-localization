@@ -98,6 +98,12 @@
     #appViewport aside#rightSidebar {
         height: 100%;
         max-height: 100%;
+        z-index: 30;
+    }
+
+    #appViewport main > section {
+        position: relative;
+        z-index: 1;
     }
 }
 
@@ -510,22 +516,37 @@
     bottom: 0;
     width: 8px;
     cursor: col-resize;
+    touch-action: none;
     background: transparent;
     transition: background-color 0.2s ease;
-    z-index: 20;
+    z-index: 60;
 }
 
-.sidebar-resizer:hover,
-.sidebar-resizer.resizing {
+.sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    transform: translateX(-50%);
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer.resizing::after {
     background-color: #3b82f6;
 }
 
 .sidebar-resizer-left {
-    right: -4px;
+    right: 0;
+    transform: translateX(50%);
 }
 
 .sidebar-resizer-right {
-    left: -4px;
+    left: 0;
+    transform: translateX(-50%);
 }
 
 /* 拖拽时的视觉反馈 */
@@ -798,11 +819,29 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
         display: none;
     }
 
-    /* 含 select 的行：竖向堆叠（label在上，控件在下） */
-    #settingsModal .settings-tab-content > .space-y-4 > .flex.items-center.justify-between:has(select) {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+    #settingsModal .settings-nav-scroll {
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    #settingsModal .settings-nav-scroll nav {
+        overflow-x: auto;
+        padding-right: 1.75rem;
+    }
+
+    #settingsModal .settings-nav-scroll::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 1.5rem;
+        height: 100%;
+        background: linear-gradient(to right, rgba(249, 250, 251, 0), rgba(249, 250, 251, 0.95));
+        pointer-events: none;
+    }
+
+    .dark-mode #settingsModal .settings-nav-scroll::after {
+        background: linear-gradient(to right, rgba(17, 24, 39, 0), rgba(17, 24, 39, 0.95));
     }
 
     /* select/range 全宽 */
@@ -812,11 +851,26 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
         width: 100%;
     }
 
+    #settingsModal .settings-tab-content textarea {
+        min-height: 12rem;
+        max-height: 45vh;
+        resize: vertical;
+    }
+
+    #settingsModal .settings-tab-content p,
+    #settingsModal .settings-tab-content label,
+    #settingsModal .settings-tab-content span {
+        overflow-wrap: anywhere;
+    }
+
     /* 含 toggle 的行：保持横向，toggle不换行 */
     #settingsModal .settings-tab-content .flex.items-center.justify-between:has(.peer) {
         flex-direction: row;
         align-items: center;
         gap: 0.75rem;
+    }
+    #settingsModal .settings-tab-content .flex.items-center.justify-between:has(.peer) > div:first-child {
+        min-width: 0;
     }
     #settingsModal .settings-tab-content .flex.items-center.justify-between:has(.peer) > label:last-child {
         flex-shrink: 0;
@@ -839,6 +893,26 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
         flex-wrap: wrap;
     }
 
+    #settingsModal .settings-tab-content .flex.items-center.justify-between.gap-3 {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #settingsModal .settings-tab-content .flex.items-center.justify-between.gap-3 > .flex.items-center.gap-2 {
+        align-items: stretch;
+    }
+    #settingsModal .settings-tab-content .flex.items-center.justify-between.gap-3 > .flex.items-center.gap-2 > button {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #settingsModal .settings-tab-content button {
+        min-width: 0;
+    }
+
+    #settingsModal .settings-tab-content button.flex > span {
+        min-width: 0;
+    }
+
     /* 子面板内表单行也竖向堆叠 */
     #settingsModal .settings-tab-content .space-y-4 .flex.items-center.justify-between:has(select) {
         flex-direction: column;
@@ -848,8 +922,17 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
 
     /* 快捷键列表：缩紧行间距 */
     #shortcutsList > div {
+        align-items: flex-start;
+        gap: 0.75rem;
         padding-top: 0.375rem;
         padding-bottom: 0.375rem;
+    }
+    #shortcutsList > div > span {
+        min-width: 0;
+    }
+    #shortcutsList > div > div {
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
     #shortcutsList .shortcut-kbd {
         font-size: 0.625rem;
@@ -857,9 +940,57 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
     }
 
     /* 底部操作按钮：移动端稍大触控区 */
+    #settingsModal > .modal-content > .sticky.bottom-0 {
+        justify-content: stretch;
+    }
     #settingsModal > .modal-content > .sticky.bottom-0 button {
+        flex: 1 1 0;
         padding: 0.625rem 1.25rem;
         font-size: 0.875rem;
+    }
+
+    #settingsModal .settings-tab-content[data-tab="file"] label.flex,
+    #settingsModal .settings-tab-content[data-tab="data"] .space-y-2 > label.flex {
+        align-items: flex-start;
+    }
+
+    #settingsModal .settings-tab-content[data-tab="file"] label.flex input,
+    #settingsModal .settings-tab-content[data-tab="data"] .space-y-2 > label.flex input {
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+    #settingsModal .modal-content {
+        max-width: calc(100vw - 2rem);
+    }
+
+    #settingsModal .settings-nav-scroll {
+        width: 11rem;
+    }
+
+    #settingsModal .settings-tab-btn {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+@media (max-width: 420px) {
+    #rightSidebar #openFullSettingsBtn,
+    #rightSidebar #openTMManagerBtn,
+    #rightSidebar #openCustomEngineBtn {
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    #rightSidebar #openFullSettingsBtn > span,
+    #rightSidebar #openTMManagerBtn > span,
+    #rightSidebar #openCustomEngineBtn > span {
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
@@ -1032,20 +1163,25 @@ html body.dark-mode input[type="range"]::-moz-range-thumb {
 }
 
 @media (max-width: 767px) {
+    /* 底部工具栏高度（含 safe-area）统一变量 */
+    :root {
+        --toolbar-height: 3.5rem;
+    }
+
     /* 移动端内容区域留出底部工具栏空间 */
     #translationScrollWrapper {
-        padding-bottom: 4rem;
+        padding-bottom: calc(var(--toolbar-height) + 0.5rem);
     }
 
     /* 分页控件留出底部工具栏空间 */
     #paginationContainer {
         padding-bottom: env(safe-area-inset-bottom, 0px);
-        margin-bottom: 4.5rem;
+        margin-bottom: calc(var(--toolbar-height) + 1rem);
     }
 
     /* 通知位置调整：不被底部工具栏遮挡，适配安全区域 */
     #notification {
-        bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--toolbar-height) + 1.5rem + env(safe-area-inset-bottom, 0px));
         left: 1rem;
         right: 1rem;
     }

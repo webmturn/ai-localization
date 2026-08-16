@@ -211,6 +211,20 @@ function updateFileTree(files) {
       "transition-all duration-150 ease-out";
     actionsEl.dataset.fileActions = "true";
 
+    // 编辑源文件按钮
+    const editBtn2 = document.createElement("button");
+    editBtn2.type = "button";
+    editBtn2.className =
+      "p-1 rounded text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20";
+    editBtn2.title = "编辑源文件 " + filename;
+    editBtn2.setAttribute("aria-label", "编辑源文件 " + filename);
+    editBtn2.dataset.action = "edit";
+    editBtn2.dataset.filename = filename;
+    const editIcon2 = document.createElement("i");
+    editIcon2.className = "fa-regular fa-pen-to-square text-xs";
+    editBtn2.appendChild(editIcon2);
+    actionsEl.appendChild(editBtn2);
+
     // 删除按钮
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";

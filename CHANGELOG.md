@@ -35,6 +35,11 @@
   - 导出改用 jsyaml.dump（forceQuotes 可配）
   - parse.js 解析调度改为 await 兼容同步/异步解析器
   - 实测：多行块/数组/锚点全部正确提取（旧解析器均不支持）
+- **源文件编辑器（方案 B）** — 文件树操作菜单新增"编辑源文件"入口：
+  - 弹窗内编辑导入文件的原始内容（等宽字体、Ctrl+Enter 保存、Esc 取消）
+  - 保存时按格式语法校验（XML/JSON/YAML），非法内容报错不保存
+  - 重新解析并保留已翻译项（按 key/路径回填译文与状态），新增条目自动追加
+  - 更新原始内容缓存（IndexedDB）并持久化项目
 - **XLIFF 命名空间前缀支持** — getElementsByTagName → getElementsByTagNameNS("*", ...)，带 `<xliff:trans-unit>` 前缀的文件可正常解析（修复前解析 0 条）
 - **PO 复数导出** — 原格式导出时同时更新 msgstr[0]（主译文）与 msgstr[1]（metadata.pluralTarget 复数译文），复数语言往返不再丢译文
 - **格式解析器修复（PO/iOS strings/YAML/XLIFF）**：

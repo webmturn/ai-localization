@@ -48,6 +48,18 @@ function registerEventListenersFilePanels(ctx) {
           return;
         }
 
+        const editBtn = e.target.closest('[data-action="edit"]');
+        if (editBtn) {
+          // 编辑源文件：不触发文件选中
+          e.preventDefault();
+          e.stopPropagation();
+          const editName = editBtn.dataset.filename;
+          if (editName && typeof openSourceEditor === "function") {
+            openSourceEditor(editName);
+          }
+          return;
+        }
+
         const row = e.target.closest("li > div");
         if (!row || !fileTree.contains(row)) return;
 

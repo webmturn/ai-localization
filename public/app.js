@@ -128,6 +128,7 @@
     "app/features/files/parse.js",
     "app/features/files/process.js",
     "app/features/files/error-handler.js",
+    "app/features/files/source-editor.js", // 源文件编辑器（文件树编辑原始内容）
     "app/features/translations/status.js",
     "app/features/translations/render.js",
     "app/features/translations/search.js",

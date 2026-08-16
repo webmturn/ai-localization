@@ -47,6 +47,13 @@ function initEventListeners() {
   }
   registerEventListenersTranslationLists(ctx);
   registerEventListenersFilePanels(ctx);
+  if (typeof window.registerSourceEditorEvents === "function") {
+    try {
+      window.registerSourceEditorEvents();
+    } catch (err) {
+      (loggers.app || console).error("注册源文件编辑器事件失败:", err);
+    }
+  }
   registerEventListenersTerminology(ctx);
   registerEventListenersSettings(ctx);
   registerEventListenersTranslationSearch(ctx);

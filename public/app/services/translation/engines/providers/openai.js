@@ -34,35 +34,10 @@ EngineRegistry.register({
   // 批量翻译：一个 chunk 最多 40 项 × 数百 token，预留 8000 防止 JSON 截断
   extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 3,
-  availableModels: [
-    "gpt-4o-mini",
-    "gpt-4o",
-    "gpt-4.1-mini",
-    "gpt-4.1",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
-    // 推理系列（自动适配 max_completion_tokens / 移除 temperature 与 response_format）
-    "o1",
-    "o1-mini",
-    "o1-preview",
-    "o3",
-    "o3-mini",
-  ],
-  // UI 友好名称（缺省回退到 model id）
-  modelLabels: {
-    "gpt-4o-mini": "GPT-4o mini (快速/经济)",
-    "gpt-4o": "GPT-4o (推荐)",
-    "gpt-4.1-mini": "GPT-4.1 mini",
-    "gpt-4.1": "GPT-4.1",
-    "gpt-4-turbo": "GPT-4 Turbo",
-    "gpt-4": "GPT-4 (经典)",
-    "gpt-3.5-turbo": "GPT-3.5 Turbo",
-    "o1": "o1 (推理)",
-    "o1-mini": "o1 mini (推理/经济)",
-    "o1-preview": "o1 preview (推理)",
-    "o3": "o3 (推理)",
-    "o3-mini": "o3 mini (推理/经济)",
+  // 动态获取模型列表端点（过滤 embedding/whisper/tts 等非 chat 模型）
+  // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
+  modelsEndpoint: {
+    url: "https://api.openai.com/v1/models",
   },
 
   // OpenAI 推理模型（o1/o3 系列）请求体差异适配：

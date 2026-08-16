@@ -17,16 +17,9 @@ EngineRegistry.register({
   extraBodyParams: { max_tokens: 2000 },
   extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 0.25,
-  availableModels: [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
-  ],
-  modelLabels: {
-    "gemini-2.0-flash": "Gemini 2.0 Flash (推荐)",
-    "gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
-    "gemini-1.5-pro": "Gemini 1.5 Pro",
-    "gemini-1.5-flash": "Gemini 1.5 Flash",
+  // 动态获取模型列表端点（Gemini OpenAI 兼容端点，过滤 embedding 等）
+  // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
+  modelsEndpoint: {
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/models",
   },
 });

@@ -83,6 +83,14 @@
       customHeaders: config.headers || {},
     };
 
+    // 自定义引擎（OpenAI 兼容）：自动推导 /models 端点，支持动态获取模型列表
+    if (typeof ModelFetcher !== "undefined") {
+      var _modelsUrl = ModelFetcher.deriveModelsUrl(config.apiUrl);
+      if (_modelsUrl) {
+        engineConfig.modelsEndpoint = { url: _modelsUrl };
+      }
+    }
+
     // 注册到 EngineRegistry
     if (typeof EngineRegistry !== "undefined") {
       EngineRegistry.register(engineConfig);

@@ -28,12 +28,9 @@ EngineRegistry.register({
   extraBodyParams: { max_tokens: 2000 },
   extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 3,
-  availableModels: [
-    "deepseek-chat",
-    "deepseek-reasoner",
-  ],
-  modelLabels: {
-    "deepseek-chat": "DeepSeek Chat (推荐)",
-    "deepseek-reasoner": "DeepSeek Reasoner (推理)",
+  // 动态获取模型列表端点（OpenAI 兼容 /models）
+  // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
+  modelsEndpoint: {
+    url: "https://api.deepseek.com/v1/models",
   },
 });

@@ -17,19 +17,22 @@ EngineRegistry.register({
   },
   supportsJsonMode: false,
   supportsBatch: true,
+  // Anthropic Messages API：temperature 仅接受 0-1（超出报 400）
+  temperatureRange: { min: 0, max: 1 },
   extraBodyParams: { max_tokens: 4096 },
   // 批量翻译：JSON 数组输出可能超过 4096，预留 8000
   extraBatchBodyParams: { max_tokens: 8000 },
   rateLimitPerSecond: 3,
-  availableModels: [
-    "claude-sonnet-4-20250514",
-    "claude-3-5-sonnet-20241022",
-    "claude-3-5-haiku-20241022",
-  ],
-  modelLabels: {
-    "claude-sonnet-4-20250514": "Claude Sonnet 4 (推荐)",
-    "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
-    "claude-3-5-haiku-20241022": "Claude 3.5 Haiku",
+  // 动态获取模型列表端点（Claude 原生 /models，x-api-key 鉴权）
+  // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
+  modelsEndpoint: {
+    url: "https://api.anthropic.com/v1/models",
+    buildHeaders: function (apiKey) {
+      return {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      };
+    },
   },
 
   // Claude Messages API 请求体变换：

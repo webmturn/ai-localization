@@ -196,6 +196,11 @@ async function exportTranslation() {
       content = generateXLIFF(itemsToExport, includeOriginal);
     } else if (format === "csv") {
       content = generateCSV(itemsToExport, includeOriginal);
+    } else if (format === "yaml") {
+      content = await exportYAML(itemsToExport, {
+        indent: 2,
+        useQuotes: true,
+      });
     }
 
     // 创建下载链接

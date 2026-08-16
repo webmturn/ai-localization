@@ -189,8 +189,7 @@ function updateFileTree(files) {
           ? "text-emerald-600 dark:text-emerald-400"
           : prog.translated > 0
           ? "text-blue-600 dark:text-blue-400"
-          : "text-gray-400 dark:text-gray-500") +
-        " transition-all duration-150 sm:group-hover:opacity-0";
+          : "text-gray-400 dark:text-gray-500");
       const pct =
         prog.total > 0 ? Math.round((prog.translated / prog.total) * 100) : 0;
       progressEl.textContent = pct + "%";
@@ -228,8 +227,9 @@ function updateFileTree(files) {
 
     row.appendChild(iconEl);
     row.appendChild(nameEl);
-    row.appendChild(sizeEl);
+    // 进度百分比紧随文件名（方案 B：重要信息靠内），大小贴右缘
     if (progressEl && progressEl.textContent) row.appendChild(progressEl);
+    row.appendChild(sizeEl);
     row.appendChild(actionsEl);
     li.appendChild(row);
     fragment.appendChild(li);

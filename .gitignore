@@ -33,4 +33,8 @@ npm-debug.log*
 # Keep lib/ directory but ignore if you want to regenerate
 # lib/
 
+# Dev tools output (screenshots & environment artifacts)
+tools/shots/
+tools/wf-task-extension/
+
 

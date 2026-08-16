@@ -36,6 +36,23 @@ function saveTerm() {
     delete saveBtn.dataset.editingId;
     saveBtn.textContent = "保存";
   } else {
+    // 添加新术语（防重复：同源术语已存在时提示，避免术语库混乱）
+    const dup = AppState.terminology.list.find(
+      (t) => t.source.toLowerCase() === String(sourceTerm).toLowerCase()
+    );
+    if (dup) {
+      const sameTarget =
+        dup.target.toLowerCase() === String(targetTerm).toLowerCase();
+      showNotification(
+        "warning",
+        "术语已存在",
+        sameTarget
+          ? `术语 "${sourceTerm}" 已存在，无需重复添加`
+          : `术语 "${sourceTerm}" 已存在（当前译名："${dup.target}"）。如需修改请使用编辑功能`
+      );
+      return;
+    }
+
     // 添加新术语
     const newTerm = {
       id:

@@ -235,13 +235,19 @@ function exportCSV(items, options = {}) {
 function escapeCSVField(field, delimiter = ',') {
   if (!field) return '';
   
-  const str = String(field);
-  
+  let str = String(field);
+
+  // 公式注入防护：以 = + - @ 开头的字段会被 Excel/WPS 当作公式执行，
+  // 前缀单引号使其按纯文本处理（与常见 CSV 工具行为一致）
+  if (/^[=+\-@]/.test(str)) {
+    str = "'" + str;
+  }
+
   // 如果包含特殊字符，需要用引号包裹
   if (str.includes('"') || str.includes(delimiter) || str.includes('\n') || str.includes('\r')) {
     return '"' + str.replace(/"/g, '""') + '"';
   }
-  
+
   return str;
 }
 

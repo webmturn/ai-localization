@@ -370,7 +370,8 @@ async function __parseFileAsyncImpl(file) {
 
       const parser = parserMap[fileExtension];
       if (parser) {
-        items = parser();
+        // await 兼容同步/异步解析器（parseYAML 需动态加载 js-yaml）
+        items = await parser();
       } else {
         (loggers.app || console).debug("使用文本文件解析器");
         items = parseTextFile(normalizedContent, file.name);

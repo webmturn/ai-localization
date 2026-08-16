@@ -1,4 +1,4 @@
-﻿{
+{
     "font-awesome": {
         "version": "6.7.2",
         "npmPackage": "@fortawesome/fontawesome-free",
@@ -26,5 +26,10 @@
                     "version":  "0.20.1",
                     "url":  "https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js",
                     "localPath":  "public/lib/sheetjs/xlsx.full.min.js"
+                },
+    "js-yaml":  {
+                    "version":  "4.1.0",
+                    "url":  "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js",
+                    "localPath":  "public/lib/js-yaml/js-yaml.min.js"
                 }
 }

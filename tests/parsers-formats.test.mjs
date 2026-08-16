@@ -77,22 +77,30 @@ describe("iOS strings 解析器", () => {
   });
 });
 
-describe("YAML 解析器", () => {
-  it("内联注释被剥离", () => {
+describe("YAML 解析器（js-yaml 增强）", () => {
+  // js-yaml 在 jsdom 中不可用时走降级解析器；此处测试降级 + 完整两种路径
+  it("内联注释被剥离（降级解析器）", () => {
     const yaml = 'app:\n  title: Hello # 注释\n  count: 3';
-    const items = parseYAML(yaml, "t.yml");
+    const items = __parseYAMLSimple(yaml, "t.yml");
     expect(items[0].sourceText).toBe("Hello");
     expect(items[0].metadata.path).toBe("app.title");
   });
 
-  it("嵌套路径与引号值", () => {
+  it("嵌套路径与引号值（降级解析器）", () => {
     const yaml = 'a:\n  b:\n    c: "quoted value"';
-    const items = parseYAML(yaml, "t.yml");
+    const items = __parseYAMLSimple(yaml, "t.yml");
     expect(items[0].sourceText).toBe("quoted value");
     expect(items[0].metadata.path).toBe("a.b.c");
   });
-});
 
+  it("parseYAML 返回 Promise（异步加载 js-yaml）", async () => {
+    const yaml = 'app:\n  title: Hello';
+    const result = parseYAML(yaml, "t.yml");
+    expect(result).toBeInstanceOf(Promise);
+    const items = await result;
+    expect(Array.isArray(items)).toBe(true);
+  });
+});
 describe("JSON 解析器", () => {
   it("嵌套对象与数组路径", () => {
     const json = JSON.stringify({ app: { title: "Hi" }, menu: ["Open", "Save"] });

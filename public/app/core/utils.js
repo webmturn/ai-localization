@@ -296,6 +296,15 @@ function switchTabState(tabSelector, panelSelector, tabName, options) {
     });
   };
 
+  App.services.ensureJsYaml = function () {
+    if (typeof window.jsyaml !== "undefined") return Promise.resolve();
+    return App.services.loadScriptOnce("lib/js-yaml/js-yaml.min.js").then(function () {
+      if (typeof window.jsyaml === "undefined") {
+        throw new Error("js-yaml loaded but window.jsyaml is not available");
+      }
+    });
+  };
+
   let qualityModulePromise = null;
   App.services.ensureQualityModule = function () {
     if (App.services.__qualityModuleLoaded) return Promise.resolve();

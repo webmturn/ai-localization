@@ -197,6 +197,41 @@ async function loadSettings() {
         }
       }
 
+      // TM 自动应用设置 + 温度滑杆（设置页）同步
+      {
+        const _tmEnabled = settings.tmAutoApplyEnabled;
+        const tmEl = DOMCache.get("tmAutoApplyEnabled");
+        if (tmEl) tmEl.checked = _tmEnabled !== undefined ? !!_tmEnabled : true;
+
+        const _tmThreshold = settings.tmFuzzyThreshold;
+        const tmThEl = DOMCache.get("tmFuzzyThreshold");
+        if (tmThEl) tmThEl.value = String(Math.max(60, Math.min(95, Number(_tmThreshold) || 75)));
+        const tmThVal = DOMCache.get("tmFuzzyThresholdValue");
+        if (tmThVal) tmThVal.textContent = tmThEl ? tmThEl.value : "75";
+
+        // 应用 TM 设置到运行时（TMAutoApply）
+        try {
+          if (typeof TMAutoApply !== "undefined") {
+            TMAutoApply.setEnabled(tmEl ? tmEl.checked : true);
+            TMAutoApply.setFuzzyThreshold(tmThEl ? parseFloat(tmThEl.value) : 75);
+          }
+        } catch (e) {
+          (loggers.app || console).debug("settings applyTmSettings:", e);
+        }
+
+        // 温度：设置页滑杆与侧边栏滑杆双向同步
+        const _rawTemp = parseFloat(settings.temperature);
+        const _temp = Number.isFinite(_rawTemp) && _rawTemp >= 0 && _rawTemp <= 2 ? _rawTemp : 0.3;
+        const tempEl = DOMCache.get("temperatureSettings");
+        if (tempEl) tempEl.value = String(_temp);
+        const tempVal = DOMCache.get("temperatureSettingsValue");
+        if (tempVal) tempVal.textContent = String(_temp);
+        const sidebarTemp = DOMCache.get("temperature");
+        if (sidebarTemp) sidebarTemp.value = String(_temp);
+        const sidebarTempVal = DOMCache.get("temperatureValue");
+        if (sidebarTempVal) sidebarTempVal.textContent = String(_temp);
+      }
+
       // 加载质量检查设置
       if (settings.checkTerminology !== undefined) {
         const check = DOMCache.get("checkTerminology");

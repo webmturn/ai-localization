@@ -401,6 +401,20 @@ function registerEventListenersSettings(ctx) {
           aiBatchMaxChars:
             parseInt(DOMCache.get("aiBatchMaxChars")?.value) || 6000,
 
+          // TM 自动应用
+          tmAutoApplyEnabled:
+            DOMCache.get("tmAutoApplyEnabled")?.checked ?? true,
+          tmFuzzyThreshold:
+            parseInt(DOMCache.get("tmFuzzyThreshold")?.value) || 75,
+
+          // 温度（设置页滑杆；不存在时留空由合并逻辑保留现有值）
+          temperature: (() => {
+            const t = DOMCache.get("temperatureSettings");
+            if (!t) return undefined;
+            const v = parseFloat(t.value);
+            return Number.isFinite(v) && v >= 0 && v <= 2 ? v : undefined;
+          })(),
+
           // 质量检查设置（开关：未勾选为 false，须原样保存）
           checkTerminology:
             DOMCache.get("checkTerminology")?.checked ?? true,
@@ -479,6 +493,10 @@ function registerEventListenersSettings(ctx) {
         try {
           const existing = SettingsCache.get();
           if (existing) {
+            // 保留温度设置：滑杆实时保存，保存设置时须合并，避免被整体替换清掉
+            if (existing.temperature !== undefined && settings.temperature === undefined) {
+              settings.temperature = existing.temperature;
+            }
             ["deepseekApiKey", "openaiApiKey", "googleApiKey", "geminiApiKey", "claudeApiKey"].forEach(function (key) {
               if (!settings[key] && existing[key]) {
                 settings[key] = existing[key];
@@ -502,6 +520,16 @@ function registerEventListenersSettings(ctx) {
         }
 
         SettingsCache.save(settings);
+
+        // 应用 TM 自动应用运行时设置（开关 + 模糊阈值）
+        try {
+          if (typeof TMAutoApply !== "undefined") {
+            TMAutoApply.setEnabled(!!settings.tmAutoApplyEnabled);
+            TMAutoApply.setFuzzyThreshold(Number(settings.tmFuzzyThreshold) || 75);
+          }
+        } catch (e) {
+          (loggers.app || console).debug("settings applyTmRuntime:", e);
+        }
 
         // 应用设置
         applySettings(settings);

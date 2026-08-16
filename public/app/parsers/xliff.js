@@ -24,6 +24,9 @@ function parseXLIFF(content, fileName) {
     for (let i = 0; i < nodes.length; i++) {
       out += serializer.serializeToString(nodes[i]);
     }
+    // 清洗序列化时注入的命名空间声明（如 <g xmlns="urn:oasis:...">），
+    // 保证源文本与原文标记一致，占位符保护可正确匹配
+    out = out.replace(/\sxmlns(?:="[^"]*"|:[\w-]+="[^"]*")/g, "");
     return (out || element.textContent || "").trim();
   }
 

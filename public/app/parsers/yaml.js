@@ -36,7 +36,15 @@ function parseYAML(content, fileName) {
       if (colonIndex === -1) continue;
       
       const key = trimmed.substring(0, colonIndex).trim();
-      const value = trimmed.substring(colonIndex + 1).trim();
+      let value = trimmed.substring(colonIndex + 1).trim();
+
+      // 剥离内联注释：值中的 " #" 起始的注释（引号内的 # 不受影响，因为引号值在此前已整体提取）
+      if (value && !value.startsWith('"') && !value.startsWith("'")) {
+        const hashIdx = value.indexOf(" #");
+        if (hashIdx !== -1) {
+          value = value.substring(0, hashIdx).trim();
+        }
+      }
       
       // 更新路径栈
       while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {

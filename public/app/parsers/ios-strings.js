@@ -91,6 +91,12 @@ function parseIOSStrings(content, fileName) {
           i += 2;
           continue;
         }
+        if (esc === "u" && /^[0-9a-fA-F]{4}/.test(text.slice(i + 2, i + 6))) {
+          const hex = text.slice(i + 2, i + 6);
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 6;
+          continue;
+        }
         if (esc === "\n") {
           i += 2;
           continue;
@@ -142,7 +148,7 @@ function parseIOSStrings(content, fileName) {
 
     items.push({
       id: `ios-${items.length + 1}`,
-      sourceText: value || key, // 如果value为空，使用key作为源文本
+      sourceText: value,
       targetText: "",
       context: `iOS string key: ${key}`,
       status: "pending",

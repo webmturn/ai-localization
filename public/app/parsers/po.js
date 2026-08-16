@@ -10,15 +10,14 @@ function parsePO(content, fileName) {
 
   function unescapePoString(s) {
     if (!s) return "";
-    return s
-      .replace(/\\n/g, "\n")
-      .replace(/\\r/g, "\r")
-      .replace(/\\t/g, "\t")
-      .replace(/\\"/g, '"')
-      .replace(/\\\\/g, "\\");
+    // 单次遍历替换，避免多次 replace 的顺序问题：
+    // 例如字面序列 \\n 必须还原为 \\n 文本，而不是被 \\n 规则误转成换行
+    var ESCAPE_MAP = { n: "\n", r: "\r", t: "\t", '"': '"', "\\": "\\" };
+    return s.replace(/\\([nrt"\\])/g, function (m, c) {
+      return ESCAPE_MAP[c] != null ? ESCAPE_MAP[c] : m;
+    });
   }
-
-  function collectQuotedParts(line) {
+function collectQuotedParts(line) {
     const parts = [];
     const re = /"((?:\\.|[^"\\])*)"/g;
     let m;
@@ -105,6 +104,7 @@ function parsePO(content, fileName) {
           entryId: i + 1,
           msgctxt: msgctxt || undefined,
           plural: msgidPlural || undefined,
+          pluralTarget: msgstr[1] != null ? msgstr[1] : undefined,
           position: `entry-${i + 1}`,
         },
       });

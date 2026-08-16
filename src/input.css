@@ -3,6 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== 深色模式对比度优化 ===== */
+/* text-primary (#2563eb) 在深色背景上对比度仅 ~2.84:1，深色模式下提亮为 blue-400 (~4.6:1)。
+   注意：dark-mode 类挂在 body 上，body 自身不匹配 Tailwind 的 :is(.dark-mode *) 后代选择器，
+   此规则用 .dark-mode 后代前缀显式覆盖，不影响浅色模式 */
+.dark-mode .text-primary {
+    color: rgb(96 165 250 / var(--tw-text-opacity, 1));
+}
+.dark-mode .hover:text-primary:hover {
+    color: rgb(96 165 250 / var(--tw-text-opacity, 1));
+}
+
 @layer base {
     html {
         text-size-adjust: 100%;

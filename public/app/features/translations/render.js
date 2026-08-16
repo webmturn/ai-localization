@@ -103,7 +103,7 @@ function createTranslationItemElement(
     if (AppState.ui.sourceSelectionIndicatorEnabled) {
       const unselectedIsTransparent =
         AppState.ui.sourceSelectionIndicatorUnselectedStyle === "transparent";
-      div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 border-l-4 ${
+      div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 border-l-4 px-2 ${
         isSelected
           ? "border-l-blue-600 dark:border-l-blue-500 selected bg-blue-50 dark:bg-blue-900/20"
           : unselectedIsTransparent
@@ -111,12 +111,12 @@ function createTranslationItemElement(
           : "border-l-gray-300 dark:border-l-gray-600"
       } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors`;
     } else {
-      div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${
+      div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 px-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${
         isSelected ? "selected bg-blue-50 dark:bg-blue-900/20" : ""
       }`;
     }
   } else {
-    div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${
+    div.className = `responsive-translation-item border-b border-gray-200 dark:border-gray-700 px-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${
       isSelected ? "selected bg-blue-50 dark:bg-blue-900/20" : ""
     }`;
   }
@@ -861,7 +861,7 @@ function showFileSearchResults(searchQuery) {
 
         const item = document.createElement("div");
         item.className =
-          "file-search-result-item px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors";
+          "file-search-result-item px-4 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors";
         item.dataset.filename = filename;
 
         const row = document.createElement("div");
@@ -873,12 +873,12 @@ function showFileSearchResults(searchQuery) {
         const flex = document.createElement("div");
         flex.className = "flex-1";
         const p = document.createElement("p");
-        p.className = "text-sm";
+        p.className = "text-sm text-gray-800 dark:text-gray-100";
         p.appendChild(highlightText(filename, query));
         flex.appendChild(p);
 
         const count = document.createElement("span");
-        count.className = "text-xs text-gray-400 ml-2";
+        count.className = "text-xs text-gray-400 dark:text-gray-500 ml-2";
         count.textContent = `${index + 1}/${matchingFiles.length}`;
 
         row.appendChild(iconEl);

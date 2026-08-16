@@ -143,7 +143,7 @@ function updateFileTree(files) {
 
     const row = document.createElement("div");
     row.className =
-      "flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer";
+      "flex items-center p-2 pr-8 sm:pr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer group relative overflow-hidden";
     row.dataset.filename = filename;
 
     const iconEl = document.createElement("i");
@@ -154,12 +154,44 @@ function updateFileTree(files) {
     nameEl.textContent = filename;
 
     const sizeEl = document.createElement("span");
-    sizeEl.className = "ml-auto text-xs text-gray-400 dark:text-gray-500";
+    sizeEl.className =
+      "ml-auto text-xs text-gray-400 dark:text-gray-500 " +
+      // 桌面 hover 时淡出隐藏，操作菜单滑入其位置（VS Code 风格）
+      "transition-all duration-150 sm:group-hover:opacity-0";
     sizeEl.textContent = getFileSize(filename);
+
+    // ===== 文件操作菜单：桌面端 hover 从右向左滑入，移动端常显 =====
+    // 结构与常见文件管理器一致：操作按钮固定于行右侧，滑入时平滑覆盖
+    const actionsEl = document.createElement("div");
+    actionsEl.className =
+      "absolute right-0 top-0 h-full flex items-center gap-0.5 px-1 " +
+      // 背景与 hover 行背景一致（滑入时遮住文件名/大小末尾）
+      "bg-gray-100 dark:bg-gray-700 " +
+      // 默认（移动端优先）：常显
+      "translate-x-0 opacity-100 " +
+      // sm+（桌面）：藏于行右侧外，hover 行时从右向左滑入
+      "sm:translate-x-full sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100 " +
+      "transition-all duration-150 ease-out";
+    actionsEl.dataset.fileActions = "true";
+
+    // 删除按钮
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className =
+      "p-1 rounded text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20";
+    removeBtn.title = "删除文件 " + filename;
+    removeBtn.setAttribute("aria-label", "删除文件 " + filename);
+    removeBtn.dataset.action = "remove";
+    removeBtn.dataset.filename = filename;
+    const removeIcon = document.createElement("i");
+    removeIcon.className = "fa-regular fa-trash-can text-xs";
+    removeBtn.appendChild(removeIcon);
+    actionsEl.appendChild(removeBtn);
 
     row.appendChild(iconEl);
     row.appendChild(nameEl);
     row.appendChild(sizeEl);
+    row.appendChild(actionsEl);
     li.appendChild(row);
     fragment.appendChild(li);
   });
@@ -191,6 +223,84 @@ function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+}
+
+// ==================== 删除项目文件 ====================
+// 从当前项目中移除指定文件：清理文件内容缓存、文件元数据与该文件的全部翻译项
+async function removeFileFromProject(filename) {
+  if (!filename) return;
+
+  const ok = await showConfirmDialog({
+    title: "删除文件",
+    message:
+      '确定要从项目中删除文件 "' + filename + '" 吗？\n' +
+      "该文件的所有翻译项也将一并移除，此操作不可恢复。",
+    confirmText: "删除",
+    danger: true,
+  });
+  if (!ok) return;
+
+  try {
+    // 1. 清理 IndexedDB / localStorage 中的文件内容缓存
+    const meta = AppState.fileMetadata?.[filename];
+    if (meta && meta.contentKey) {
+      try {
+        if (typeof idbDeleteFileContent === "function") {
+          await idbDeleteFileContent(meta.contentKey);
+        }
+      } catch (e) {
+        (loggers.storage || console).warn("删除文件内容缓存失败:", filename, e);
+      }
+    }
+
+    // 2. 删除文件元数据
+    if (AppState.fileMetadata && AppState.fileMetadata[filename]) {
+      delete AppState.fileMetadata[filename];
+    }
+    if (AppState.project?.fileMetadata && AppState.project.fileMetadata[filename]) {
+      delete AppState.project.fileMetadata[filename];
+    }
+
+    // 3. 移除该文件的全部翻译项
+    if (AppState.project) {
+      AppState.project.translationItems = (
+        AppState.project.translationItems || []
+      ).filter((item) => item?.metadata?.file !== filename);
+    }
+    AppState.translations.items = AppState.project?.translationItems || [];
+    AppState.translations.filtered = [...AppState.translations.items];
+
+    // 4. 清理选中状态
+    if (AppState.translations.selectedFile === filename) {
+      AppState.translations.selectedFile = null;
+    }
+    AppState.translations.selected = -1;
+    AppState.translations.currentPage = 1;
+    AppState.translations.searchQuery = "";
+
+    // 5. 持久化项目
+    if (typeof storageManager !== "undefined" && storageManager && AppState.project) {
+      try {
+        await storageManager.saveProject(AppState.project);
+      } catch (e) {
+        (loggers.storage || console).warn("删除文件后保存项目失败:", e);
+      }
+    }
+
+    // 6. 刷新 UI
+    try {
+      if (typeof updateFileTree === "function") updateFileTree();
+      if (typeof updateTranslationLists === "function") updateTranslationLists();
+      if (typeof updateCounters === "function") updateCounters();
+    } catch (e) {
+      (loggers.app || console).debug("删除文件后刷新 UI:", e);
+    }
+
+    showNotification("success", "文件已删除", "已从项目中移除 " + filename);
+  } catch (e) {
+    (loggers.app || console).error("删除文件失败:", e);
+    showNotification("error", "删除失败", "删除文件时出现错误");
+  }
 }
 
 // 根据文件过滤翻译项

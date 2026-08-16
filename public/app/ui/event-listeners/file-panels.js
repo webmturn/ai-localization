@@ -36,6 +36,18 @@ function registerEventListenersFilePanels(ctx) {
       fileTree,
       "click",
       function (e) {
+        const removeBtn = e.target.closest('[data-action="remove"]');
+        if (removeBtn) {
+          // 删除文件：不触发文件选中
+          e.preventDefault();
+          e.stopPropagation();
+          const removeName = removeBtn.dataset.filename;
+          if (removeName && typeof removeFileFromProject === "function") {
+            removeFileFromProject(removeName);
+          }
+          return;
+        }
+
         const row = e.target.closest("li > div");
         if (!row || !fileTree.contains(row)) return;
 

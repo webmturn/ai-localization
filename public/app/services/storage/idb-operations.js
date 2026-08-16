@@ -191,6 +191,40 @@ function idbGetFileContent(key) {
   });
 }
 
+
+// 删除单个文件内容（IndexedDB + localStorage 降级同步清理）
+function idbDeleteFileContent(key) {
+  if (!key) return Promise.resolve(false);
+  return openFileContentDB()
+    .then(
+      (db) =>
+        new Promise((resolve, reject) => {
+          const tx = db.transaction("fileContents", "readwrite");
+          const store = tx.objectStore("fileContents");
+          store.delete(key);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error || new Error("IndexedDB删除失败"));
+          tx.onabort = () => reject(tx.error || new Error("IndexedDB删除中止"));
+        })
+    )
+    .then((ok) => {
+      // 同步清理 localStorage 降级副本
+      try {
+        localStorage.removeItem(__fileContentLsFallbackPrefix + key);
+      } catch (e) {}
+      return ok;
+    })
+    .catch((e) => {
+      // IndexedDB 不可用时至少清理降级副本
+      try {
+        localStorage.removeItem(__fileContentLsFallbackPrefix + key);
+        return true;
+      } catch (e2) {
+        throw e;
+      }
+    });
+}
+
 const __projectLsFallbackPrefix = "__proj:";
 let __projectLsFallbackNotified = false;
 

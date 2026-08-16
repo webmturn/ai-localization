@@ -154,6 +154,7 @@
   var uiScripts = [
     "app/ui/file-tree.js",
     "app/ui/notification.js",
+    "app/ui/confirm-dialog.js", // 通用确认/输入对话框（替换原生 prompt/confirm）
     "app/ui/charts.js",
     "app/ui/settings.js",
     "app/ui/file-drop.js",

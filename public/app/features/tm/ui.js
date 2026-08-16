@@ -218,8 +218,14 @@ var TMManagerUI = (function () {
     });
   }
 
-  function _clearAll() {
-    if (!confirm("确定要清空所有翻译记忆吗？此操作无法撤销。")) return;
+  async function _clearAll() {
+    const ok = await showConfirmDialog({
+      title: "清空翻译记忆",
+      message: "确定要清空所有翻译记忆吗？此操作无法撤销。",
+      confirmText: "清空",
+      danger: true,
+    });
+    if (!ok) return;
     if (typeof TranslationMemory === "undefined") return;
     TranslationMemory.clear().then(function () {
       _loadStats();

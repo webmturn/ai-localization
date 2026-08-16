@@ -326,8 +326,14 @@ function editTerm(termId) {
 }
 
 // 删除术语
-function deleteTerm(termId) {
-  if (confirm("确定要删除这个术语吗？")) {
+async function deleteTerm(termId) {
+  const ok = await showConfirmDialog({
+    title: "删除术语",
+    message: "确定要删除这个术语吗？",
+    confirmText: "删除",
+    danger: true,
+  });
+  if (ok) {
     const index = AppState.terminology.list.findIndex((t) => t.id === termId);
     if (index !== -1) {
       AppState.terminology.list.splice(index, 1);

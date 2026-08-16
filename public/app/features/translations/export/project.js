@@ -1,5 +1,5 @@
 // 创建新项目
-function createNewProject() {
+async function createNewProject() {
   const name = DOMCache.get("projectName").value.trim();
   const sourceLang = DOMCache.get("projectSourceLang").value;
   const targetLang = DOMCache.get("projectTargetLang").value;
@@ -11,11 +11,13 @@ function createNewProject() {
 
   // 检查是否有未保存的项目
   if (AppState.project && AppState.translations.items.length > 0) {
-    if (
-      !confirm("当前项目尚未保存，是否继续创建新项目？未保存的数据将丢失。")
-    ) {
-      return;
-    }
+    const ok = await showConfirmDialog({
+      title: "新建项目",
+      message: "当前项目尚未保存，是否继续创建新项目？未保存的数据将丢失。",
+      confirmText: "继续创建",
+      danger: true,
+    });
+    if (!ok) return;
   }
 
   // 清空现有数据
@@ -87,7 +89,7 @@ function openProject() {
     if (!file) return;
 
     readFileAsync(file)
-      .then((raw) => {
+      .then(async (raw) => {
         let projectData;
         try {
           projectData = JSON.parse(raw);
@@ -109,13 +111,13 @@ function openProject() {
 
         // 检查是否有未保存的项目
         if (AppState.project && AppState.translations.items.length > 0) {
-          if (
-            !confirm(
-              "当前项目尚未保存，是否继续打开新项目？未保存的数据将丢失。"
-            )
-          ) {
-            return;
-          }
+          const ok = await showConfirmDialog({
+            title: "打开项目",
+            message: "当前项目尚未保存，是否继续打开新项目？未保存的数据将丢失。",
+            confirmText: "继续打开",
+            danger: true,
+          });
+          if (!ok) return;
         }
 
         // 加载项目数据

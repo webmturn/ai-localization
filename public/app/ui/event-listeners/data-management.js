@@ -712,11 +712,14 @@ function registerEventListenersDataManagement(ctx) {
         clearAllSampleDataBtn,
         "click",
         async () => {
-          if (
-            confirm(
-              "确定要清除所有示例数据吗？包括：\n- 示例项目\n- 翻译项\n- 术语库\n\n此操作不可恢复！"
-            )
-          ) {
+          const ok = await showConfirmDialog({
+            title: "清除示例数据",
+            message:
+              "确定要清除所有示例数据吗？包括：\n- 示例项目\n- 翻译项\n- 术语库\n\n此操作不可恢复！",
+            confirmText: "清除",
+            danger: true,
+          });
+          if (ok) {
             const activeWasSample =
               !!AppState?.project?.__isSampleProject ||
               AppState?.project?.id === "sample-project-1";

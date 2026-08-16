@@ -16,7 +16,9 @@ function registerEventListenersTerminology(ctx) {
         const deleteBtn = e.target.closest(".delete-term-btn");
         if (deleteBtn && terminologyListElement.contains(deleteBtn)) {
           const termId = parseInt(deleteBtn.dataset.id);
-          deleteTerm(termId);
+          deleteTerm(termId).catch(function (e) {
+            (loggers.app || console).error("删除术语失败:", e);
+          });
         }
       },
       {

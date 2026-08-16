@@ -123,7 +123,9 @@ var CustomEngineUI = (function () {
     listEl.querySelectorAll("[data-ce-delete]").forEach(function (btn) {
       EventManager.add(btn, "click", function () {
         var id = btn.getAttribute("data-ce-delete");
-        _deleteEngine(id);
+        _deleteEngine(id).catch(function (e) {
+  (loggers.app || console).error("删除自定义引擎失败:", e);
+});
       });
     });
   }
@@ -293,8 +295,14 @@ var CustomEngineUI = (function () {
     }
   }
 
-  function _deleteEngine(engineId) {
-    if (!confirm("\u786e\u5b9a\u8981\u5220\u9664\u5f15\u64ce [" + engineId + "] \u5417\uff1f")) return;
+  async function _deleteEngine(engineId) {
+    const ok = await showConfirmDialog({
+      title: "删除自定义引擎",
+      message: "确定要删除引擎 [" + engineId + "] 吗？",
+      confirmText: "删除",
+      danger: true,
+    });
+    if (!ok) return;
     if (typeof CustomEngineManager !== "undefined") {
       CustomEngineManager.remove(engineId);
     }

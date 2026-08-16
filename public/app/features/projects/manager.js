@@ -136,7 +136,8 @@
 
     if (!projects || projects.length === 0) {
       const empty = document.createElement("div");
-      empty.className = "text-sm text-gray-500 dark:text-gray-400 p-3";
+      empty.className =
+        "min-h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 p-3";
       empty.textContent = "暂无项目，请先创建/导入项目。";
       listEl.replaceChildren(empty);
       return;
@@ -241,8 +242,13 @@
       name = nameInput.value.trim();
     }
     if (!name) {
-      name = prompt("请输入项目名称", "新项目") || "";
-      name = String(name).trim();
+      const inputName = await showPromptDialog({
+        title: "创建项目",
+        message: "请输入项目名称：",
+        defaultValue: "新项目",
+        placeholder: "项目名称",
+      });
+      name = (inputName || "").toString().trim();
     }
     if (!name) return;
 
@@ -333,11 +339,15 @@
 
       const existing = await storageManager.loadProjectById(project.id);
       if (existing) {
-        const ok = confirm(
-          `检测到同 ID 项目（${project.id}）。是否覆盖？\n取消则以新 ID 导入。`
-        );
+        const ok = await showConfirmDialog({
+          title: "项目已存在",
+          message:
+            "检测到同 ID 项目（" + project.id + "）。\n是否覆盖？取消则以新 ID 导入。",
+          confirmText: "覆盖",
+          cancelText: "以新 ID 导入",
+        });
         if (!ok) {
-          project.id = `${project.id}-${Date.now()}`;
+          project.id = project.id + "-" + Date.now();
         }
       }
 
@@ -569,7 +579,13 @@
           }
 
           if (action === "rename") {
-            const nextName = prompt("请输入新的项目名称");
+            const nextName = await showPromptDialog({
+              title: "重命名项目",
+              message: "请输入新的项目名称：",
+              defaultValue:
+                AppState.project?.id === projectId ? AppState.project.name : "",
+              placeholder: "新的项目名称",
+            });
             if (!nextName) return;
             await storageManager
               .renameProject(projectId, nextName)
@@ -587,7 +603,12 @@
           }
 
           if (action === "delete") {
-            const ok = confirm("确定要删除该项目吗？此操作不可恢复。");
+            const ok = await showConfirmDialog({
+              title: "删除项目",
+              message: "确定要删除该项目吗？此操作不可恢复。",
+              confirmText: "删除",
+              danger: true,
+            });
             if (!ok) return;
 
             await storageManager.deleteProject(projectId).catch((e) => {
@@ -602,6 +623,27 @@
                 .loadProjectById(activeId)
                 .catch(() => null);
               if (p) __applyProjectToState(p);
+            } else if (!activeId && AppState.project?.id === projectId) {
+              // 删除的是当前项目且无其他项目：清空状态，避免 refresh 时被重新索引复活
+              AppState.project = null;
+              AppState.translations.items = [];
+              AppState.translations.filtered = [];
+              AppState.translations.selected = -1;
+              AppState.translations.currentPage = 1;
+              AppState.fileMetadata = {};
+              try {
+                if (typeof updateFileTree === "function") updateFileTree();
+                if (typeof updateTranslationLists === "function") updateTranslationLists();
+                if (typeof updateCounters === "function") updateCounters();
+                const projectStatusEl = DOMCache.get("projectStatus");
+                if (projectStatusEl) {
+                  projectStatusEl.textContent = "无项目";
+                  projectStatusEl.className =
+                    "text-gray-400 dark:text-gray-500 font-medium";
+                }
+              } catch (e) {
+                (loggers.app || console).debug("删除当前项目后清空 UI:", e);
+              }
             }
 
             await refreshProjectManagerList();

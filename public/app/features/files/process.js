@@ -261,6 +261,28 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
   } catch (e) {
     (loggers.storage || console).error("导入后持久化失败:", e);
   }
+
+  // 导入后自动翻译（autoTranslateOnImport 设置项）
+  try {
+    const settings = typeof SettingsCache !== "undefined" && SettingsCache.get ? SettingsCache.get() : {};
+    if (settings && settings.autoTranslateOnImport && newItems && newItems.length > 0) {
+      if (typeof translateAll === "function") {
+        showNotification(
+          "info",
+          "开始自动翻译",
+          "正在翻译导入的 " + newItems.length + " 个条目..."
+        );
+        // 延迟触发，避免与导入完成流程的 UI 更新冲突
+        setTimeout(function () {
+          translateAll().catch(function (e) {
+            (loggers.app || console).warn("导入后自动翻译失败:", e);
+          });
+        }, 400);
+      }
+    }
+  } catch (e) {
+    (loggers.app || console).debug("autoTranslateOnImport:", e);
+  }
 }
 
 (function () {

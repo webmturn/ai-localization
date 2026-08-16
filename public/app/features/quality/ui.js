@@ -58,6 +58,33 @@ function __updateQualityReportUIImpl() {
   if (elOverallScore) elOverallScore.textContent = `${results.overallScore}/100`;
   if (elOverallScoreBar) elOverallScoreBar.style.width = `${results.overallScore}%`;
 
+  // 质量分数阈值警告（qualityThreshold 设置项，默认 70）：低于阈值变红并提示
+  let threshold = 70;
+  try {
+    const settings = typeof SettingsCache !== "undefined" && SettingsCache.get ? SettingsCache.get() : {};
+    const raw = parseInt(settings && settings.qualityThreshold);
+    if (Number.isFinite(raw)) threshold = Math.max(0, Math.min(100, raw));
+  } catch (e) {}
+  const belowThreshold = results.overallScore < threshold;
+  if (elOverallScore) {
+    elOverallScore.classList.toggle("text-red-600", belowThreshold);
+    elOverallScore.classList.toggle("dark:text-red-400", belowThreshold);
+    elOverallScore.classList.toggle("text-primary", !belowThreshold);
+    elOverallScore.title = belowThreshold
+      ? "质量分数低于阈值 " + threshold + "，建议检查问题列表"
+      : "";
+  }
+  if (elOverallScoreBar) {
+    elOverallScoreBar.classList.toggle("bg-red-500", belowThreshold);
+    elOverallScoreBar.classList.toggle("bg-primary", !belowThreshold);
+  }
+  const elScoreHint = DOMCache.get("scoreThresholdHint");
+  if (elScoreHint) {
+    elScoreHint.textContent = belowThreshold
+      ? "低于质量阈值 " + threshold + "，请检查下方问题列表"
+      : "";
+  }
+
   const translatedPercent =
     results.totalCount > 0
       ? Math.round((results.translatedCount / results.totalCount) * 100)

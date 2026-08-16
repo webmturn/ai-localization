@@ -125,6 +125,28 @@ async function __parseFileAsyncImpl(file) {
 
     const fileExtension = file.name.split(".").pop().toLowerCase();
 
+    // 文件格式开关检查（format* 设置项）：关闭的格式直接拒绝，不进入解析/兜底回退
+    try {
+      const s = typeof SettingsCache !== "undefined" && SettingsCache.get ? SettingsCache.get() : {};
+      const extFormatKey = {
+        xml: "xml", xlf: "xliff", xliff: "xliff", ts: "ts", resx: "resx",
+        strings: "strings", po: "po", json: "json",
+      }[fileExtension];
+      if (extFormatKey) {
+        const enabled = s["format" + (extFormatKey === "strings" ? "IOSStrings" : extFormatKey === "ts" ? "QtTS" : extFormatKey === "xml" ? "XML" : extFormatKey === "xliff" ? "XLIFF" : extFormatKey === "resx" ? "RESX" : extFormatKey === "po" ? "PO" : extFormatKey === "json" ? "JSON" : "")] !== false;
+        if (!enabled) {
+          showNotification("warning", "格式已禁用", "已在设置中禁用 " + fileExtension.toUpperCase() + " 格式解析（文件处理设置）");
+          return null;
+        }
+      } else if (s.formatTextFallback === false) {
+        // 未知扩展名走文本兜底，受 formatTextFallback 控制
+        showNotification("warning", "文本解析已禁用", "已在设置中禁用文本兜底解析（文件处理设置）");
+        return null;
+      }
+    } catch (e) {
+      (loggers.app || console).debug("format setting check:", e);
+    }
+
     const content = await __readFileAsyncImpl(file);
 
     const normalizedContent = (typeof content === "string" ? content : "")

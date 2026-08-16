@@ -358,8 +358,18 @@
 
 .toolbar-control {
     min-height: 2.25rem;
-    display: flex;
-    align-items: center;
+    /* display 由 Tailwind 类控制（flex/hidden/sm:flex），避免未分层规则覆盖 .hidden */
+}
+
+/* 设置面板 API 密钥折叠区：移除 summary 默认三角，使用自定义 chevron */
+#apiKeysSection summary::-webkit-details-marker {
+    display: none;
+}
+#apiKeysSection summary::marker {
+    content: "";
+}
+#apiKeysSection[open] summary .fa-chevron-down {
+    transform: rotate(180deg);
 }
 
 /* ==================== 紧凑语言选择器样式 ==================== */

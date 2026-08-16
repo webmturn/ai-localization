@@ -799,4 +799,75 @@ function registerEventListenersDataManagement(ctx) {
       );
     }
   }
+
+  // ==================== "更多"操作下拉菜单 ====================
+  const moreActionsBtn = DOMCache.get("moreActionsBtn");
+  const moreActionsMenu = DOMCache.get("moreActionsMenu");
+  if (moreActionsBtn && moreActionsMenu) {
+    let moreActionsOutsideListenerId = null;
+
+    const closeMoreActionsMenu = () => {
+      moreActionsMenu.classList.add("hidden");
+      moreActionsBtn.setAttribute("aria-expanded", "false");
+      if (moreActionsOutsideListenerId) {
+        EventManager.removeById(moreActionsOutsideListenerId);
+        moreActionsOutsideListenerId = null;
+      }
+    };
+
+    EventManager.add(
+      moreActionsBtn,
+      "click",
+      function (e) {
+        e.stopPropagation();
+        const isHidden = moreActionsMenu.classList.contains("hidden");
+        if (isHidden) {
+          moreActionsMenu.classList.remove("hidden");
+          moreActionsBtn.setAttribute("aria-expanded", "true");
+          setTimeout(() => {
+            if (!moreActionsOutsideListenerId) {
+              moreActionsOutsideListenerId = EventManager.add(
+                document,
+                "click",
+                function (ev) {
+                  if (
+                    !moreActionsMenu.contains(ev.target) &&
+                    !moreActionsBtn.contains(ev.target)
+                  ) {
+                    closeMoreActionsMenu();
+                  }
+                },
+                {
+                  tag: "data",
+                  scope: "moreActions",
+                  label: "document:clickCloseMoreActions",
+                }
+              );
+            }
+          }, 0);
+        } else {
+          closeMoreActionsMenu();
+        }
+      },
+      {
+        tag: "data",
+        scope: "moreActions",
+        label: "moreActionsBtn:click",
+      }
+    );
+
+    // 菜单项点击后自动收起
+    moreActionsMenu.querySelectorAll("button").forEach((menuItem) => {
+      EventManager.add(
+        menuItem,
+        "click",
+        closeMoreActionsMenu,
+        {
+          tag: "data",
+          scope: "moreActions",
+          label: "moreActionsMenu:itemClickClose",
+        }
+      );
+    });
+  }
 }

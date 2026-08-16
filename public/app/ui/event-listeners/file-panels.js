@@ -511,6 +511,50 @@ function registerEventListenersFilePanels(ctx) {
       label: "saveProjectBtn:click",
     });
 
+  // 用户菜单中的项目管理/保存项目入口（顶部按钮已收纳到菜单）
+  // 注意：不调用 toggleUserMenu()（其内部依赖事件参数 e.stopPropagation），
+  // 点击后直接隐藏菜单再执行动作，避免无参数调用抛异常
+  function _closeUserMenu() {
+    var menu = DOMCache.get("userMenu");
+    if (menu) menu.classList.add("hidden");
+  }
+
+  const openProjectManagerMenu = DOMCache.get("openProjectManagerMenu");
+  if (openProjectManagerMenu) {
+    EventManager.add(
+      openProjectManagerMenu,
+      "click",
+      function (e) {
+        e.preventDefault();
+        _closeUserMenu();
+        if (typeof openProjectManager === "function") openProjectManager();
+        else if (projectManagerBtn) projectManagerBtn.click();
+      },
+      {
+        tag: "project",
+        scope: "userMenu",
+        label: "openProjectManagerMenu:click",
+      }
+    );
+  }
+  const saveProjectMenu = DOMCache.get("saveProjectMenu");
+  if (saveProjectMenu) {
+    EventManager.add(
+      saveProjectMenu,
+      "click",
+      function (e) {
+        e.preventDefault();
+        _closeUserMenu();
+        saveProject();
+      },
+      {
+        tag: "project",
+        scope: "userMenu",
+        label: "saveProjectMenu:click",
+      }
+    );
+  }
+
   // 术语库相关
 
   // 用户菜单

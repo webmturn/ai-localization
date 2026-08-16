@@ -245,8 +245,9 @@ function _aiMakeCancelError(partialOutputs) {
 
 /**
  * 解析使用的模型，避免 settings.model 跨引擎污染
- * - 若引擎声明了 availableModels 列表，仅接受列表内的 model，否则回退 defaultModel
- * - 若未声明 availableModels（自定义引擎未填模型、老配置等），则保持向后兼容不做校验
+ * - 内置引擎不再声明静态模型列表（模型由 ModelFetcher 动态获取），直接采用 settings.model，
+ *   为空时回退 defaultModel；用户选择的动态模型始终被接受
+ * - 自定义引擎若声明 availableModels（用户显式配置的模型），仍校验并回退 defaultModel
  */
 function _aiResolveModel(settings, config) {
   var requested = settings && settings.model ? String(settings.model) : "";
@@ -270,6 +271,19 @@ function _aiResolveModel(settings, config) {
     );
   }
   return (config && config.defaultModel) || available[0] || "";
+}
+
+/**
+ * 温度钳制：按引擎声明的 temperatureRange 限制（默认 0-2），
+ * 未设置时使用默认值 0.3，避免超出 API 限制（如 Claude 仅 0-1）
+ */
+function _aiClampTemperature(config, rawTemperature) {
+  var range = (config && config.temperatureRange) || { min: 0, max: 2 };
+  var min = Number.isFinite(range.min) ? range.min : 0;
+  var max = Number.isFinite(range.max) ? range.max : 2;
+  var num = rawTemperature != null ? Number(rawTemperature) : 0.3;
+  if (!Number.isFinite(num)) num = 0.3;
+  return Math.min(max, Math.max(min, num));
 }
 
 function _aiSupportsJsonMode(config, model) {
@@ -416,14 +430,14 @@ var AIEngineBase = {
       });
     }
 
-    // 构建请求体
+    // 构建请求体（温度按引擎范围钳制，避免超出 API 限制）
     var body = {
       model: model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: cleanText },
       ],
-      temperature: settings.temperature != null ? Number(settings.temperature) : 0.1,
+      temperature: _aiClampTemperature(config, settings.temperature),
     };
     if (config.extraBodyParams) {
       var extraKeys = Object.keys(config.extraBodyParams);
@@ -707,7 +721,7 @@ var AIEngineBase = {
       var batchBody = {
         model: model,
         messages: messages,
-        temperature: settings.temperature != null ? Number(settings.temperature) : 0.1,
+        temperature: _aiClampTemperature(config, settings.temperature),
       };
       if (_aiSupportsJsonMode(config, model)) {
         batchBody.response_format = { type: "json_object" };

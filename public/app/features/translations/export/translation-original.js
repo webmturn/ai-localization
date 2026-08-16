@@ -344,19 +344,32 @@ function generatePOFromOriginal(items, fileName) {
   try {
     let result = originalContent;
 
-    items.forEach((item) => {
+        items.forEach((item) => {
       const msgid = item?.sourceText;
       const msgstr = item?.targetText;
       if (!msgid || !msgid.trim()) return;
       if (!msgstr || !msgstr.trim()) return;
 
       const escapedMsgid = msgid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedMsgstr = msgstr.replace(/"/g, '\\"');
+
+      // 主译文：msgstr 或 msgstr[0]（复数条目的首个形式）
       const replaceRegex = new RegExp(
-        `(msgid\\s+\"${escapedMsgid}\"[\\s\\S]*?msgstr\\s+)\"[^\"]*\"`,
+        "(msgid\\s+\"" + escapedMsgid + "\"[\\s\\S]*?msgstr(?:\\[\\d+\\])?\\s+)\"[^\"]*\"",
         "g"
       );
-      const escapedMsgstr = msgstr.replace(/\"/g, '\\"');
-      result = result.replace(replaceRegex, `$1\"${escapedMsgstr}\"`);
+      result = result.replace(replaceRegex, "$1\"" + escapedMsgstr + "\"");
+
+      // 复数译文：msgstr[1]（解析时保留在 metadata.pluralTarget）
+      const plural = item?.metadata?.pluralTarget;
+      if (plural != null && String(plural).trim()) {
+        const escapedPlural = String(plural).replace(/"/g, '\\"');
+        const pluralRegex = new RegExp(
+          "(msgid\\s+\"" + escapedMsgid + "\"[\\s\\S]*?msgstr\\[1\\]\\s+)\"[^\"]*\"",
+          "g"
+        );
+        result = result.replace(pluralRegex, "$1\"" + escapedPlural + "\"");
+      }
     });
 
     return result;

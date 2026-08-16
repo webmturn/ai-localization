@@ -35,6 +35,8 @@
   - 导出改用 jsyaml.dump（forceQuotes 可配）
   - parse.js 解析调度改为 await 兼容同步/异步解析器
   - 实测：多行块/数组/锚点全部正确提取（旧解析器均不支持）
+- **XLIFF 命名空间前缀支持** — getElementsByTagName → getElementsByTagNameNS("*", ...)，带 `<xliff:trans-unit>` 前缀的文件可正常解析（修复前解析 0 条）
+- **PO 复数导出** — 原格式导出时同时更新 msgstr[0]（主译文）与 msgstr[1]（metadata.pluralTarget 复数译文），复数语言往返不再丢译文
 - **格式解析器修复（PO/iOS strings/YAML/XLIFF）**：
   - PO：`\\n` 字面序列转义顺序错误（被误转为换行）修复为单次映射替换；复数翻译 msgstr[1] 保留到 metadata.pluralTarget
   - iOS strings：新增 `\uXXXX` unicode 转义支持；空值条目不再误用 key 当原文（sourceText 留空、key 保留）

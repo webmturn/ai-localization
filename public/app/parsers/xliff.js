@@ -31,14 +31,14 @@ function parseXLIFF(content, fileName) {
   }
 
   // 查找所有trans-unit元素
-  const transUnits = xmlDoc.getElementsByTagName("trans-unit");
+  const transUnits = xmlDoc.getElementsByTagNameNS("*", "trans-unit");
   if (transUnits && transUnits.length > 0) {
     for (let i = 0; i < transUnits.length; i++) {
       const unit = transUnits[i];
       const id = unit.getAttribute("id") || `unit-${i + 1}`;
 
-      const sourceElement = unit.getElementsByTagName("source")[0];
-      const targetElement = unit.getElementsByTagName("target")[0];
+      const sourceElement = unit.getElementsByTagNameNS("*", "source")[0];
+      const targetElement = unit.getElementsByTagNameNS("*", "target")[0];
 
       const sourceText = serializeChildren(sourceElement);
       const targetText = serializeChildren(targetElement);
@@ -63,16 +63,16 @@ function parseXLIFF(content, fileName) {
     return items;
   }
 
-  const units = xmlDoc.getElementsByTagName("unit");
+  const units = xmlDoc.getElementsByTagNameNS("*", "unit");
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
     const unitId = unit.getAttribute("id") || `unit-${i + 1}`;
-    const segments = unit.getElementsByTagName("segment");
+    const segments = unit.getElementsByTagNameNS("*", "segment");
     if (segments && segments.length > 0) {
       for (let s = 0; s < segments.length; s++) {
         const seg = segments[s];
-        const sourceElement = seg.getElementsByTagName("source")[0];
-        const targetElement = seg.getElementsByTagName("target")[0];
+        const sourceElement = seg.getElementsByTagNameNS("*", "source")[0];
+        const targetElement = seg.getElementsByTagNameNS("*", "target")[0];
         const sourceText = serializeChildren(sourceElement);
         const targetText = serializeChildren(targetElement);
         if (!sourceText) continue;
@@ -93,8 +93,8 @@ function parseXLIFF(content, fileName) {
         });
       }
     } else {
-      const sourceElement = unit.getElementsByTagName("source")[0];
-      const targetElement = unit.getElementsByTagName("target")[0];
+      const sourceElement = unit.getElementsByTagNameNS("*", "source")[0];
+      const targetElement = unit.getElementsByTagNameNS("*", "target")[0];
       const sourceText = serializeChildren(sourceElement);
       const targetText = serializeChildren(targetElement);
       if (!sourceText) continue;

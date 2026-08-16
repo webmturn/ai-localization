@@ -114,6 +114,11 @@ TranslationService.prototype.translateBatch = async function (
           }
         }
 
+        // 自动应用术语库（autoApplyTerms 设置项）
+        if (typeof this.applyTerminologyToTranslation === "function") {
+          translated = this.applyTerminologyToTranslation(translated);
+        }
+
         item.targetText = translated;
         item.status = "translated";
 
@@ -183,7 +188,11 @@ TranslationService.prototype.translateBatch = async function (
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           if (i < partial.length) {
-            const translated = partial[i];
+            let translated = partial[i];
+            // 自动应用术语库（与正常路径一致）
+            if (typeof this.applyTerminologyToTranslation === "function") {
+              translated = this.applyTerminologyToTranslation(translated);
+            }
             item.targetText = translated;
             item.status = "translated";
 
@@ -371,6 +380,11 @@ TranslationService.prototype.translateBatch = async function (
           item,
         });
         return;
+      }
+
+      // 自动应用术语库（autoApplyTerms 设置项）
+      if (typeof this.applyTerminologyToTranslation === "function") {
+        translated = this.applyTerminologyToTranslation(translated);
       }
 
       item.targetText = translated;

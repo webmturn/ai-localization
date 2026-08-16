@@ -59,6 +59,11 @@ TranslationService.prototype.translate = async function (
         result = PlaceholderGuard.restore(result, _phGuard.map);
       }
 
+      // 自动应用术语库（autoApplyTerms 设置项；重复调用幂等）
+      if (typeof this.applyTerminologyToTranslation === "function") {
+        result = this.applyTerminologyToTranslation(result);
+      }
+
       return result;
     } catch (error) {
       lastError = error;

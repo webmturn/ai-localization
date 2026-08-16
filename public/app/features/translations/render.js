@@ -137,7 +137,8 @@ function createTranslationItemElement(
     // 源文列表 — 使用模板 cloneNode 加速
     const clone = __sourceItemTemplate.cloneNode(true);
     const p = clone.querySelector("p");
-    p.appendChild(highlightText(sourceText, searchQuery));
+    // 搜索高亮 + 术语高亮（highlightTerms 设置项）
+    p.appendChild(highlightTextWithTerms(sourceText, searchQuery));
 
     const contentEl = clone.querySelector(".item-content");
     if (context) {
@@ -221,7 +222,8 @@ function createMobileCombinedTranslationItemElement(
   const p = document.createElement("p");
   p.className =
     "text-[13px] leading-snug font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100";
-  p.appendChild(highlightText(sourceText, searchQuery));
+  // 搜索高亮 + 术语高亮（highlightTerms 设置项）
+  p.appendChild(highlightTextWithTerms(sourceText, searchQuery));
   left.appendChild(p);
 
   let extra = null;
@@ -629,6 +631,122 @@ function highlightText(text, searchQuery) {
     pos = idx + needle.length;
   }
 
+  return fragment;
+}
+
+/**
+ * 高亮文本中的搜索关键词 + 术语库命中（highlightTerms 设置项，默认开启）
+ * - 搜索命中：黄色 mark（与 highlightText 一致）
+ * - 术语命中：青色 mark
+ * - 搜索与术语区间重叠时按搜索处理；译文为 textarea 无法富文本高亮，仅原文列使用
+ */
+function highlightTextWithTerms(text, searchQuery) {
+  const fragment = document.createDocumentFragment();
+  const rawText = text === null || text === undefined ? "" : String(text);
+  const rawQuery =
+    searchQuery === null || searchQuery === undefined
+      ? ""
+      : String(searchQuery);
+  const query = rawQuery.trim();
+  if (!rawText) {
+    fragment.appendChild(document.createTextNode(rawText));
+    return fragment;
+  }
+
+  // 术语高亮开关（highlightTerms，显式关闭才跳过）
+  let termsEnabled = true;
+  try {
+    const settings =
+      typeof SettingsCache !== "undefined" && SettingsCache.get
+        ? SettingsCache.get()
+        : {};
+    if (settings && settings.highlightTerms === false) termsEnabled = false;
+  } catch (e) {}
+
+  const lower = rawText.toLowerCase();
+  const ranges = [];
+
+  // 1. 搜索区间
+  if (query) {
+    const ql = query.toLowerCase();
+    let pos = 0;
+    while (pos < rawText.length) {
+      const idx = lower.indexOf(ql, pos);
+      if (idx === -1) break;
+      ranges.push({ start: idx, end: idx + query.length, type: "search" });
+      pos = idx + query.length;
+    }
+  }
+
+  // 2. 术语区间
+  if (termsEnabled) {
+    try {
+      const list =
+        (AppState &&
+        AppState.project &&
+        Array.isArray(AppState.project.terminologyList)
+          ? AppState.project.terminologyList
+          : null) ||
+        (AppState &&
+        AppState.terminology &&
+        Array.isArray(AppState.terminology.list)
+          ? AppState.terminology.list
+          : []);
+      for (const term of list) {
+        const src = String((term && term.source) || "");
+        if (!src) continue;
+        const sl = src.toLowerCase();
+        let pos = 0;
+        while (pos < rawText.length) {
+          const idx = lower.indexOf(sl, pos);
+          if (idx === -1) break;
+          ranges.push({ start: idx, end: idx + src.length, type: "term" });
+          pos = idx + src.length;
+        }
+      }
+    } catch (e) {
+      // 忽略术语高亮错误
+    }
+  }
+
+  if (ranges.length === 0) {
+    fragment.appendChild(document.createTextNode(rawText));
+    return fragment;
+  }
+
+  // 3. 排序并合并重叠区间（重叠时按搜索高亮处理）
+  ranges.sort(function (a, b) {
+    return a.start - b.start || b.end - a.end;
+  });
+  const merged = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r.start <= last.end) {
+      if (r.end > last.end) last.end = r.end;
+      if (r.type === "search") last.type = "search";
+    } else {
+      merged.push({ start: r.start, end: r.end, type: r.type });
+    }
+  }
+
+  // 4. 渲染
+  let pos = 0;
+  for (const r of merged) {
+    if (r.start > pos) {
+      fragment.appendChild(document.createTextNode(rawText.slice(pos, r.start)));
+    }
+    const mark = document.createElement("mark");
+    mark.className =
+      r.type === "search"
+        ? "bg-yellow-200 text-gray-900 dark:bg-yellow-900 dark:text-yellow-200 px-0.5 rounded"
+        : "bg-cyan-100 text-gray-900 dark:bg-cyan-900 dark:text-cyan-200 px-0.5 rounded";
+    mark.textContent = rawText.slice(r.start, r.end);
+    fragment.appendChild(mark);
+    pos = r.end;
+  }
+  if (pos < rawText.length) {
+    fragment.appendChild(document.createTextNode(rawText.slice(pos)));
+  }
   return fragment;
 }
 

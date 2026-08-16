@@ -125,6 +125,24 @@ function updateFileTree(files) {
     }
   }
 
+  // 单次遍历统计各文件翻译进度（避免每文件 O(n) 重复扫描）
+  const fileProgress = {};
+  try {
+    const allItems = AppState?.project?.translationItems || [];
+    for (let pi = 0; pi < allItems.length; pi++) {
+      const it = allItems[pi];
+      const fn = it?.metadata?.file;
+      if (!fn) continue;
+      if (!fileProgress[fn]) fileProgress[fn] = { total: 0, translated: 0 };
+      fileProgress[fn].total++;
+      if (it.targetText && String(it.targetText).trim()) {
+        fileProgress[fn].translated++;
+      }
+    }
+  } catch (e) {
+    (loggers.app || console).debug("fileProgress scan:", e);
+  }
+
   const fragment = document.createDocumentFragment();
   uniqueFiles.forEach((filename) => {
     const extension = filename.split(".").pop().toLowerCase();
@@ -160,6 +178,26 @@ function updateFileTree(files) {
       "transition-all duration-150 sm:group-hover:opacity-0";
     sizeEl.textContent = getFileSize(filename);
 
+    // 翻译进度徽章（已译百分比；与大小一起在 hover 时淡出让位给操作菜单）
+    const prog = fileProgress[filename];
+    const progressEl = document.createElement("span");
+    if (prog && prog.total > 0) {
+      const done = prog.translated >= prog.total;
+      progressEl.className =
+        "ml-2 text-xs font-medium tabular-nums " +
+        (done
+          ? "text-emerald-600 dark:text-emerald-400"
+          : prog.translated > 0
+          ? "text-blue-600 dark:text-blue-400"
+          : "text-gray-400 dark:text-gray-500") +
+        " transition-all duration-150 sm:group-hover:opacity-0";
+      const pct =
+        prog.total > 0 ? Math.round((prog.translated / prog.total) * 100) : 0;
+      progressEl.textContent = pct + "%";
+      progressEl.title =
+        prog.translated + "/" + prog.total + " 已翻译";
+    }
+
     // ===== 文件操作菜单：桌面端 hover 从右向左滑入，移动端常显 =====
     // 结构与常见文件管理器一致：操作按钮固定于行右侧，滑入时平滑覆盖
     const actionsEl = document.createElement("div");
@@ -191,6 +229,7 @@ function updateFileTree(files) {
     row.appendChild(iconEl);
     row.appendChild(nameEl);
     row.appendChild(sizeEl);
+    if (progressEl && progressEl.textContent) row.appendChild(progressEl);
     row.appendChild(actionsEl);
     li.appendChild(row);
     fragment.appendChild(li);

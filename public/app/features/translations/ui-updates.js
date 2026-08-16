@@ -13,6 +13,20 @@
  * @param {boolean} [options.preserveSelection] - 是否保持当前选择
  * @param {string} [options.reason] - 更新原因（用于日志）
  */
+// 文件树进度刷新（防抖合并：批量翻译每条完成时避免频繁重建文件树）
+var __fileTreeRefreshTimer = null;
+function __refreshFileTreeDebounced() {
+  if (__fileTreeRefreshTimer) clearTimeout(__fileTreeRefreshTimer);
+  __fileTreeRefreshTimer = setTimeout(function () {
+    __fileTreeRefreshTimer = null;
+    try {
+      if (typeof updateFileTree === "function") updateFileTree();
+    } catch (e) {
+      (loggers.app || console).debug("file tree refresh:", e);
+    }
+  }, 300);
+}
+
 function updateTranslationUI(options = {}) {
   const {
     selectedFile = null,
@@ -61,6 +75,8 @@ function updateTranslationUI(options = {}) {
     if (selectedFile && typeof updateFileTreeSelection === 'function') {
       updateFileTreeSelection(selectedFile);
     }
+    // 5b. 刷新文件树翻译进度（防抖）
+    __refreshFileTreeDebounced();
     
     // 6. 触发UI更新完成事件
     if (typeof window.CustomEvent === 'function') {

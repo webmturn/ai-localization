@@ -11,6 +11,13 @@
 
 const fs = require("fs");
 const path = require("path");
+let terserMinify = null;
+try {
+  const terser = require("terser");
+  terserMinify = terser.minify;
+} catch (e) {
+  // terser 未安装时跳过压缩（仅警告）
+}
 
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
 const APP_JS = path.join(PUBLIC_DIR, "app.js");
@@ -76,7 +83,7 @@ function extractBootstrapCode() {
   return { appInit, archAndBootstrap };
 }
 
-function build() {
+async function build() {
   console.log("📦 开始打包...");
 
   const scriptPaths = extractScriptPaths();
@@ -161,12 +168,43 @@ function build() {
   parts.push(`initializeArchitectureSystem();`);
 
   const bundle = parts.join("\n");
-  fs.writeFileSync(OUTPUT, bundle, "utf-8");
 
-  const bundleSize = (bundle.length / 1024).toFixed(1);
+  // ========== 生产压缩（terser） ==========
+  // 未压缩 bundle 约 1.1MB：压缩后体积/解析/内存均显著下降。
+  // 失败时回退未压缩版本（不阻塞构建）。
+  let finalBundle = bundle;
+  let minifiedInfo = "";
+  if (terserMinify) {
+    try {
+      // terser.minify 为异步 API，必须 await
+      const minified = await terserMinify(bundle, {
+        ecma: 2022,
+        compress: {
+          passes: 2,
+          drop_console: false, // 保留 console（应用日志/调试依赖）
+        },
+        mangle: true,
+        format: { comments: false },
+      });
+      if (minified && minified.code) {
+        finalBundle =
+          "// app.bundle.js — 自动生成（terser 压缩），请勿手动编辑\n" +
+          minified.code;
+        minifiedInfo = " (terser)";
+      }
+    } catch (e) {
+      console.warn("⚠️ terser 压缩失败，使用未压缩版本:", e.message);
+    }
+  } else {
+    console.warn("⚠️ terser 未安装，使用未压缩版本（npm i -D terser 可启用压缩）");
+  }
+
+  fs.writeFileSync(OUTPUT, finalBundle, "utf-8");
+
+  const bundleSize = (finalBundle.length / 1024).toFixed(1);
   const sourceSize = (totalSize / 1024).toFixed(1);
 
-  console.log(`✅ 打包完成: app.bundle.js`);
+  console.log(`✅ 打包完成: app.bundle.js${minifiedInfo}`);
   console.log(`   源文件: ${scriptPaths.length} 个, ${sourceSize} KB`);
   console.log(`   Bundle: ${bundleSize} KB`);
   if (missing.length > 0) {
@@ -176,4 +214,7 @@ function build() {
   console.log(`   在 index.html 中将 <script src="app.js"> 替换为 <script src="app.bundle.js">`);
 }
 
-build();
+build().catch(function (e) {
+  console.error("❌ 构建失败:", e);
+  process.exit(1);
+});

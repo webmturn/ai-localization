@@ -3,7 +3,7 @@
 一个功能强大的本地化翻译工具，支持多种文件格式的翻译和管理。
 
 **仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-**当前版本**：v1.3.0 | [更新日志](CHANGELOG.md) | [桌面测试版下载](https://github.com/webmturn/ai-localization/releases/tag/v1.1.0)
+**当前版本**：v1.3.2 | [更新日志](CHANGELOG.md) | [桌面测试版下载](https://github.com/webmturn/ai-localization/releases/tag/v1.1.0)
 
 ## ✨ 特性
 
@@ -22,7 +22,7 @@
 - ⏸️ 批量翻译暂停/取消/重试
 - 🗄️ 翻译请求缓存（减少重复 API 调用）
 - 🔄 多引擎支持（DeepSeek / OpenAI / Gemini / Claude / Google 翻译）
-- ⚡ JS 打包优化（106 个脚本合并为 1 个 bundle，消除串行加载延迟）
+- ⚡ JS 打包优化（116 个脚本合并为 1 个 bundle，消除串行加载延迟）
 - 🔔 引擎切换 Toast 通知 + 友好错误消息
 - ⏱️ 批量翻译 ETA 预估（预计剩余时间）
 

@@ -29,11 +29,12 @@ EngineRegistry.register({
     },
   ],
   supportsBatch: true,
-  // 单条翻译：单段输出通常 < 1000 token，2000 足够
-  extraBodyParams: { max_tokens: 2000 },
-  // 批量翻译：一个 chunk 最多 40 项 × 数百 token，预留 8000 防止 JSON 截断
-  extraBatchBodyParams: { max_tokens: 8000 },
-  rateLimitPerSecond: 3,
+  // 单条翻译：单段输出通常 < 1000 token，4096 覆盖长段落
+  extraBodyParams: { max_tokens: 4096 },
+  // 批量翻译：一个 chunk 最多 100 项，预留 16000 防止 JSON 截断（gpt-4o 上限 16384）
+  extraBatchBodyParams: { max_tokens: 16000 },
+  // gpt-4o 系 RPM 达 10000，3 → 15 提升批量吞吐（受 checkRateLimit 令牌桶节流）
+  rateLimitPerSecond: 15,
   // 动态获取模型列表端点（过滤 embedding/whisper/tts 等非 chat 模型）
   // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
   modelsEndpoint: {

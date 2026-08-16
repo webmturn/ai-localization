@@ -115,6 +115,33 @@ function _aiChunkItems(items, maxChars, maxItems) {
   return chunks;
 }
 
+// ======================== 超长条目告警 ========================
+// securityUtils.sanitizeForApi 会将超过 10000 字符的文本截断，
+// 这里在截断发生前给出明确提示，避免用户误以为内容被完整翻译
+var _aiLongTextNotified = false;
+
+function _aiNotifyLongTextOnce() {
+  if (_aiLongTextNotified) return;
+  _aiLongTextNotified = true;
+  try {
+    if (typeof showNotification === "function") {
+      showNotification("warning", "检测到超长文本", "部分条目超过 10000 字符，将截断翻译，建议拆分后重试");
+    }
+  } catch (e) {}
+}
+
+function _aiWarnOversizedItem(item) {
+  var src = item && item.sourceText ? String(item.sourceText) : "";
+  if (src.length <= 10000) return false;
+  (loggers.translation || console).warn(
+    "翻译条目超过 10000 字符将被截断：" +
+    (item && item.key ? "key=" + String(item.key) + " " : "") +
+    "长度=" + src.length + " 字符"
+  );
+  _aiNotifyLongTextOnce();
+  return true;
+}
+
 function _aiIsAdaptiveBatchError(error) {
   var code = error && error.code ? String(error.code) : "";
   var status = error && error.status;
@@ -383,6 +410,12 @@ var AIEngineBase = {
 
     var sourceLanguage = _AI_LANG_NAMES[sourceLang] || sourceLang;
     var targetLanguage = _AI_LANG_NAMES[targetLang] || targetLang;
+    if (text && String(text).length > 10000) {
+      (loggers.translation || console).warn(
+        "单条翻译文本超过 10000 字符将被截断：长度=" + String(text).length + " 字符"
+      );
+      _aiNotifyLongTextOnce();
+    }
     var cleanText = securityUtils.sanitizeForApi(text);
 
     // 构建系统提示词
@@ -628,7 +661,7 @@ var AIEngineBase = {
     var waitWhilePaused = async function () {
       while (AppState?.translations?.isPaused) {
         if (_aiIsCancelled()) {
-          throw _aiMakeCancelError(outputs);
+          throw _aiMakeCancelError(buildOrderedOutputs());
         }
         if (onLog && !pauseNotified) {
           onLog("翻译已暂停，等待继续...");
@@ -639,23 +672,57 @@ var AIEngineBase = {
       if (pauseNotified) pauseNotified = false;
     };
 
-    for (var c = 0; c < chunks.length; c++) {
-      await waitWhilePaused();
-      if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+    // ========== 并发控制（性能优化） ==========
+    // 会话记忆开启时保持串行（跨 chunk 的历史链有严格顺序依赖，无法并发）；
+    // 关闭时按引擎限速适度并发，绕过"批量请求串行"瓶颈。
+    // 并发上限 3，且受 checkRateLimit 令牌桶统一节流，不会突破引擎 RPS。
+    var chunkConcurrency = 1;
+    if (!conversationEnabled) {
+      var _rpsNum = Number(config.rateLimitPerSecond);
+      chunkConcurrency = Math.max(1, Math.min(3, Math.ceil(_rpsNum) || 1));
+    }
 
-      var chunk = chunks[c];
+    // chunk 任务队列 + 有序结果槽：并发完成顺序可能与 chunk 顺序不一致，
+    // 最终按 orderIds 顺序组装，保证返回数组与 items 一一对应（取消时 partialOutputs 保持前缀语义）
+    var chunkQueue = [];
+    var slotResults = {};
+    var orderIds = [];
+    var completedItems = 0;
+    var batchFailed = false;
+
+    for (var ci = 0; ci < chunks.length; ci++) {
+      chunkQueue.push({ id: "chunk-" + ci, chunk: chunks[ci] });
+      orderIds.push("chunk-" + ci);
+    }
+
+    // 按 chunk 顺序组装结果（未完成的 chunk 之后不再取值）
+    function buildOrderedOutputs() {
+      var out = [];
+      for (var oi = 0; oi < orderIds.length; oi++) {
+        var slot = slotResults[orderIds[oi]];
+        if (!slot) break;
+        for (var si = 0; si < slot.length; si++) out.push(slot[si]);
+      }
+      return out;
+    }
+
+    // 处理单个 chunk 任务（拆半重试时同任务内串行处理两半，保持该 chunk 内顺序）
+    async function processChunkTask(task) {
+      var chunk = task.chunk;
 
       try {
       if (onLog) {
-        onLog(config.name + " 批量请求 " + (c + 1) + "/" + chunks.length + "（" + chunk.length + " 项）...");
+        onLog(config.name + " 批量请求（" + chunk.length + " 项，并发 " + chunkConcurrency + "）...");
       }
       if (onProgress) {
-        onProgress(outputs.length, items.length, "请求中...（" + (c + 1) + "/" + chunks.length + "）");
+        onProgress(completedItems, items.length, "请求中...（已完成 " + completedItems + "/" + items.length + " 项）");
       }
 
       await service.checkRateLimit(engineId);
 
       var reqItems = chunk.map(function (it) {
+        // 超长条目告警（sanitizeForApi 会截断到 10000 字符，提前提示避免静默丢内容）
+        _aiWarnOversizedItem(it);
         var cleanText = securityUtils.sanitizeForApi(it.sourceText || "");
         return {
           key: useKeyContext ? translationGetItemKey(it) : "",
@@ -756,7 +823,7 @@ var AIEngineBase = {
         }
       }
 
-      var watcher = _aiCreateCancelWatcher(outputs);
+      var watcher = _aiCreateCancelWatcher(buildOrderedOutputs());
       var fetchPromise = networkUtils
         .fetchWithTimeout(
           config.apiUrl,
@@ -779,7 +846,7 @@ var AIEngineBase = {
         watcher.cleanup();
       }
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (!response.ok) {
         var rawErr = await response.text();
@@ -824,7 +891,7 @@ var AIEngineBase = {
         throw errBatchEmpty;
       }
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (onLog) {
         onLog(config.name + " 已返回响应，正在解析 JSON...");
@@ -852,22 +919,22 @@ var AIEngineBase = {
       }
 
       for (var ti = 0; ti < translations.length; ti++) {
-        outputs.push(String(translations[ti] ?? ""));
+        completedItems++;
         if (onProgress) {
           onProgress(
-            outputs.length,
+            completedItems,
             items.length,
-            "[" + outputs.length + "/" + items.length + "] 正在处理批量结果..."
+            "[" + completedItems + "/" + items.length + "] 正在处理批量结果..."
           );
         }
       }
+      slotResults[task.id] = translations;
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (onLog) {
         onLog(
-          config.name + " 批量请求 " + (c + 1) + "/" + chunks.length +
-          " 完成（累计 " + outputs.length + "/" + items.length + "）"
+          config.name + " 批量请求完成（累计 " + completedItems + "/" + items.length + " 项）"
         );
       }
 
@@ -917,21 +984,26 @@ var AIEngineBase = {
         history = trimmedHistory;
       }
       } catch (chunkError) {
-        if (_aiIsCancelled()) throw _aiMakeCancelError(outputs);
+        if (batchFailed || _aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
 
         if (_aiIsAdaptiveBatchError(chunkError) && chunk.length > 1) {
           var splitAt = Math.ceil(chunk.length / 2);
           var firstHalf = chunk.slice(0, splitAt);
           var secondHalf = chunk.slice(splitAt);
-          chunks.splice(c, 1, firstHalf, secondHalf);
+          // 保持输出顺序：任务 id 原地替换为两个半块 id，随后串行处理两半
+          var _pos = orderIds.indexOf(task.id);
+          if (_pos !== -1) {
+            orderIds.splice(_pos, 1, task.id + "-a", task.id + "-b");
+          }
           if (onLog) {
             onLog(
               config.name + " 当前批次过大或输出不完整，已将 " + chunk.length +
               " 项拆分为 " + firstHalf.length + " + " + secondHalf.length + " 后重试"
             );
           }
-          c--;
-          continue;
+          await processChunkTask({ id: task.id + "-a", chunk: firstHalf });
+          await processChunkTask({ id: task.id + "-b", chunk: secondHalf });
+          return;
         }
 
         if (_aiIsAdaptiveBatchError(chunkError) && chunk.length <= 1 && !chunkError.code) {
@@ -942,6 +1014,33 @@ var AIEngineBase = {
       }
     }
 
+    // ========== 并发 worker 池 ==========
+    // 每个 worker 从队列取任务；任一任务失败（batchFailed）后其余 worker 停止取新任务
+    async function runChunkWorkers() {
+      var pool = Math.min(chunkConcurrency, chunkQueue.length || 1);
+      var workers = [];
+      for (var wi = 0; wi < pool; wi++) {
+        workers.push(
+          (async function () {
+            while (!batchFailed && chunkQueue.length > 0) {
+              var task = chunkQueue.shift();
+              try {
+                await processChunkTask(task);
+              } catch (e) {
+                batchFailed = true;
+                throw e;
+              }
+            }
+          })()
+        );
+      }
+      await Promise.all(workers);
+    }
+
+    await runChunkWorkers();
+
+    // 按 chunk 顺序组装最终结果（并发完成顺序与 chunk 顺序解耦）
+    outputs = buildOrderedOutputs();
     return outputs;
   },
 };

@@ -22,7 +22,8 @@ EngineRegistry.register({
   extraBodyParams: { max_tokens: 4096 },
   // 批量翻译：JSON 数组输出可能超过 4096，预留 8000
   extraBatchBodyParams: { max_tokens: 8000 },
-  rateLimitPerSecond: 3,
+  // Claude 各模型 RPM 通常 1000+，3 → 8 提升批量吞吐
+  rateLimitPerSecond: 8,
   // 动态获取模型列表端点（Claude 原生 /models，x-api-key 鉴权）
   // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
   modelsEndpoint: {

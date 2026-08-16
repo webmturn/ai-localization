@@ -27,7 +27,8 @@ EngineRegistry.register({
   supportsBatch: true,
   extraBodyParams: { max_tokens: 2000 },
   extraBatchBodyParams: { max_tokens: 8000 },
-  rateLimitPerSecond: 3,
+  // 官方无严格 RPM 限制（TPM 按模型），3 → 10 提升批量吞吐；令牌桶仍会节流
+  rateLimitPerSecond: 10,
   // 动态获取模型列表端点（OpenAI 兼容 /models）
   // 模型列表不再硬编码，由 ModelFetcher 从 API 自动获取并缓存
   modelsEndpoint: {

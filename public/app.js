@@ -79,6 +79,7 @@
     // request-deduplication.js 已移至开发模式按需加载（未被业务代码引用）
     // 翻译引擎注册表和基类（必须在 providers 和 service-class 之前加载）
     "app/services/translation/engines/engine-registry.js",
+    "app/services/translation/model-fetch.js",       // 模型列表动态拉取（providers 依赖其推导端点）
     "app/services/translation/engines/base/ai-engine-base.js",
     "app/services/translation/engines/base/traditional-engine-base.js",
     // 翻译引擎 providers（注册到 EngineRegistry）

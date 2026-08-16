@@ -33,6 +33,16 @@ var CustomEngineUI = (function () {
       EventManager.add(saveFormBtn, "click", _saveForm);
     }
 
+    // 从 API 获取模型列表（OpenAI 兼容 /models）
+    var fetchModelsBtn = document.getElementById("ceFetchModelsBtn");
+    if (fetchModelsBtn) {
+      EventManager.add(fetchModelsBtn, "click", _fetchModelsFromApi, {
+        tag: "custom-engine",
+        scope: "customEngineModal",
+        label: "ceFetchModelsBtn:click",
+      });
+    }
+
     var requiresKey = document.getElementById("ceFieldRequiresKey");
     if (requiresKey) {
       EventManager.add(requiresKey, "change", _syncApiKeyField);
@@ -187,6 +197,15 @@ var CustomEngineUI = (function () {
     if (fieldApiKey) fieldApiKey.value = "";
     var fieldSupportsJsonMode = document.getElementById("ceFieldSupportsJsonMode");
     if (fieldSupportsJsonMode) fieldSupportsJsonMode.checked = true;
+    // 重置模型获取状态
+    var dl = document.getElementById("ceModelDatalist");
+    if (dl) dl.replaceChildren();
+    var st = document.getElementById("ceFetchModelsStatus");
+    if (st) {
+      st.textContent = "可从 API 自动获取模型列表";
+      st.classList.remove("text-red-500", "text-green-600");
+      st.classList.add("text-gray-500");
+    }
     _syncApiKeyField();
   }
 
@@ -318,6 +337,150 @@ var CustomEngineUI = (function () {
   function _normalizeCustomEngineId(id) {
     var s = String(id || "").trim().toLowerCase();
     return s.indexOf("custom-") === 0 ? s : "custom-" + s;
+  }
+
+  /**
+   * 从自定义引擎 API 端点获取模型列表
+   * 根据填写的 API URL 推导 /models 端点（OpenAI 兼容格式），
+   * 成功后填充 datalist 供模型输入框选择
+   */
+  async function _fetchModelsFromApi() {
+    var urlInput = document.getElementById("ceFieldUrl");
+    var modelInput = document.getElementById("ceFieldModel");
+    var statusEl = document.getElementById("ceFetchModelsStatus");
+    var btn = document.getElementById("ceFetchModelsBtn");
+    var datalist = document.getElementById("ceModelDatalist");
+
+    if (!urlInput || !urlInput.value.trim()) {
+      if (statusEl) statusEl.textContent = "请先填写 API 端点 URL";
+      statusEl && statusEl.classList.add("text-red-500");
+      return;
+    }
+
+    if (typeof ModelFetcher === "undefined") {
+      if (statusEl) statusEl.textContent = "模型列表服务未加载";
+      return;
+    }
+
+    var modelsUrl = ModelFetcher.deriveModelsUrl(urlInput.value.trim());
+    if (!modelsUrl) {
+      if (statusEl) statusEl.textContent = "无法从该 URL 推导模型列表端点";
+      return;
+    }
+
+    // 按钮 loading
+    if (btn) {
+      btn.disabled = true;
+      var icon = btn.querySelector("i");
+      if (icon) icon.className = "fa-solid fa-spinner fa-spin";
+    }
+    if (statusEl) {
+      statusEl.textContent = "正在获取模型列表...";
+      statusEl.classList.remove("text-red-500");
+      statusEl.classList.add("text-gray-500");
+    }
+
+    try {
+      // 用表单中的 API Key（若填写）或已保存的 Key
+      var apiKeyInput = document.getElementById("ceFieldApiKey");
+      var apiKey = (apiKeyInput && apiKeyInput.value.trim()) || "";
+      if (!apiKey) {
+        try {
+          var existingSettings = (typeof SettingsCache !== "undefined" && SettingsCache.get) ? SettingsCache.get() : {};
+          var savedKey = existingSettings && existingSettings["customApiKey_custom-" + _normalizeCustomEngineId(_editingId || "x").replace(/^custom-/, "")];
+          if (savedKey) apiKey = savedKey;
+        } catch (e) {}
+      }
+
+      // 临时构造配置请求模型列表
+      var tempConfig = {
+        apiUrl: urlInput.value.trim(),
+        isCustom: true,
+        apiKeyField: "customApiKey_tmp",
+        apiKeyValidationType: apiKey ? "generic" : "none",
+        customHeaders: {},
+      };
+      var endpoint = { url: modelsUrl };
+      var result = await _fetchWithEndpoint(endpoint, tempConfig, apiKey);
+
+      if (result && result.ok && result.models && result.models.length > 0) {
+        // 填充 datalist
+        if (datalist) {
+          datalist.replaceChildren();
+          result.models.forEach(function (m) {
+            var opt = document.createElement("option");
+            opt.value = m.id;
+            if (m.label && m.label !== m.id) opt.textContent = m.label;
+            datalist.appendChild(opt);
+          });
+        }
+        // 未填模型时自动填入第一个
+        if (modelInput && !modelInput.value.trim() && result.models[0]) {
+          modelInput.value = result.models[0].id;
+        }
+        if (statusEl) {
+          statusEl.textContent = "获取到 " + result.models.length + " 个模型，点击输入框可选择";
+          statusEl.classList.remove("text-red-500");
+          statusEl.classList.add("text-green-600");
+        }
+      } else {
+        var errMsg = (result && result.error) || "获取失败";
+        if (statusEl) {
+          statusEl.textContent = errMsg;
+          statusEl.classList.add("text-red-500");
+        }
+      }
+    } catch (e) {
+      if (statusEl) {
+        statusEl.textContent = "获取失败: " + ((e && e.message) || e);
+        statusEl.classList.add("text-red-500");
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        var icon2 = btn.querySelector("i");
+        if (icon2) icon2.className = "fa-solid fa-rotate";
+      }
+    }
+  }
+
+  /**
+   * 使用给定端点发起模型列表请求（独立于 ModelFetcher.fetchModels 的轻量实现，
+   * 便于在引擎尚未注册时（表单编辑阶段）直接调用）
+   */
+  async function _fetchWithEndpoint(endpoint, config, apiKey) {
+    try {
+      var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
+      var headers = { "Content-Type": "application/json" };
+      if (apiKey) headers["Authorization"] = "Bearer " + apiKey;
+
+      var fetchFn = (typeof window !== "undefined" && window.fetch)
+        ? window.fetch.bind(window)
+        : (typeof globalThis !== "undefined" && globalThis.fetch ? globalThis.fetch.bind(globalThis) : null);
+      if (!fetchFn) return { ok: false, error: "当前环境不支持网络请求" };
+
+      var resp = await fetchFn(endpoint.url, {
+        method: "GET",
+        headers: headers,
+        signal: controller ? controller.signal : undefined,
+      });
+      if (timer) clearTimeout(timer);
+
+      if (!resp.ok) {
+        var text = "";
+        try { text = await resp.text(); } catch (e) {}
+        return { ok: false, error: "HTTP " + resp.status + (text ? " " + text.slice(0, 100) : "") };
+      }
+      var data = await resp.json();
+      var models = ModelFetcher.parseModelsResponse(data);
+      if (models.length === 0) return { ok: false, error: "响应中没有模型数据" };
+      models = models.filter(function (m) { return ModelFetcher.defaultModelFilter(m); });
+      return { ok: true, models: models };
+    } catch (e) {
+      var msg = e && e.name === "AbortError" ? "请求超时（15 秒）" : ((e && e.message) || String(e));
+      return { ok: false, error: msg };
+    }
   }
 
   function _syncApiKeyField() {

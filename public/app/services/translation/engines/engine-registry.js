@@ -42,6 +42,8 @@ const EngineRegistry = {
       extraBodyParams: {},
       rateLimitPerSecond: 3,
       isCustom: false,
+      // 温度范围（UI 滑杆与请求钳制依据；各厂商不同：OpenAI/Gemini/DeepSeek 0-2，Claude 0-1）
+      temperatureRange: { min: 0, max: 2 },
     };
     var keys = Object.keys(config);
     for (var i = 0; i < keys.length; i++) {
@@ -217,6 +219,8 @@ const EngineRegistry = {
       rateLimitPerSecond: userConfig.rateLimitPerSecond || 3,
       availableModels: userConfig.model ? [userConfig.model] : [],
       isCustom: true,
+      // OpenAI 兼容端点温度范围 0-2；可用 userConfig.temperatureRange 覆盖（如 0-1）
+      temperatureRange: userConfig.temperatureRange || { min: 0, max: 2 },
     };
     this.register(config);
     return config;

@@ -547,7 +547,8 @@ function registerEventListenersSettingsAiEngine(ctx) {
     if (aiSection) aiSection.style.display = category === "ai" ? "" : "none";
     if (traditionalSection) traditionalSection.style.display = category === "traditional" ? "" : "none";
 
-    // 重建默认翻译引擎下拉框：只显示当前类别的引擎（无 optgroup 标题）
+    // 重建默认翻译引擎下拉框：跟随类别筛选器，只显示当前类别的引擎
+    // （AI 类别只显示 AI 引擎，传统类别只显示传统引擎，避免类别与选项不一致）
     if (defaultEngineSelect && typeof EngineRegistry !== "undefined") {
       const prevValue = defaultEngineSelect.value;
       defaultEngineSelect.replaceChildren();
@@ -560,14 +561,14 @@ function registerEventListenersSettingsAiEngine(ctx) {
         defaultEngineSelect.appendChild(opt);
       }
 
-      // 恢复之前的选中值，或使用第一个选项
+      // 恢复之前的选中值；若原选中引擎不属于当前类别，自动切换到该类别的第一个引擎
       const hasOld = Array.from(defaultEngineSelect.options).some(o => o.value === prevValue);
       if (hasOld) {
         defaultEngineSelect.value = prevValue;
       } else if (defaultEngineSelect.options.length > 0) {
         defaultEngineSelect.value = defaultEngineSelect.options[0].value;
       }
-      // 触发模型下拉框联动（按引擎过滤模型 optgroup）
+      // 触发模型下拉框与 API 密钥区联动
       defaultEngineSelect.dispatchEvent(new Event("change"));
     }
   }

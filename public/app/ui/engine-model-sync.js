@@ -33,27 +33,43 @@ function initEngineModelSync() {
   if (!engineSelect || !sidebarEngineSelect) return;
 
   /**
-   * 从 EngineRegistry 运行时解析引擎的可用模型列表（含友好 label）
-   * - 优先使用 config.availableModels + config.modelLabels（内置引擎）
-   * - 自定义引擎只有 defaultModel：返回 [{value: defaultModel, label: defaultModel}]
-   * - 无任何信息时返回空数组（UI 隐藏模型下拉）
+   * 从 EngineRegistry 运行时解析引擎的可用模型列表
+   * - 动态模型列表（ModelFetcher 从 API 拉取并缓存的）为唯一数据源
+   * - 未拉取过（未配置 Key / 离线）时回退到引擎 defaultModel 单选项
+   * - 自定义引擎保留用户配置的模型（config.availableModels）
+   * - 无任何信息时返回空数组（UI 隐藏模型下拉并提示获取）
    */
   function _resolveEngineModels(engineId) {
     var cfg = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
     if (!cfg) return [];
 
-    var available = Array.isArray(cfg.availableModels) ? cfg.availableModels : null;
-    var labels = (cfg.modelLabels && typeof cfg.modelLabels === "object") ? cfg.modelLabels : {};
+    var out = [];
 
-    if (available && available.length > 0) {
-      return available.map(function (id) {
-        return { value: id, label: labels[id] || id };
+    // 1. 动态模型列表（ModelFetcher 从 API 获取的缓存）
+    var dynamic = (typeof ModelFetcher !== "undefined")
+      ? ModelFetcher.getCachedModels(engineId)
+      : null;
+    if (dynamic && dynamic.length > 0) {
+      dynamic.forEach(function (m) {
+        if (m && m.id) out.push({ value: m.id, label: m.label || m.id, source: "dynamic" });
       });
+      return out;
     }
+
+    // 2. 自定义引擎：用户显式配置的模型
+    if (cfg.isCustom && Array.isArray(cfg.availableModels) && cfg.availableModels.length > 0) {
+      cfg.availableModels.forEach(function (id) {
+        out.push({ value: id, label: id, source: "static" });
+      });
+      return out;
+    }
+
+    // 3. 兜底：默认模型单选项（未获取过远程列表时保证可用）
     if (cfg.defaultModel) {
-      return [{ value: cfg.defaultModel, label: labels[cfg.defaultModel] || cfg.defaultModel }];
+      out.push({ value: cfg.defaultModel, label: cfg.defaultModel, source: "fallback" });
     }
-    return [];
+
+    return out;
   }
 
   function _buildModelCapabilityHint(engineId, model) {
@@ -87,6 +103,93 @@ function initEngineModelSync() {
     el.classList.toggle("dark:text-amber-400", isWarn);
     el.classList.toggle("text-gray-500", !isWarn);
     el.classList.toggle("dark:text-gray-400", !isWarn);
+  }
+
+  /**
+   * 温度范围跟随引擎/模型动态适配：
+   * - 引擎声明的 temperatureRange（如 Claude 0-1）→ 滑杆 min/max 同步
+   * - 模型能力 disablesTemperature（如 OpenAI o1/o3）→ 滑杆禁用并提示
+   * - 当前值超出新范围时自动钳制并保存
+   */
+  function _applyTemperatureRange(engineId, modelId) {
+    var cfg = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
+    var range = (cfg && cfg.temperatureRange) || { min: 0, max: 2 };
+    var min = Number.isFinite(range.min) ? range.min : 0;
+    var max = Number.isFinite(range.max) ? range.max : 2;
+
+    var capability = (typeof EngineRegistry !== "undefined" && typeof EngineRegistry.getModelCapability === "function")
+      ? EngineRegistry.getModelCapability(engineId, modelId)
+      : null;
+    var noTemperature = !!(capability && capability.disablesTemperature);
+
+    var sliders = [
+      DOMCache.get("temperature"),
+      DOMCache.get("temperatureSettings"),
+    ];
+    var values = [
+      DOMCache.get("temperatureValue"),
+      DOMCache.get("temperatureSettingsValue"),
+    ];
+    var hints = [
+      DOMCache.get("temperatureHint"),
+      DOMCache.get("temperatureSettingsHint"),
+    ];
+
+    sliders.forEach(function (slider) {
+      if (!slider) return;
+      slider.disabled = noTemperature;
+      slider.min = String(min);
+      slider.max = String(max);
+      slider.step = "0.1";
+      // 钳制当前值
+      var v = parseFloat(slider.value);
+      if (!Number.isFinite(v)) v = 0.3;
+      if (v < min || v > max) {
+        v = Math.min(max, Math.max(min, v));
+        slider.value = String(v);
+      }
+    });
+
+    // 同步显示值与保存
+    var cur = parseFloat(sliders[0] ? sliders[0].value : 0.3);
+    if (!Number.isFinite(cur)) cur = 0.3;
+    values.forEach(function (el) { if (el) el.textContent = String(cur); });
+    try {
+      SettingsCache.update(function (s) {
+        s.temperature = cur;
+      });
+    } catch (e) {}
+
+    // 两端标签
+    var minLabel = DOMCache.get("temperatureMinLabel");
+    if (minLabel) minLabel.textContent = noTemperature ? "精确 (" + min + ")" : "精确 (" + min + ")";
+    var maxLabel = DOMCache.get("temperatureMaxLabel");
+    if (maxLabel) maxLabel.textContent = noTemperature ? "创意 (" + max + ")" : "创意 (" + max + ")";
+
+    // 提示
+    var hintText = "";
+    if (noTemperature) {
+      hintText = "该模型不支持温度参数，请求时将自动移除";
+      hints.forEach(function (el) {
+        if (el) {
+          el.textContent = hintText;
+          el.classList.add("text-amber-600", "dark:text-amber-400");
+          el.classList.remove("text-gray-500", "dark:text-gray-400");
+        }
+      });
+    } else {
+      var engineName = cfg ? cfg.name : "";
+      hintText = min === 0 && max === 2
+        ? ""
+        : engineName + " 支持温度范围 " + min + "–" + max;
+      hints.forEach(function (el) {
+        if (el) {
+          el.textContent = hintText;
+          el.classList.remove("text-amber-600", "dark:text-amber-400");
+          el.classList.add("text-gray-500", "dark:text-gray-400");
+        }
+      });
+    }
   }
 
   const toolbarCategoryFilter = DOMCache.get("toolbarEngineCategoryFilter");
@@ -137,7 +240,7 @@ function initEngineModelSync() {
       if (modelSelect) {
         modelSelect.replaceChildren();
 
-        // 运行时从 EngineRegistry 读取 availableModels + modelLabels（内置引擎、自定义引擎走同一路径）
+        // 运行时解析模型列表（动态 API 列表优先，defaultModel 兜底）
         var optionDefs = _resolveEngineModels(selectedEngine);
 
         optionDefs.forEach(({ value, label }) => {
@@ -165,10 +268,16 @@ function initEngineModelSync() {
           s.translationModel = modelSelect.value;
         });
         _setCapabilityHint(modelCapabilityHint, selectedEngine, modelSelect.value);
+        _applyTemperatureRange(selectedEngine, modelSelect.value);
       }
     } else {
       modelDiv?.classList.add("hidden");
       temperatureDiv?.classList.add("hidden");
+      // 传统引擎：恢复温度滑杆可用状态（下次切回 AI 时由 _applyTemperatureRange 重新配置）
+      var _t1 = DOMCache.get("temperature");
+      if (_t1) _t1.disabled = false;
+      var _t2 = DOMCache.get("temperatureSettings");
+      if (_t2) _t2.disabled = false;
     }
 
     // 保存选择
@@ -176,6 +285,31 @@ function initEngineModelSync() {
       s.translationEngine = selectedEngine;
       s.defaultEngine = selectedEngine;
     });
+  }
+
+  /**
+   * API 密钥配置区跟随当前引擎联动：
+   * 只显示当前所选引擎对应的密钥输入框，其余隐藏
+   * 自定义引擎（密钥在自定义引擎表单中管理）显示提示行
+   */
+  function _syncApiKeyFields(engineId) {
+    var section = DOMCache.get("apiKeysSection");
+    if (!section) return;
+
+    var cfg = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
+    var isCustom = !!(cfg && cfg.isCustom);
+    var rows = section.querySelectorAll("[data-engine-key]");
+    var matched = false;
+
+    rows.forEach(function (row) {
+      var match = row.getAttribute("data-engine-key") === engineId;
+      row.classList.toggle("hidden", !match);
+      if (match) matched = true;
+    });
+
+    // 自定义引擎或无匹配密钥的引擎：显示提示行
+    var noRow = DOMCache.get("apiKeyNoEngineRow");
+    if (noRow) noRow.classList.toggle("hidden", !(isCustom || !matched));
   }
 
   function updateSettingsEngineUI(selectedEngine) {
@@ -186,6 +320,8 @@ function initEngineModelSync() {
     var settingsConfig = EngineRegistry.get(engine);
     var settingsIsAI = settingsConfig && settingsConfig.category === "ai";
     updateConcurrentLimitHint(engine);
+    // API 密钥区跟随当前引擎切换
+    _syncApiKeyFields(engine);
 
     if (!settingsIsAI) {
       if (settingsModelContainer)
@@ -218,6 +354,7 @@ function initEngineModelSync() {
       settingsModelSelect.value = settingsModelSelect.options[0].value;
     }
     _setCapabilityHint(translationModelHint, engine, settingsModelSelect.value);
+    _applyTemperatureRange(engine, settingsModelSelect.value);
   }
 
   function updateConcurrentLimitHint(selectedEngine) {
@@ -261,6 +398,7 @@ function initEngineModelSync() {
     if (aiSection) aiSection.style.display = category === "ai" ? "" : "none";
     if (traditionalSection) traditionalSection.style.display = category === "traditional" ? "" : "none";
     if (settingsEngineSelect) {
+      // 默认引擎下拉跟随类别筛选器：只显示当前类别的引擎
       settingsEngineSelect.replaceChildren();
       var engines = EngineRegistry.getByCategory(category);
       for (var i = 0; i < engines.length; i++) {
@@ -277,6 +415,95 @@ function initEngineModelSync() {
       updateSettingsEngineUI(settingsEngineSelect.value);
     }
   };
+
+  /**
+   * 从 API 刷新当前引擎的模型列表
+   * - 拉取成功后更新 localStorage 缓存并重建所有模型下拉
+   * - 失败时保留静态/缓存列表，仅提示错误
+   */
+  async function refreshEngineModels(engineId) {
+    var statusEl = DOMCache.get("fetchModelsStatus");
+    var btn = DOMCache.get("fetchModelsBtn");
+    var cfg = EngineRegistry.get(engineId);
+
+    function setStatus(text, isError) {
+      if (statusEl) {
+        statusEl.textContent = text || "";
+        statusEl.classList.toggle("text-red-500", !!isError);
+        statusEl.classList.toggle("text-green-600", !isError && !!text && text.indexOf("成功") !== -1);
+        statusEl.classList.toggle("text-gray-500", !isError && (!text || text.indexOf("成功") === -1));
+      }
+    }
+
+    if (typeof ModelFetcher === "undefined") {
+      setStatus("模型列表服务未加载", true);
+      return;
+    }
+    if (!cfg) {
+      setStatus("未知引擎", true);
+      return;
+    }
+
+    // 按钮 loading 状态
+    if (btn) {
+      btn.disabled = true;
+      var icon = btn.querySelector("i");
+      if (icon) icon.className = "fa-solid fa-spinner fa-spin";
+    }
+    setStatus("正在获取 " + cfg.name + " 模型列表...");
+
+    try {
+      var apiKey = null;
+      if (typeof ModelFetcher.readDecryptedApiKey === "function") {
+        apiKey = await ModelFetcher.readDecryptedApiKey(cfg);
+      }
+      var result = await ModelFetcher.fetchModels(engineId, apiKey);
+
+      if (result && result.ok) {
+        var count = Array.isArray(result.models) ? result.models.length : 0;
+        setStatus("成功获取 " + count + " 个模型（已缓存，可在下拉框中查看）");
+        // 重建工具栏 + 侧边栏 + 设置面板的模型下拉
+        updateEngineUI(engineSelect.value);
+        updateSettingsEngineUI(settingsEngineSelect ? settingsEngineSelect.value : engineId);
+        if (typeof showNotification === "function") {
+          showNotification("success", "模型列表已更新", cfg.name + "：获取到 " + count + " 个模型", { duration: 3000 });
+        }
+      } else {
+        var errMsg = (result && result.error) || "获取失败";
+        setStatus(errMsg, true);
+        if (typeof showNotification === "function") {
+          showNotification("error", "模型列表获取失败", errMsg, { duration: 5000 });
+        }
+      }
+    } catch (e) {
+      setStatus("获取失败: " + ((e && e.message) || e), true);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        var icon2 = btn.querySelector("i");
+        if (icon2) icon2.className = "fa-solid fa-rotate";
+      }
+    }
+  }
+  window.refreshEngineModels = refreshEngineModels;
+
+  // 设置面板"从 API 获取模型"按钮
+  var fetchModelsBtn = DOMCache.get("fetchModelsBtn");
+  if (fetchModelsBtn) {
+    EventManager.add(
+      fetchModelsBtn,
+      "click",
+      function () {
+        var engine = settingsEngineSelect ? settingsEngineSelect.value : (engineSelect ? engineSelect.value : null);
+        if (engine) refreshEngineModels(engine);
+      },
+      {
+        tag: "engine",
+        scope: "engineModel",
+        label: "fetchModelsBtn:click",
+      },
+    );
+  }
 
   // 同步两个选择器
   function syncEngineSelects(source, target, value) {
@@ -397,6 +624,7 @@ function initEngineModelSync() {
           s.translationModel = modelSelect.value;
         });
         _setCapabilityHint(modelCapabilityHint, engineSelect.value, modelSelect.value);
+        _applyTemperatureRange(engineSelect.value, modelSelect.value);
       },
       { tag: "engine", scope: "engineModel", label: "modelSelect:change" },
     );
@@ -416,6 +644,10 @@ function initEngineModelSync() {
           settingsEngineSelect?.value,
           settingsModelSelect.value,
         );
+        _applyTemperatureRange(
+          settingsEngineSelect?.value,
+          settingsModelSelect.value,
+        );
       },
       { tag: "engine", scope: "engineModel", label: "translationModel:change" },
     );
@@ -429,6 +661,11 @@ function initEngineModelSync() {
       function () {
         const v = this.value;
         temperatureValue.textContent = v;
+        // 同步设置面板的温度滑杆
+        const settingsTemp = DOMCache.get("temperatureSettings");
+        if (settingsTemp) settingsTemp.value = v;
+        const settingsTempVal = DOMCache.get("temperatureSettingsValue");
+        if (settingsTempVal) settingsTempVal.textContent = v;
         try {
           const num = parseFloat(v);
           SettingsCache.update(function (s) {
@@ -439,6 +676,32 @@ function initEngineModelSync() {
         }
       },
       { tag: "engine", scope: "engineModel", label: "temperature:input" },
+    );
+  }
+
+  // 设置面板的温度滑杆（与侧边栏双向同步）
+  const temperatureSettingsInput = DOMCache.get("temperatureSettings");
+  if (temperatureSettingsInput) {
+    EventManager.add(
+      temperatureSettingsInput,
+      "input",
+      function () {
+        const v = this.value;
+        const valEl = DOMCache.get("temperatureSettingsValue");
+        if (valEl) valEl.textContent = v;
+        // 同步侧边栏温度滑杆
+        if (temperatureInput) temperatureInput.value = v;
+        if (temperatureValue) temperatureValue.textContent = v;
+        try {
+          const num = parseFloat(v);
+          SettingsCache.update(function (s) {
+            s.temperature = Number.isFinite(num) ? num : 0.3;
+          });
+        } catch (e) {
+          (loggers.app || console).debug("engineModelSync saveTemperatureSettings:", e);
+        }
+      },
+      { tag: "engine", scope: "engineModel", label: "temperatureSettings:input" },
     );
   }
 
@@ -461,13 +724,17 @@ function initEngineModelSync() {
   var initialCategory = (initialConfig && initialConfig.category) || "ai";
   syncToolbarCategory(initialCategory, initialEngine);
 
-  // 加载保存的温度并同步到侧栏滑块（AI 引擎支持 0–2）
+  // 加载保存的温度并同步到侧栏滑块与设置面板滑块（AI 引擎支持 0–2）
   if (temperatureInput && temperatureValue) {
     const savedTemp = savedSettings.temperature;
     const num = parseFloat(savedTemp);
     const temp = Number.isFinite(num) && num >= 0 && num <= 2 ? num : 0.3;
     temperatureInput.value = String(temp);
     temperatureValue.textContent = String(temp);
+    const settingsTemp = DOMCache.get("temperatureSettings");
+    if (settingsTemp) settingsTemp.value = String(temp);
+    const settingsTempVal = DOMCache.get("temperatureSettingsValue");
+    if (settingsTempVal) settingsTempVal.textContent = String(temp);
   }
 
   try {

@@ -16,7 +16,7 @@ function loadSampleProject() {
         status: "translated",
         qualityScore: 98,
         issues: [],
-        metadata: { position: "app.welcome" },
+        metadata: { file: "sample-project.json", position: "app.welcome" },
       },
       {
         id: "item-2",
@@ -26,7 +26,7 @@ function loadSampleProject() {
         status: "translated",
         qualityScore: 95,
         issues: [],
-        metadata: { position: "auth.login.prompt" },
+        metadata: { file: "sample-project.json", position: "auth.login.prompt" },
       },
       {
         id: "item-3",
@@ -36,7 +36,7 @@ function loadSampleProject() {
         status: "translated",
         qualityScore: 85,
         issues: [{ type: "术语不一致", severity: "medium" }],
-        metadata: { position: "api.error.auth" },
+        metadata: { file: "sample-project.json", position: "api.error.auth" },
       },
       {
         id: "item-4",
@@ -46,7 +46,7 @@ function loadSampleProject() {
         status: "translated",
         qualityScore: 80,
         issues: [{ type: "冗余表达", severity: "high" }],
-        metadata: { position: "help.documentation" },
+        metadata: { file: "sample-project.json", position: "help.documentation" },
       },
       {
         id: "item-5",
@@ -56,7 +56,7 @@ function loadSampleProject() {
         status: "pending",
         qualityScore: 0,
         issues: [],
-        metadata: { position: "profile.update.success" },
+        metadata: { file: "sample-project.json", position: "profile.update.success" },
       },
       {
         id: "item-6",
@@ -66,12 +66,26 @@ function loadSampleProject() {
         status: "pending",
         qualityScore: 0,
         issues: [],
-        metadata: { position: "form.error.email" },
+        metadata: { file: "sample-project.json", position: "form.error.email" },
       },
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+
+  // 文件元数据（示例项目）：文件树显示大小/进度依赖此数据
+  AppState.fileMetadata = AppState.fileMetadata || {};
+  if (!AppState.fileMetadata["sample-project.json"]) {
+    AppState.fileMetadata["sample-project.json"] = {
+      size: 1024,
+      type: "application/json",
+      extension: "json",
+      contentKey: "sample-project-1::sample-project.json",
+    };
+  }
+  if (AppState.project && AppState.project.fileMetadata === undefined) {
+    AppState.project.fileMetadata = AppState.fileMetadata;
+  }
 
   // 同步 AppState
   AppState.translations.items = AppState.project.translationItems;

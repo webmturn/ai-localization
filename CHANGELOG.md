@@ -35,6 +35,7 @@
   - 导出改用 jsyaml.dump（forceQuotes 可配）
   - parse.js 解析调度改为 await 兼容同步/异步解析器
   - 实测：多行块/数组/锚点全部正确提取（旧解析器均不支持）
+- **示例项目补全文件元数据** — loadSampleProject 条目增加 file 字段并初始化 fileMetadata：文件树显示 sample-project.json（67% 进度 + 1 KB），替代占位 default.xml；图片模型布局审查确认三栏结构/对齐/深色对比度良好
 - **源文件编辑器（方案 B）** — 文件树操作菜单新增"编辑源文件"入口：
   - 弹窗内编辑导入文件的原始内容（等宽字体、Ctrl+Enter 保存、Esc 取消）
   - 保存时按格式语法校验（XML/JSON/YAML），非法内容报错不保存

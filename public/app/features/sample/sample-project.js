@@ -73,19 +73,15 @@ function loadSampleProject() {
     updatedAt: new Date(),
   };
 
-  // 文件元数据（示例项目）：文件树显示大小/进度依赖此数据
-  AppState.fileMetadata = AppState.fileMetadata || {};
-  if (!AppState.fileMetadata["sample-project.json"]) {
-    AppState.fileMetadata["sample-project.json"] = {
+  // 重置文件元数据，避免沿用上一项目残留文件；示例无原始内容，不设 contentKey
+  AppState.fileMetadata = {
+    "sample-project.json": {
       size: 1024,
       type: "application/json",
       extension: "json",
-      contentKey: "sample-project-1::sample-project.json",
-    };
-  }
-  if (AppState.project && AppState.project.fileMetadata === undefined) {
-    AppState.project.fileMetadata = AppState.fileMetadata;
-  }
+    },
+  };
+  AppState.project.fileMetadata = AppState.fileMetadata;
 
   // 同步 AppState
   AppState.translations.items = AppState.project.translationItems;

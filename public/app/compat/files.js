@@ -28,23 +28,23 @@ async function readFileAsync(file) {
 }
 
 // 解析单个文件（现代化版本）
-async function parseFileAsync(file) {
+async function parseFileAsync(file, options) {
   // 优先使用DI系统
   if (typeof getServiceSafely === 'function') {
     const parserService = getServiceSafely('parserManager', null);
     if (parserService?.parseFileAsync) {
-      return await parserService.parseFileAsync(file);
+      return await parserService.parseFileAsync(file, options);
     }
   }
   
   // 备用：使用App命名空间
   if (window.App?.impl?.parseFileAsync) {
-    return await window.App.impl.parseFileAsync(file);
+    return await window.App.impl.parseFileAsync(file, options);
   }
   
   // 最后备用：直接调用legacy实现
   if (typeof __parseFileAsyncImpl === "function") {
-    return await __parseFileAsyncImpl(file);
+    return await __parseFileAsyncImpl(file, options);
   }
   
   throw new Error("parseFileAsync: 未找到文件解析实现");

@@ -6,6 +6,7 @@
   App.features.files = App.features.files || {};
 
   var _editingFileName = null;
+  var _saving = false;
 
   // 提取条目匹配键（与格式无关的定位字段）
   function __itemKey(item) {
@@ -14,6 +15,65 @@
     return String(
       m.key || m.resourceId || m.unitId || m.path || m.msgctxt || ""
     ).trim();
+  }
+
+  function __indexOldItems(items) {
+    var map = new Map();
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var k = __itemKey(it);
+      var bucket = k ? "k:" + k : "s:" + String(it && it.sourceText);
+      if (!map.has(bucket)) map.set(bucket, []);
+      map.get(bucket).push(it);
+    }
+    return map;
+  }
+
+  function __takeOldItem(map, newItem) {
+    var k = __itemKey(newItem);
+    var list = k ? map.get("k:" + k) : null;
+    if (!list || !list.length) {
+      list = map.get("s:" + String(newItem && newItem.sourceText));
+    }
+    if (!list || !list.length) return null;
+    var src = String(newItem && newItem.sourceText);
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].sourceText) === src) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) idx = 0;
+    return list.splice(idx, 1)[0];
+  }
+
+  function __mergePreservedFields(newItem, oldIt) {
+    if (!oldIt) return { sourceChanged: false, keptTranslation: false };
+    newItem.id = oldIt.id || newItem.id;
+    if (oldIt.context && !newItem.context) newItem.context = oldIt.context;
+    if (Array.isArray(oldIt.issues) && oldIt.issues.length) {
+      newItem.issues = oldIt.issues.slice();
+    }
+    var sourceChanged = String(oldIt.sourceText) !== String(newItem.sourceText);
+    var keptTranslation = false;
+    if (oldIt.targetText && String(oldIt.targetText).trim()) {
+      newItem.targetText = oldIt.targetText;
+      newItem.status = oldIt.status || "translated";
+      newItem.qualityScore =
+        oldIt.qualityScore != null ? oldIt.qualityScore : 85;
+      keptTranslation = true;
+    }
+    if (oldIt.metadata && newItem.metadata) {
+      var extraKeys = Object.keys(oldIt.metadata);
+      for (var ei = 0; ei < extraKeys.length; ei++) {
+        var ek = extraKeys[ei];
+        if (newItem.metadata[ek] == null && oldIt.metadata[ek] != null) {
+          newItem.metadata[ek] = oldIt.metadata[ek];
+        }
+      }
+    }
+    return { sourceChanged: sourceChanged, keptTranslation: keptTranslation };
   }
 
   // 校验新内容（按格式做语法检查，失败返回错误信息）
@@ -44,13 +104,29 @@
     return null;
   }
 
+  function __setEditorBusy(busy) {
+    var saveBtn = DOMCache.get("sourceEditorSaveBtn");
+    var ta = DOMCache.get("sourceEditorContent");
+    if (saveBtn) saveBtn.disabled = !!busy;
+    if (ta) ta.readOnly = !!busy;
+  }
+
+  function __showEditorError(errEl, message) {
+    if (!errEl) return;
+    errEl.textContent = message || "";
+    if (message) errEl.classList.remove("hidden");
+    else {
+      errEl.classList.add("hidden");
+      errEl.textContent = "";
+    }
+  }
+
   // 打开编辑器
   async function openSourceEditor(fileName) {
     if (!fileName) return;
     var meta = AppState.fileMetadata?.[fileName] || {};
     var content = meta.originalContent;
     if (typeof content !== "string") {
-      // 尝试从 IndexedDB 加载原始内容
       try {
         if (meta.contentKey && typeof idbGetFileContent === "function") {
           content = await idbGetFileContent(meta.contentKey);
@@ -69,11 +145,8 @@
     if (nameEl) nameEl.textContent = fileName;
     var ta = DOMCache.get("sourceEditorContent");
     if (ta) ta.value = content;
-    var errEl = DOMCache.get("sourceEditorError");
-    if (errEl) {
-      errEl.classList.add("hidden");
-      errEl.textContent = "";
-    }
+    __showEditorError(DOMCache.get("sourceEditorError"), "");
+    __setEditorBusy(false);
     if (typeof openModal === "function") openModal("sourceEditorModal");
     else {
       var m = DOMCache.get("sourceEditorModal");
@@ -81,71 +154,82 @@
     }
   }
 
-  // 保存：校验 → 重新解析 → 合并保留已翻译项 → 持久化
+  // 保存：校验 → 重新解析（无导入副作用）→ 合并保留已翻译项 → 再持久化
   async function saveSourceEditor() {
     var fileName = _editingFileName;
-    if (!fileName) return;
+    if (!fileName || _saving) return;
 
     var ta = DOMCache.get("sourceEditorContent");
     var newContent = ta ? ta.value : "";
     var errEl = DOMCache.get("sourceEditorError");
 
-    // 1. 语法校验
     var errMsg = await __validateContent(newContent, fileName);
     if (errMsg) {
-      if (errEl) {
-        errEl.textContent = errMsg;
-        errEl.classList.remove("hidden");
-      }
+      __showEditorError(errEl, errMsg);
       return;
     }
+    __showEditorError(errEl, "");
+
+    _saving = true;
+    __setEditorBusy(true);
 
     try {
-      // 2. 重新解析
       var fileObj = new File([newContent], fileName, {
         type: AppState.fileMetadata?.[fileName]?.type || "text/plain",
       });
-      var result = await App.impl.parseFileAsync(fileObj);
-      if (!result || result.success === false) {
-        var errItem = result && result.items && result.items[0];
+      var parseFn =
+        (App.impl && App.impl.parseFileAsync) ||
+        (typeof parseFileAsync === "function" ? parseFileAsync : null);
+      if (typeof parseFn !== "function") {
+        throw new Error("未找到文件解析实现");
+      }
+      var result = await parseFn(fileObj, { silent: true, skipPersist: true });
+      if (!result) {
+        throw new Error("解析被跳过（该格式可能已在设置中禁用）");
+      }
+      if (result.success === false) {
+        var errItem = result.items && result.items[0];
         throw new Error((errItem && errItem.context) || "解析失败");
       }
-      var newItems = result && Array.isArray(result.items) ? result.items : [];
+      var newItems = Array.isArray(result.items) ? result.items : [];
 
-      // 3. 合并保留已翻译项（按 key/路径匹配回填译文与状态）
       var oldFileItems = (AppState.project?.translationItems || []).filter(
         function (it) { return it?.metadata?.file === fileName; }
       );
-      var oldByKey = new Map();
-      for (var oi = 0; oi < oldFileItems.length; oi++) {
-        var ok = __itemKey(oldFileItems[oi]);
-        if (ok) oldByKey.set(ok, oldFileItems[oi]);
-        else oldByKey.set(String(oldFileItems[oi].sourceText), oldFileItems[oi]);
-      }
+      var oldByKey = __indexOldItems(oldFileItems);
+      var keptCount = 0;
+      var sourceChangedCount = 0;
       for (var ni = 0; ni < newItems.length; ni++) {
-        var nk = __itemKey(newItems[ni]) || String(newItems[ni].sourceText);
-        var oldIt = oldByKey.get(nk);
-        if (oldIt && oldIt.targetText && String(oldIt.targetText).trim()) {
-          newItems[ni].targetText = oldIt.targetText;
-          newItems[ni].status = oldIt.status || "translated";
-          newItems[ni].qualityScore = oldIt.qualityScore || 85;
-        }
+        var oldIt = __takeOldItem(oldByKey, newItems[ni]);
+        var merged = __mergePreservedFields(newItems[ni], oldIt);
+        if (merged.keptTranslation) keptCount++;
+        if (merged.sourceChanged && merged.keptTranslation) sourceChangedCount++;
       }
 
-      // 4. 更新状态：替换该文件的条目 + 更新原始内容
       var kept = (AppState.project?.translationItems || []).filter(
         function (it) { return it?.metadata?.file !== fileName; }
       );
+      if (!AppState.project) throw new Error("当前没有打开的项目");
       AppState.project.translationItems = kept.concat(newItems);
       AppState.translations.items = AppState.project.translationItems;
       AppState.translations.filtered = [...AppState.translations.items];
 
-      var meta = AppState.fileMetadata?.[fileName] || {};
+      if (!AppState.fileMetadata) AppState.fileMetadata = {};
+      var meta = AppState.fileMetadata[fileName] || {};
       meta.originalContent = newContent;
       meta.size = new Blob([newContent]).size;
       meta.updatedAt = new Date().toISOString();
-      if (AppState.project?.fileMetadata) {
-        AppState.project.fileMetadata[fileName] = meta;
+      if (!meta.type) meta.type = fileObj.type || "text/plain";
+      if (!meta.extension) {
+        meta.extension = String(fileName).split(".").pop().toLowerCase();
+      }
+      AppState.fileMetadata[fileName] = meta;
+      if (AppState.project) {
+        if (!AppState.project.fileMetadata) {
+          AppState.project.fileMetadata = AppState.fileMetadata;
+        } else {
+          AppState.project.fileMetadata[fileName] = meta;
+        }
       }
       try {
         if (meta.contentKey && typeof idbPutFileContent === "function") {
@@ -155,7 +239,6 @@
         (loggers.storage || console).warn("更新 IndexedDB 文件内容失败:", e);
       }
 
-      // 5. 持久化项目 + 刷新 UI
       if (typeof autoSaveManager !== "undefined" && autoSaveManager) {
         autoSaveManager.markDirty();
         Promise.resolve(autoSaveManager.saveProject()).catch(function (e) {
@@ -167,6 +250,8 @@
       if (typeof updateCounters === "function") updateCounters();
       if (typeof invalidateSearchCache === "function") invalidateSearchCache();
 
+      _saving = false;
+      __setEditorBusy(false);
       if (typeof closeModal === "function") closeModal("sourceEditorModal");
       else {
         var m2 = DOMCache.get("sourceEditorModal");
@@ -174,21 +259,33 @@
       }
       _editingFileName = null;
 
+      var extra =
+        sourceChangedCount > 0
+          ? "；其中 " + sourceChangedCount + " 项原文已变但仍保留旧译文，请核对"
+          : "";
       showNotification(
         "success",
         "源文件已更新",
-        `已重新解析 ${fileName}（${newItems.length} 项，已保留翻译）`
+        "已重新解析 " +
+          fileName +
+          "（" +
+          newItems.length +
+          " 项，保留翻译 " +
+          keptCount +
+          " 项）" +
+          extra
       );
     } catch (e) {
       (loggers.app || console).error("保存源文件失败:", e);
-      if (errEl) {
-        errEl.textContent = "解析失败：" + (e && e.message || e);
-        errEl.classList.remove("hidden");
-      }
+      __showEditorError(errEl, "解析失败：" + ((e && e.message) || e));
+    } finally {
+      _saving = false;
+      __setEditorBusy(false);
     }
   }
 
   function closeSourceEditor() {
+    if (_saving) return;
     if (typeof closeModal === "function") closeModal("sourceEditorModal");
     else {
       var m = DOMCache.get("sourceEditorModal");
@@ -197,7 +294,6 @@
     _editingFileName = null;
   }
 
-  // 事件注册
   function registerSourceEditorEvents() {
     var saveBtn = DOMCache.get("sourceEditorSaveBtn");
     if (saveBtn) {
@@ -219,7 +315,6 @@
         cancelBtn.addEventListener("click", closeSourceEditor);
       }
     }
-    // Ctrl+Enter 保存
     var ta = DOMCache.get("sourceEditorContent");
     if (ta) {
       ta.addEventListener("keydown", function (e) {
@@ -237,4 +332,5 @@
   window.saveSourceEditor = saveSourceEditor;
   window.closeSourceEditor = closeSourceEditor;
   window.registerSourceEditorEvents = registerSourceEditorEvents;
+  window.isSourceEditorBusy = function () { return _saving; };
 })();

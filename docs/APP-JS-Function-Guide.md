@@ -340,8 +340,9 @@
 - **`readFileAsync(file)`**
   - **用途**：FileReader Promise 化。
 
-- **`parseFileAsync(file)`**
+- **`parseFileAsync(file, options?)`**
   - **用途**：读取文件、必要时校验 XML、写入 `AppState.fileMetadata[file.name]`（含 `originalContent`、`contentKey`），再按扩展名分发到对应解析器；成功时可能含 `warnings`（编码/控制字符等）。
+  - **options**：`silent` 不弹 toast；`skipPersist` 只解析条目，不写 metadata/IndexedDB（源文件编辑器重解析使用）。
   - **返回**：`{ success, items, fileName }`（成功时另有 `warnings` 数组）。
   - **失败策略**：返回一个带 `issues: ['FILE_PARSE_ERROR']` 的错误项。
   - **定义位置**：实现为 `__parseFileAsyncImpl` 在 `public/app/features/files/parse.js`，对外入口在 `public/app/compat/files.js`。

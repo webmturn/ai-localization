@@ -211,19 +211,29 @@ function updateFileTree(files) {
       "transition-all duration-150 ease-out";
     actionsEl.dataset.fileActions = "true";
 
-    // 编辑源文件按钮
-    const editBtn2 = document.createElement("button");
-    editBtn2.type = "button";
-    editBtn2.className =
-      "p-1 rounded text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-    editBtn2.title = "编辑源文件 " + filename;
-    editBtn2.setAttribute("aria-label", "编辑源文件 " + filename);
-    editBtn2.dataset.action = "edit";
-    editBtn2.dataset.filename = filename;
-    const editIcon2 = document.createElement("i");
-    editIcon2.className = "fa-regular fa-pen-to-square text-xs";
-    editBtn2.appendChild(editIcon2);
-    actionsEl.appendChild(editBtn2);
+    // 编辑源文件：仅在有原始内容或 IndexedDB 引用时显示（示例项目无源文件）
+    const fileMeta =
+      (AppState.fileMetadata && AppState.fileMetadata[filename]) ||
+      (AppState.project &&
+        AppState.project.fileMetadata &&
+        AppState.project.fileMetadata[filename]) ||
+      {};
+    const canEditSource =
+      typeof fileMeta.originalContent === "string" || !!fileMeta.contentKey;
+    if (canEditSource) {
+      const editBtn2 = document.createElement("button");
+      editBtn2.type = "button";
+      editBtn2.className =
+        "p-1 rounded text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20";
+      editBtn2.title = "编辑源文件 " + filename;
+      editBtn2.setAttribute("aria-label", "编辑源文件 " + filename);
+      editBtn2.dataset.action = "edit";
+      editBtn2.dataset.filename = filename;
+      const editIcon2 = document.createElement("i");
+      editIcon2.className = "fa-regular fa-pen-to-square text-xs";
+      editBtn2.appendChild(editIcon2);
+      actionsEl.appendChild(editBtn2);
+    }
 
     // 删除按钮
     const removeBtn = document.createElement("button");

@@ -116,6 +116,19 @@ function openModal(modalId) {
 
 // 关闭模态框
 function closeModal(eventOrModalId) {
+  // 源文件保存进行中禁止关闭，避免半写入后丢失编辑上下文
+  try {
+    if (typeof isSourceEditorBusy === "function" && isSourceEditorBusy()) {
+      if (eventOrModalId === "sourceEditorModal") return;
+      if (eventOrModalId && eventOrModalId.target) {
+        var busyModal = eventOrModalId.target.closest("#sourceEditorModal");
+        if (busyModal) return;
+      }
+    }
+  } catch (e) {
+    (loggers.app || console).debug("source editor busy check:", e);
+  }
+
   // 移除焦点陷阱
   __removeModalFocusTrap();
 

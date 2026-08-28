@@ -309,7 +309,8 @@ function updateTranslationItem(index, targetText) {
       item.status = "pending";
     }
 
-    AppState.project.updatedAt = new Date();
+    // 经 ProjectStore 统一更新时间戳（ISO 字符串，与其他写入点一致）
+    ProjectStore.touchProject();
 
     if (oldTargetText !== targetText) {
       autoSaveManager.markDirty();

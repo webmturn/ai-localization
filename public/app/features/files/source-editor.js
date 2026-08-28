@@ -163,15 +163,19 @@
     var newContent = ta ? ta.value : "";
     var errEl = DOMCache.get("sourceEditorError");
 
+    // 忙标记在校验前置位：__validateContent 内 YAML 校验可能触发 js-yaml 动态加载（异步窗口），
+    // 提前置位防止该窗口内双击/Ctrl+Enter 并发双保存
+    _saving = true;
+    __setEditorBusy(true);
+
     var errMsg = await __validateContent(newContent, fileName);
     if (errMsg) {
       __showEditorError(errEl, errMsg);
+      _saving = false;
+      __setEditorBusy(false);
       return;
     }
     __showEditorError(errEl, "");
-
-    _saving = true;
-    __setEditorBusy(true);
 
     try {
       var fileObj = new File([newContent], fileName, {

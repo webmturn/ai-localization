@@ -146,7 +146,10 @@ async function __parseFileAsyncImpl(file, options) {
       const parseXmlByDetectedFormat = () => {
         const warnFallback = (message) => {
           (loggers.app || console).warn(message);
-          showNotification("warning", "XML解析提示", message);
+          // silent 门控：源文件编辑器等静默重解析场景不弹 toast，避免叠加提示
+          if (!silent) {
+            showNotification("warning", "XML解析提示", message);
+          }
         };
 
         // 结构探测（parsererror 直接抛错，走文件级错误路径）

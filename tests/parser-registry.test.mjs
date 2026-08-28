@@ -217,12 +217,23 @@ describe("端到端分发冒烟（__parseFileAsyncImpl → 注册表 → 解析�
     expect(Array.isArray(result.items)).toBe(true);
   });
 
-  it("结构未命中 + .resx 扩展名 → 扩展名提示 → 校验失败回退通用XML（保留 warnFallback 行为）", async () => {
+  it("结构未命中 + .resx 扩展名 → 扩展名提示 → 校验失败回退通用XML（silent 门控：静默不弹 toast）", async () => {
     notifications.length = 0;
     const result = await parseFile(
       "<weird><data>x</data></weird>",
       "t.resx",
       "application/xml"
+    );
+    expect(result.success).toBe(true);
+    // silent: true 时 warnFallback 仅记录日志，不弹 toast（避免源文件编辑器叠提示）
+    expect(notifications.filter((n) => n.type === "warning").length).toBe(0);
+  });
+
+  it("非 silent 时保留 warnFallback 回退提示（结构未命中 + 校验失败两条）", async () => {
+    notifications.length = 0;
+    const result = await App.impl.parseFileAsync(
+      new File(["<weird><data>x</data></weird>"], "t.resx", { type: "application/xml" }),
+      { skipPersist: true } // 不传 silent，走正常提示路径
     );
     expect(result.success).toBe(true);
     // 两条回退提示：结构识别未命中（按扩展名尝试）+ RESX 结构校验失败

@@ -31,6 +31,9 @@ jobs:
       - name: 状态所有权检查
         run: node scripts/check-state-ownership.mjs
 
+      - name: 全局函数冻结检查
+        run: node scripts/check-global-functions.mjs
+
       - name: 构建 CSS
         run: npm run build-css
 

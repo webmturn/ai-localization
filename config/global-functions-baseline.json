@@ -1,0 +1,693 @@
+{
+  "_comment": "全局函数冻结基线：window.<name> 顶层挂载清单（自动生成，勿手改）。新增挂载会被 CI 拦截；迁移移除后请运行 node scripts/check-global-functions.mjs --update 收缩基线。",
+  "generatedAt": "2026-08-28T16:52:38.109Z",
+  "mounts": {
+    "__appBootstrap": [
+      "core/bootstrap.js"
+    ],
+    "__appScriptSuffix": [
+      "core/architecture/architecture-debug.js"
+    ],
+    "__DEFAULT_PROJECT_PROMPT_TEMPLATES": [
+      "services/translation/settings.js"
+    ],
+    "__multiTabChannel": [
+      "core/bootstrap.js"
+    ],
+    "__notificationQueue": [
+      "ui/notification.js"
+    ],
+    "__parseYAMLSimple": [
+      "parsers/yaml.js"
+    ],
+    "__setDropAreaActive": [
+      "ui/file-drop.js"
+    ],
+    "__translationsExportShimLoaded": [
+      "features/translations/export.js"
+    ],
+    "$$optimized": [
+      "utils/dom-cache-integration.js"
+    ],
+    "$optimized": [
+      "utils/dom-cache-integration.js"
+    ],
+    "App": [
+      "core/architecture/namespace-manager.js"
+    ],
+    "applyFindReplace": [
+      "features/translations/find-replace.js"
+    ],
+    "AppState": [
+      "core/state.js"
+    ],
+    "ArchDebug": [
+      "core/architecture/architecture-debug.js"
+    ],
+    "Architecture": [
+      "core/architecture/architecture-initializer.js"
+    ],
+    "architectureInitializer": [
+      "core/architecture/architecture-initializer.js"
+    ],
+    "ArchitectureInitializer": [
+      "core/architecture/architecture-initializer.js"
+    ],
+    "ArchitectureIntegrationHelpers": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "autoSaveManager": [
+      "services/auto-save-manager.js"
+    ],
+    "batchDOM": [
+      "utils/dom-cache-integration.js"
+    ],
+    "BatchErrorCollector": [
+      "core/errors/error-utils.js"
+    ],
+    "BatchResumeManager": [
+      "services/translation/batch-resume.js"
+    ],
+    "benchmarkArchPerformance": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "checkArchHealth": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "checkArchitectureStatus": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "clearDOMCache": [
+      "utils/dom-cache-integration.js"
+    ],
+    "closeSourceEditor": [
+      "features/files/source-editor.js"
+    ],
+    "createConvenienceMethods": [
+      "core/event-binding-manager.js"
+    ],
+    "createError": [
+      "core/errors/error-manager.js"
+    ],
+    "createLogger": [
+      "core/logger-config.js"
+    ],
+    "createOptimizedElement": [
+      "utils/dom-cache-integration.js"
+    ],
+    "createSafeGlobal": [
+      "core/architecture/namespace-manager.js"
+    ],
+    "createServiceDecorator": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "createTranslationBusinessLogic": [
+      "services/translation/business-logic.js"
+    ],
+    "createTranslationUIController": [
+      "features/translations/ui-controller.js"
+    ],
+    "CustomEngineManager": [
+      "services/translation/engines/providers/custom-engine.js"
+    ],
+    "CustomEngineUI": [
+      "features/engines/custom-ui.js"
+    ],
+    "debugMemory": [
+      "core/dev-tools.js"
+    ],
+    "defineComponent": [
+      "core/architecture/module-manager.js"
+    ],
+    "defineModule": [
+      "core/architecture/module-manager.js"
+    ],
+    "defineService": [
+      "core/architecture/module-manager.js"
+    ],
+    "defineUtility": [
+      "core/architecture/module-manager.js"
+    ],
+    "demonstrateUsage": [
+      "dev-tools/error-test.js"
+    ],
+    "diContainer": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "DIContainer": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "DOMCacheIntegration": [
+      "utils/dom-cache-integration.js"
+    ],
+    "domOptimizationManager": [
+      "core/dom-optimization-manager.js"
+    ],
+    "DOMOptimizationManager": [
+      "core/dom-optimization-manager.js"
+    ],
+    "DOMVirtualScrollManager": [
+      "core/dom-optimization-manager.js"
+    ],
+    "downloadFile": [
+      "features/translations/export/shared.js"
+    ],
+    "EmergencyErrorHandler": [
+      "core/errors/error-production.js"
+    ],
+    "emergencyHandler": [
+      "core/errors/error-production.js"
+    ],
+    "EnhancedParserManager": [
+      "parsers/parser-utils.js"
+    ],
+    "enhancedQualityChecker": [
+      "features/quality/enhanced-checks.js"
+    ],
+    "EnhancedQualityChecker": [
+      "features/quality/enhanced-checks.js"
+    ],
+    "ERROR_CATEGORIES": [
+      "core/errors/error-manager.js"
+    ],
+    "ERROR_CODES": [
+      "core/errors/error-manager.js"
+    ],
+    "ERROR_SEVERITY": [
+      "core/errors/error-manager.js"
+    ],
+    "errorDashboard": [
+      "dev-tools/error-handling-examples.js"
+    ],
+    "ErrorHandlingDemo": [
+      "dev-tools/error-demo.js"
+    ],
+    "ErrorHandlingExamples": [
+      "dev-tools/error-handling-examples.js"
+    ],
+    "ErrorInfoSchema": [
+      "types/core-types.js"
+    ],
+    "errorManager": [
+      "core/bootstrap.js",
+      "core/errors/error-manager.js",
+      "core/service-startup-manager.js"
+    ],
+    "ErrorManager": [
+      "core/errors/error-manager.js"
+    ],
+    "errorSystemIntegrator": [
+      "core/errors/error-integration.js"
+    ],
+    "ErrorSystemIntegrator": [
+      "core/errors/error-integration.js"
+    ],
+    "ErrorSystemTest": [
+      "dev-tools/error-system-test.js"
+    ],
+    "ErrorUtils": [
+      "core/errors/error-utils.js"
+    ],
+    "escapeCsv": [
+      "features/translations/export/shared.js"
+    ],
+    "escapeCSVField": [
+      "parsers/csv.js"
+    ],
+    "escapeHtml": [
+      "features/translations/export/shared.js"
+    ],
+    "escapeXml": [
+      "features/translations/export/shared.js"
+    ],
+    "eventBindingManager": [
+      "core/event-binding-manager.js"
+    ],
+    "EventBindingManager": [
+      "core/event-binding-manager.js"
+    ],
+    "eventBindings": [
+      "core/event-binding-manager.js"
+    ],
+    "eventManager": [
+      "core/bootstrap.js",
+      "core/event-manager.js",
+      "core/service-startup-manager.js"
+    ],
+    "EventManager": [
+      "core/event-manager.js"
+    ],
+    "eventToKeyString": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "executeWithErrorHandling": [
+      "core/errors/error-manager.js"
+    ],
+    "exportCSV": [
+      "parsers/csv.js"
+    ],
+    "exportYAML": [
+      "parsers/yaml.js"
+    ],
+    "FileErrorHandler": [
+      "features/files/error-handler.js"
+    ],
+    "FileValidators": [
+      "utils/validators-v2.js"
+    ],
+    "filterTerminology": [
+      "features/translations/export/terminology-list.js"
+    ],
+    "formatKeyDisplay": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "formatTranslationError": [
+      "features/translations/error-handler.js"
+    ],
+    "formatTranslationErrorOriginal": [
+      "features/translations/error-handler.js"
+    ],
+    "getAllServices": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "getArchitectureHelpers": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "getDOMCacheIntegration": [
+      "utils/dom-cache-integration.js"
+    ],
+    "getEffectiveShortcutKeys": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "getFileValidators": [
+      "utils/validators-v2.js"
+    ],
+    "getFromNamespace": [
+      "core/architecture/namespace-manager.js"
+    ],
+    "getModule": [
+      "core/architecture/module-manager.js"
+    ],
+    "getModuleSystemStatus": [
+      "core/architecture/module-manager.js"
+    ],
+    "getService": [
+      "core/architecture/dependency-injection.js",
+      "core/utils.js"
+    ],
+    "getServiceSafely": [
+      "core/architecture/dependency-injection.js",
+      "core/utils.js"
+    ],
+    "getServiceStartupManager": [
+      "core/service-startup-manager.js"
+    ],
+    "getServiceStartupStatus": [
+      "core/service-startup-manager.js"
+    ],
+    "getStorageValidators": [
+      "utils/validators-v2.js"
+    ],
+    "getTranslationResultHandler": [
+      "features/translations/result-handler-v2.js"
+    ],
+    "getUniversalValidators": [
+      "utils/validators-v2.js"
+    ],
+    "handleError": [
+      "core/errors/error-manager.js"
+    ],
+    "handleTranslationComplete": [
+      "features/translations/result-handler-v2.js"
+    ],
+    "handleTranslationResults": [
+      "features/translations/result-handler-v2.js"
+    ],
+    "hasService": [
+      "core/architecture/dependency-injection.js",
+      "core/utils.js"
+    ],
+    "initEngineModelSync": [
+      "ui/engine-model-sync.js"
+    ],
+    "initializeArchitecture": [
+      "core/architecture/architecture-initializer.js"
+    ],
+    "initializeCoreServices": [
+      "core/service-startup-manager.js"
+    ],
+    "initializeDI": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "initializeErrorManager": [
+      "core/errors/error-manager.js"
+    ],
+    "initializeErrorSystem": [
+      "core/errors/error-integration.js"
+    ],
+    "initInlineTranslationProgress": [
+      "features/translations/progress.js"
+    ],
+    "initTerminology": [
+      "features/terminology/init.js"
+    ],
+    "inject": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "integrateWithArchitecture": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "isErrorSystemReady": [
+      "core/errors/error-integration.js"
+    ],
+    "isModuleLoaded": [
+      "core/architecture/module-manager.js"
+    ],
+    "isSourceEditorBusy": [
+      "features/files/source-editor.js"
+    ],
+    "KEYBOARD_SHORTCUT_DEFINITIONS": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "loadProjectPromptTemplatesToUI": [
+      "ui/event-listeners/settings-prompt-templates.js"
+    ],
+    "LOG_LEVELS": [
+      "core/logger-config.js"
+    ],
+    "loggerConfig": [
+      "core/logger-config.js"
+    ],
+    "LoggerConfig": [
+      "core/logger-config.js"
+    ],
+    "loggers": [
+      "core/logger-config.js"
+    ],
+    "ModelFetcher": [
+      "services/translation/model-fetch.js"
+    ],
+    "moduleManager": [
+      "core/architecture/module-manager.js"
+    ],
+    "ModuleManager": [
+      "core/architecture/module-manager.js"
+    ],
+    "namespaceManager": [
+      "core/architecture/namespace-manager.js"
+    ],
+    "NamespaceManager": [
+      "core/architecture/namespace-manager.js"
+    ],
+    "NetworkErrorHandler": [
+      "network/error-handler.js"
+    ],
+    "NetworkUtils": [
+      "network/error-handler.js"
+    ],
+    "NetworkUtilsOriginal": [
+      "network/error-handler.js"
+    ],
+    "networkUtilsV2": [
+      "network/error-handler.js"
+    ],
+    "notifyStorageErrorV2": [
+      "services/storage/error-handler.js"
+    ],
+    "openSourceEditor": [
+      "features/files/source-editor.js"
+    ],
+    "parseCSV": [
+      "parsers/csv.js"
+    ],
+    "parseCSVLines": [
+      "parsers/csv.js"
+    ],
+    "parseFile": [
+      "features/files/error-handler.js"
+    ],
+    "parseFileOriginal": [
+      "features/files/error-handler.js"
+    ],
+    "ParserRegistry": [
+      "parsers/parser-registry.js"
+    ],
+    "ParserUtils": [
+      "parsers/parser-utils.js"
+    ],
+    "parseTSV": [
+      "parsers/csv.js"
+    ],
+    "parseYAML": [
+      "parsers/yaml.js"
+    ],
+    "performanceMonitor": [
+      "core/bootstrap.js",
+      "core/performance-monitor.js",
+      "core/service-startup-manager.js"
+    ],
+    "PerformanceMonitor": [
+      "core/performance-monitor.js"
+    ],
+    "PlaceholderGuard": [
+      "services/translation/placeholder-guard.js"
+    ],
+    "previewFindReplace": [
+      "features/translations/find-replace.js"
+    ],
+    "ProductionErrorMonitor": [
+      "core/errors/error-production.js"
+    ],
+    "ProductionErrorUtils": [
+      "core/errors/error-production.js"
+    ],
+    "productionMonitor": [
+      "core/errors/error-production.js"
+    ],
+    "ProjectStore": [
+      "core/project-store.js"
+    ],
+    "qualityCheckResults": [
+      "core/state.js"
+    ],
+    "quickHealthCheck": [
+      "dev-tools/error-system-test.js"
+    ],
+    "quickValidation": [
+      "dev-tools/error-test.js"
+    ],
+    "readFile": [
+      "features/files/error-handler.js"
+    ],
+    "readFileOriginal": [
+      "features/files/error-handler.js"
+    ],
+    "refreshEngineModels": [
+      "ui/engine-model-sync.js"
+    ],
+    "refreshEngineModelSelectors": [
+      "ui/engine-model-sync.js"
+    ],
+    "registerCoreServices": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "registerEventListenersKeyboard": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "registerEventListenersProjectManager": [
+      "features/projects/manager.js"
+    ],
+    "registerService": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "registerSourceEditorEvents": [
+      "features/files/source-editor.js"
+    ],
+    "resetShortcutToDefault": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "resetTranslationUI": [
+      "features/translations/ui-updates.js"
+    ],
+    "runErrorHandlingDemo": [
+      "dev-tools/error-demo.js"
+    ],
+    "runErrorSystemTest": [
+      "dev-tools/error-system-test.js"
+    ],
+    "safeAsync": [
+      "core/errors/error-utils.js"
+    ],
+    "saveShortcutOverride": [
+      "ui/event-listeners/keyboard.js"
+    ],
+    "saveSourceEditor": [
+      "features/files/source-editor.js"
+    ],
+    "ServiceConfigSchema": [
+      "types/core-types.js"
+    ],
+    "serviceLocator": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "ServiceLocator": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "ServiceStartupManager": [
+      "core/service-startup-manager.js"
+    ],
+    "setCategoryLogLevel": [
+      "core/logger-config.js"
+    ],
+    "setLogLevel": [
+      "core/logger-config.js"
+    ],
+    "showArchitectureStatus": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "showConfirmDialog": [
+      "ui/confirm-dialog.js"
+    ],
+    "showErrorHandlingHelp": [
+      "dev-tools/error-demo.js"
+    ],
+    "showNotification": [
+      "core/errors/error-integration.js",
+      "dev-tools/error-system-test.js"
+    ],
+    "showPromptDialog": [
+      "ui/confirm-dialog.js"
+    ],
+    "showServiceStatus": [
+      "core/service-startup-manager.js"
+    ],
+    "smartUpdateTranslationUI": [
+      "features/translations/ui-updates.js"
+    ],
+    "storageErrorHandler": [
+      "services/storage/storage-error-handler.js"
+    ],
+    "StorageErrorHandler": [
+      "services/storage/error-handler.js",
+      "services/storage/storage-error-handler.js"
+    ],
+    "StorageValidators": [
+      "utils/validators-v2.js"
+    ],
+    "switchTerminologyTab": [
+      "features/translations/export/terminology-list.js"
+    ],
+    "syncQualityRuleCards": [
+      "features/quality/ui.js"
+    ],
+    "testErrorHandlingFixes": [
+      "dev-tools/error-test.js"
+    ],
+    "testSpecificError": [
+      "dev-tools/error-demo.js"
+    ],
+    "TMAutoApply": [
+      "services/translation/tm-auto-apply.js"
+    ],
+    "TMManagerUI": [
+      "features/tm/ui.js"
+    ],
+    "translationBusinessLogic": [
+      "features/translations/actions.js"
+    ],
+    "TranslationBusinessLogic": [
+      "services/translation/business-logic.js"
+    ],
+    "TranslationDiff": [
+      "services/translation/translation-diff.js"
+    ],
+    "TranslationErrorHandler": [
+      "features/translations/error-handler.js"
+    ],
+    "TranslationItemSchema": [
+      "types/core-types.js"
+    ],
+    "TranslationMemory": [
+      "services/translation/translation-memory.js"
+    ],
+    "TranslationResultHandler": [
+      "features/translations/result-handler-v2.js"
+    ],
+    "translationService": [
+      "services/translation-service.js"
+    ],
+    "TranslationToolError": [
+      "core/errors/error-manager.js"
+    ],
+    "translationUIController": [
+      "features/translations/actions.js"
+    ],
+    "TranslationUIController": [
+      "features/translations/ui-controller.js"
+    ],
+    "TranslationUIUpdater": [
+      "features/translations/ui-updates.js"
+    ],
+    "TranslationValidators": [
+      "utils/validators-v2.js"
+    ],
+    "TypeAssert": [
+      "types/core-types.js"
+    ],
+    "TypeChecker": [
+      "types/core-types.js"
+    ],
+    "UniversalValidators": [
+      "utils/validators-v2.js"
+    ],
+    "updateStorageBackendStatus": [
+      "ui/event-listeners/data-management.js"
+    ],
+    "updateTerminologyList": [
+      "features/translations/export/terminology-list.js"
+    ],
+    "updateTerminologyPagination": [
+      "features/translations/export/terminology-list.js"
+    ],
+    "updateTranslationProgressUI": [
+      "features/translations/ui-updates.js"
+    ],
+    "updateTranslationUI": [
+      "features/translations/result-handler-v2.js",
+      "features/translations/ui-updates.js"
+    ],
+    "Utils": [
+      "features/translations/export/shared.js"
+    ],
+    "validateArchIntegration": [
+      "core/architecture/architecture-integration-helpers.js"
+    ],
+    "validateFiles": [
+      "features/files/error-handler.js"
+    ],
+    "validateFilesOriginal": [
+      "features/files/error-handler.js"
+    ],
+    "waitForArchitecture": [
+      "core/architecture/architecture-initializer.js"
+    ],
+    "waitForErrorSystem": [
+      "core/errors/error-integration.js"
+    ],
+    "withErrorHandling": [
+      "core/errors/error-utils.js"
+    ],
+    "withNetworkErrorHandling": [
+      "core/errors/error-manager.js"
+    ],
+    "withServices": [
+      "core/architecture/dependency-injection.js"
+    ],
+    "withStorageErrorHandling": [
+      "core/errors/error-manager.js"
+    ],
+    "withTranslationErrorHandling": [
+      "core/errors/error-manager.js"
+    ]
+  }
+}

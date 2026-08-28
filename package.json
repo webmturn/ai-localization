@@ -16,7 +16,8 @@
     "check-node": "node scripts/tools.mjs check-node",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check-state": "node scripts/check-state-ownership.mjs"
+    "check-state": "node scripts/check-state-ownership.mjs",
+    "check-globals": "node scripts/check-global-functions.mjs"
   },
   "keywords": [
     "translation",

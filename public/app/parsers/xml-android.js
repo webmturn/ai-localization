@@ -128,3 +128,27 @@ function parseAndroidStrings(content, fileName) {
 
   return items;
 }
+
+
+// ==================== 注册到解析器注册表 ====================
+// typeof 守卫：本文件被单独加载（单元测试/复用）时跳过注册
+if (typeof ParserRegistry !== "undefined" && typeof ParserRegistry.register === "function") {
+  ParserRegistry.register({
+    id: "android",
+    label: "Android strings.xml",
+    extensions: [], // .xml 扩展名不独占：同名扩展可能是 xliff/ts/resx/通用XML，仅走结构探测
+    detectXml: (doc) =>
+      ParserRegistry.rootName(doc) === "resources" &&
+      ParserRegistry.hasAnyTag(doc, "string", "string-array", "plurals"),
+    validateSchema: (doc) => {
+      if (ParserRegistry.rootName(doc) !== "resources") {
+        return { ok: false, reason: "root 不是 <resources>" };
+      }
+      if (!ParserRegistry.hasAnyTag(doc, "string", "string-array", "plurals")) {
+        return { ok: false, reason: "缺少 string/string-array/plurals" };
+      }
+      return { ok: true };
+    },
+    parse: parseAndroidStrings,
+  });
+}

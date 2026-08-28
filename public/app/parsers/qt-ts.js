@@ -78,3 +78,26 @@ function parseQtTs(content, fileName) {
 
   return items;
 }
+
+// ==================== 注册到解析器注册表 ====================
+// typeof 守卫：本文件被单独加载（单元测试/复用）时跳过注册
+if (typeof ParserRegistry !== "undefined" && typeof ParserRegistry.register === "function") {
+  ParserRegistry.register({
+    id: "ts",
+    label: "Qt TS",
+    extensions: ["ts"],
+    detectXml: (doc) =>
+      ParserRegistry.rootName(doc) === "ts" &&
+      ParserRegistry.hasAnyTag(doc, "context", "message", "source"),
+    validateSchema: (doc) => {
+      if (ParserRegistry.rootName(doc) !== "ts") {
+        return { ok: false, reason: "root 不是 <ts>" };
+      }
+      if (!ParserRegistry.hasAnyTag(doc, "context", "message", "source")) {
+        return { ok: false, reason: "缺少 context/message/source" };
+      }
+      return { ok: true };
+    },
+    parse: parseQtTs,
+  });
+}

@@ -108,6 +108,7 @@
 
   // 解析器脚本
   var parserScripts = [
+    "app/parsers/parser-registry.js",                 // 解析器注册表（必须先于所有解析器加载）
     "app/parsers/parser-utils.js",                    // 解析器工具类
     "app/parsers/xml-generic.js",
     "app/parsers/xml-android.js",

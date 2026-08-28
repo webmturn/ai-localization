@@ -117,3 +117,14 @@ function collectQuotedParts(line) {
 
   return items;
 }
+
+// ==================== 注册到解析器注册表 ====================
+// typeof 守卫：本文件被单独加载（单元测试/复用）时跳过注册
+if (typeof ParserRegistry !== "undefined" && typeof ParserRegistry.register === "function") {
+  ParserRegistry.register({
+    id: "po",
+    label: "PO",
+    extensions: ["po"],
+    parse: parsePO,
+  });
+}

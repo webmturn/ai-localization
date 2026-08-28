@@ -117,3 +117,27 @@ function parseXLIFF(content, fileName) {
 
   return items;
 }
+
+// ==================== 注册到解析器注册表 ====================
+// typeof 守卫：本文件被单独加载（单元测试/复用）时跳过注册
+if (typeof ParserRegistry !== "undefined" && typeof ParserRegistry.register === "function") {
+  ParserRegistry.register({
+    id: "xliff",
+    label: "XLIFF",
+    extensions: ["xliff", "xlf"],
+    detectXml: (doc) =>
+      ParserRegistry.rootName(doc) === "xliff" ||
+      ParserRegistry.rootNamespace(doc).indexOf("xliff") !== -1 ||
+      (ParserRegistry.hasTag(doc, "trans-unit") && ParserRegistry.hasTag(doc, "source")) ||
+      (ParserRegistry.hasTag(doc, "unit") && ParserRegistry.hasTag(doc, "segment") && ParserRegistry.hasTag(doc, "source")),
+    validateSchema: (doc) => {
+      const ok =
+        (ParserRegistry.hasTag(doc, "trans-unit") && ParserRegistry.hasTag(doc, "source")) ||
+        (ParserRegistry.hasTag(doc, "unit") && ParserRegistry.hasTag(doc, "segment") && ParserRegistry.hasTag(doc, "source"));
+      return ok
+        ? { ok: true }
+        : { ok: false, reason: "缺少 trans-unit/source 或 unit/segment/source" };
+    },
+    parse: parseXLIFF,
+  });
+}

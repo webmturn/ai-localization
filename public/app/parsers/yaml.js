@@ -220,3 +220,14 @@ async function exportYAML(items, options = {}) {
 window.parseYAML = parseYAML;
 window.exportYAML = exportYAML;
 window.__parseYAMLSimple = __parseYAMLSimple;
+
+// ==================== 注册到解析器注册表 ====================
+// typeof 守卫：本文件被单独加载（单元测试/复用）时跳过注册
+if (typeof ParserRegistry !== "undefined" && typeof ParserRegistry.register === "function") {
+  ParserRegistry.register({
+    id: "yaml",
+    label: "YAML",
+    extensions: ["yaml", "yml"],
+    parse: parseYAML,
+  });
+}

@@ -3,7 +3,9 @@
 // - 读取文件内容，并做轻量标准化（去 BOM、统一换行）以降低各解析器的边界差异
 // - 对 XML 类扩展名做安全校验（过大/非法 XML 直接拒绝）
 // - 保存文件元数据与原始内容（AppState + IndexedDB），便于后续回溯/重解析
-// - 按扩展名选择解析器；XML 文件优先基于结构识别格式，解析失败时回退到文本兜底解析（parseTextFile）
+// - options.silent：不弹 toast；options.skipPersist：只解析条目，不写 metadata/IndexedDB（源文件编辑器用）
+// - 经 ParserRegistry 分发：XML 系扩展名优先结构探测，其余按扩展名直配，未认领走文本兜底（parseTextFile）
+//   新增格式 = 新增 parser 文件（末尾自注册）+ app.js parserScripts 加一行，本文件零改动
 function detectXmlFormat(content) {
   try {
     const parser = new DOMParser();
@@ -17,111 +19,22 @@ function detectXmlFormat(content) {
       };
     }
 
-    const root = xmlDoc.documentElement;
-    const rootName = (root?.localName || root?.nodeName || "").toLowerCase();
-    const namespace = (root?.namespaceURI || "").toLowerCase();
-
-    const hasTag = (tagName) =>
-      xmlDoc.getElementsByTagName(tagName).length > 0 ||
-      xmlDoc.getElementsByTagName(tagName.toUpperCase()).length > 0;
-    const hasAnyTag = (...tags) => tags.some((tag) => hasTag(tag));
-
-    const hasXliffV1 = hasTag("trans-unit") && hasTag("source");
-    const hasXliffV2 = hasTag("unit") && hasTag("segment") && hasTag("source");
-
-    if (
-      rootName === "resources" &&
-      hasAnyTag("string", "string-array", "plurals")
-    ) {
-      return { type: "android", doc: xmlDoc };
-    }
-
-    if (
-      rootName === "xliff" ||
-      namespace.includes("xliff") ||
-      hasXliffV1 ||
-      hasXliffV2
-    ) {
-      return { type: "xliff", doc: xmlDoc };
-    }
-
-    if (rootName === "ts" && hasAnyTag("context", "message", "source")) {
-      return { type: "ts", doc: xmlDoc };
-    }
-
-    if (rootName === "root" && hasTag("data") && hasTag("value")) {
-      return { type: "resx", doc: xmlDoc };
-    }
-
-    return { type: "generic", doc: xmlDoc };
+    const hit = ParserRegistry.detectXml(xmlDoc);
+    return hit ? { type: hit.id, doc: xmlDoc } : { type: "generic", doc: xmlDoc };
   } catch (error) {
     return { type: "generic", reason: error.message };
   }
 }
 
-function validateXmlSchema(type, content, xmlDoc) {
+async function __parseFileAsyncImpl(file, options) {
+  const opts = options || {};
+  const silent = !!opts.silent;
+  const skipPersist = !!opts.skipPersist;
   try {
-    const doc =
-      xmlDoc ||
-      new DOMParser().parseFromString(content || "", "application/xml");
-    const parserError = doc.querySelector("parsererror");
-    if (parserError) {
-      return { ok: false, reason: parserError.textContent || "XML parse error" };
+    // 显示处理提示（源文件重解析等场景可 silent，避免叠 toast）
+    if (!silent) {
+      showNotification("info", "解析文件", `正在解析文件: ${file.name}`);
     }
-
-    const rootName =
-      (doc.documentElement?.localName || doc.documentElement?.nodeName || "")
-        .toLowerCase();
-    const hasTag = (tagName) =>
-      doc.getElementsByTagName(tagName).length > 0 ||
-      doc.getElementsByTagName(tagName.toUpperCase()).length > 0;
-    const hasAnyTag = (...tags) => tags.some((tag) => hasTag(tag));
-
-    if (type === "android") {
-      if (rootName !== "resources") {
-        return { ok: false, reason: "root 不是 <resources>" };
-      }
-      if (!hasAnyTag("string", "string-array", "plurals")) {
-        return { ok: false, reason: "缺少 string/string-array/plurals" };
-      }
-      return { ok: true };
-    }
-
-    if (type === "xliff") {
-      const hasXliffV1 = hasTag("trans-unit") && hasTag("source");
-      const hasXliffV2 = hasTag("unit") && hasTag("segment") && hasTag("source");
-      return hasXliffV1 || hasXliffV2
-        ? { ok: true }
-        : { ok: false, reason: "缺少 trans-unit/source 或 unit/segment/source" };
-    }
-
-    if (type === "ts") {
-      if (rootName !== "ts") {
-        return { ok: false, reason: "root 不是 <ts>" };
-      }
-      return hasAnyTag("context", "message", "source")
-        ? { ok: true }
-        : { ok: false, reason: "缺少 context/message/source" };
-    }
-
-    if (type === "resx") {
-      if (rootName !== "root") {
-        return { ok: false, reason: "root 不是 <root>" };
-      }
-      return hasTag("data") && hasTag("value")
-        ? { ok: true }
-        : { ok: false, reason: "缺少 data/value" };
-    }
-
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, reason: error.message };
-  }
-}
-async function __parseFileAsyncImpl(file) {
-  try {
-    // 显示处理提示
-    showNotification("info", "解析文件", `正在解析文件: ${file.name}`);
 
     const fileExtension = file.name.split(".").pop().toLowerCase();
 
@@ -135,12 +48,16 @@ async function __parseFileAsyncImpl(file) {
       if (extFormatKey) {
         const enabled = s["format" + (extFormatKey === "strings" ? "IOSStrings" : extFormatKey === "ts" ? "QtTS" : extFormatKey === "xml" ? "XML" : extFormatKey === "xliff" ? "XLIFF" : extFormatKey === "resx" ? "RESX" : extFormatKey === "po" ? "PO" : extFormatKey === "json" ? "JSON" : "")] !== false;
         if (!enabled) {
-          showNotification("warning", "格式已禁用", "已在设置中禁用 " + fileExtension.toUpperCase() + " 格式解析（文件处理设置）");
+          if (!silent) {
+            showNotification("warning", "格式已禁用", "已在设置中禁用 " + fileExtension.toUpperCase() + " 格式解析（文件处理设置）");
+          }
           return null;
         }
       } else if (s.formatTextFallback === false) {
         // 未知扩展名走文本兜底，受 formatTextFallback 控制
-        showNotification("warning", "文本解析已禁用", "已在设置中禁用文本兜底解析（文件处理设置）");
+        if (!silent) {
+          showNotification("warning", "文本解析已禁用", "已在设置中禁用文本兜底解析（文件处理设置）");
+        }
         return null;
       }
     } catch (e) {
@@ -185,193 +102,119 @@ async function __parseFileAsyncImpl(file) {
     }
 
     // 只对XML类文件进行XML验证
-    const xmlExtensions = ["xml", "xlf", "xliff", "resx", "ts"];
-    if (xmlExtensions.includes(fileExtension)) {
+    // XML 系扩展名由注册表派生：基础 xml + 所有声明了结构探测的解析器认领的扩展名
+    const xmlFamilyExtensions = ["xml"].concat(
+      ParserRegistry.getDetectableExtensions()
+    );
+    if (xmlFamilyExtensions.includes(fileExtension)) {
       if (!securityUtils.validateXMLContent(normalizedContent)) {
         throw new Error("文件内容不是有效的XML格式或过大");
       }
     }
 
-    // 保存文件元数据（到 AppState）
-    if (!AppState.fileMetadata) AppState.fileMetadata = {};
-    const projectId = AppState.project?.id || getOrCreateProjectId();
-    const contentKey = buildFileContentKey(projectId, file.name);
-    AppState.fileMetadata[file.name] = {
-      size: file.size,
-      lastModified: file.lastModified,
-      type: file.type || "text/xml",
-      originalContent: content, // 保存原始文件内容
-      contentKey,
-      extension: fileExtension,
-    };
+    // 保存文件元数据（到 AppState）。skipPersist：仅解析条目，不覆盖导入缓存
+    if (!skipPersist) {
+      if (!AppState.fileMetadata) AppState.fileMetadata = {};
+      const projectId = AppState.project?.id || getOrCreateProjectId();
+      const contentKey = buildFileContentKey(projectId, file.name);
+      AppState.fileMetadata[file.name] = {
+        size: file.size,
+        lastModified: file.lastModified,
+        type: file.type || "text/xml",
+        originalContent: content, // 保存原始文件内容
+        contentKey,
+        extension: fileExtension,
+      };
 
-    try {
-      await idbPutFileContent(contentKey, content);
-    } catch (e) {
-      (loggers.storage || console).error("导入时写入IndexedDB失败:", e);
-      notifyIndexedDbFileContentErrorOnce(e, "导入时保存原始内容");
+      try {
+        await idbPutFileContent(contentKey, content);
+      } catch (e) {
+        (loggers.storage || console).error("导入时写入IndexedDB失败:", e);
+        notifyIndexedDbFileContentErrorOnce(e, "导入时保存原始内容");
+      }
     }
 
     (loggers.app || console).debug(
       `开始解析文件: ${file.name} (${fileExtension}), 大小: ${file.size} bytes`
     );
 
-    // 根据文件类型解析内容
+    // 根据文件类型解析内容：XML 系扩展名走结构探测，其余经注册表扩展名直配
     let items = [];
 
     try {
+      // XML 系格式：结构探测优先；结构未命中按扩展名提示；校验失败/0 条目均回退通用XML
       const parseXmlByDetectedFormat = () => {
-        const detection = detectXmlFormat(normalizedContent);
-        const extensionHints = {
-          xlf: "xliff",
-          xliff: "xliff",
-          ts: "ts",
-          resx: "resx",
-        };
-        const schemaLabels = {
-          android: "Android strings.xml",
-          xliff: "XLIFF",
-          ts: "Qt TS",
-          resx: "RESX",
-        };
-
         const warnFallback = (message) => {
           (loggers.app || console).warn(message);
           showNotification("warning", "XML解析提示", message);
         };
 
-        const ensureSchema = (type, xmlDoc) => {
-          const label = schemaLabels[type] || type.toUpperCase();
-          const check = validateXmlSchema(type, normalizedContent, xmlDoc);
-          if (!check.ok) {
-            warnFallback(
-              `${file.name} ${label}结构校验失败: ${check.reason}，已回退到通用XML解析。`
-            );
-            return false;
-          }
-          return true;
-        };
-
-        const parseWithGuard = (label, parserFn) => {
-          const parsed = parserFn();
-          if (!parsed || parsed.length === 0) {
-            warnFallback(
-              `${file.name} ${label}解析未找到可翻译项，已回退到通用XML解析。`
-            );
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          return parsed;
-        };
-
+        // 结构探测（parsererror 直接抛错，走文件级错误路径）
+        const detection = detectXmlFormat(normalizedContent);
         if (detection.type === "invalid") {
           throw new Error(`XML解析失败: ${detection.reason || "无效XML"}`);
         }
 
-        const hintedType = extensionHints[fileExtension];
-        if (hintedType && detection.type === "generic") {
+        let chosen =
+          detection.type === "generic"
+            ? null
+            : ParserRegistry.getById(detection.type);
+        if (chosen) {
+          (loggers.app || console).debug(`结构识别: ${chosen.label}`);
+        } else {
+          // 结构未命中但扩展名明确指向某格式（如 .xlf/.resx）：按扩展名提示解析
+          const hint = ParserRegistry.getByExtension(fileExtension);
+          if (hint) {
+            warnFallback(
+              `${file.name} 结构识别未命中，尝试按扩展名解析(${hint.id.toUpperCase()})。`
+            );
+            chosen = hint;
+          }
+        }
+
+        if (!chosen) {
+          (loggers.app || console).debug("结构识别: 通用XML");
+          return parseGenericXML(normalizedContent, file.name);
+        }
+
+        // detectXmlFormat 异常分支可能无 doc：补一次解析供校验使用
+        let xmlDoc = detection.doc;
+        if (!xmlDoc) {
+          xmlDoc = new DOMParser().parseFromString(
+            normalizedContent,
+            "application/xml"
+          );
+        }
+
+        // 结构校验失败 → 回退通用XML
+        if (typeof chosen.validateSchema === "function") {
+          const check = chosen.validateSchema(xmlDoc);
+          if (!check || !check.ok) {
+            warnFallback(
+              `${file.name} ${chosen.label}结构校验失败: ${(check && check.reason) || "结构校验失败"}，已回退到通用XML解析。`
+            );
+            return parseGenericXML(normalizedContent, file.name);
+          }
+        }
+
+        // 解析守卫：0 条目 → 回退通用XML
+        const parsed = chosen.parse(normalizedContent, file.name);
+        if (!parsed || parsed.length === 0) {
           warnFallback(
-            `${file.name} 结构识别未命中，尝试按扩展名解析(${hintedType.toUpperCase()})。`
+            `${file.name} ${chosen.label}解析未找到可翻译项，已回退到通用XML解析。`
           );
-          if (!ensureSchema(hintedType, detection.doc)) {
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          if (hintedType === "xliff") {
-            return parseWithGuard("XLIFF", () =>
-              parseXLIFF(normalizedContent, file.name)
-            );
-          }
-          if (hintedType === "ts") {
-            return parseWithGuard("Qt TS", () =>
-              parseQtTs(normalizedContent, file.name)
-            );
-          }
-          if (hintedType === "resx") {
-            return parseWithGuard("RESX", () =>
-              parseRESX(normalizedContent, file.name)
-            );
-          }
+          return parseGenericXML(normalizedContent, file.name);
         }
-
-        if (detection.type === "android") {
-          (loggers.app || console).debug("结构识别: Android strings.xml");
-          if (!ensureSchema("android", detection.doc)) {
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          return parseWithGuard("Android strings.xml", () =>
-            parseAndroidStrings(normalizedContent, file.name)
-          );
-        }
-        if (detection.type === "xliff") {
-          (loggers.app || console).debug("结构识别: XLIFF");
-          if (!ensureSchema("xliff", detection.doc)) {
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          return parseWithGuard("XLIFF", () =>
-            parseXLIFF(normalizedContent, file.name)
-          );
-        }
-        if (detection.type === "ts") {
-          (loggers.app || console).debug("结构识别: Qt TS");
-          if (!ensureSchema("ts", detection.doc)) {
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          return parseWithGuard("Qt TS", () =>
-            parseQtTs(normalizedContent, file.name)
-          );
-        }
-        if (detection.type === "resx") {
-          (loggers.app || console).debug("结构识别: RESX");
-          if (!ensureSchema("resx", detection.doc)) {
-            return parseGenericXML(normalizedContent, file.name);
-          }
-          return parseWithGuard("RESX", () =>
-            parseRESX(normalizedContent, file.name)
-          );
-        }
-        (loggers.app || console).debug("结构识别: 通用XML");
-        return parseGenericXML(normalizedContent, file.name);
+        return parsed;
       };
 
-      const parserMap = {
-        xml: parseXmlByDetectedFormat,
-        xlf: parseXmlByDetectedFormat,
-        xliff: parseXmlByDetectedFormat,
-        ts: parseXmlByDetectedFormat,
-        resx: parseXmlByDetectedFormat,
-        strings: () => {
-          (loggers.app || console).debug("检测到iOS strings格式");
-          return parseIOSStrings(normalizedContent, file.name);
-        },
-        po: () => {
-          (loggers.app || console).debug("检测到PO格式");
-          return parsePO(normalizedContent, file.name);
-        },
-        json: () => {
-          (loggers.app || console).debug("检测到JSON格式");
-          return parseJSON(normalizedContent, file.name);
-        },
-        yaml: () => {
-          (loggers.app || console).debug("检测到YAML格式");
-          return parseYAML(normalizedContent, file.name);
-        },
-        yml: () => {
-          (loggers.app || console).debug("检测到YAML格式");
-          return parseYAML(normalizedContent, file.name);
-        },
-        csv: () => {
-          (loggers.app || console).debug("检测到CSV格式");
-          return parseCSV(normalizedContent, file.name);
-        },
-        tsv: () => {
-          (loggers.app || console).debug("检测到TSV格式");
-          return parseCSV(normalizedContent, file.name, { delimiter: '\t' });
-        },
-      };
-
-      const parser = parserMap[fileExtension];
-      if (parser) {
+      const parser = ParserRegistry.getByExtension(fileExtension);
+      if (xmlFamilyExtensions.includes(fileExtension)) {
+        items = await parseXmlByDetectedFormat();
+      } else if (parser) {
+        (loggers.app || console).debug(`检测到${parser.label}格式`);
         // await 兼容同步/异步解析器（parseYAML 需动态加载 js-yaml）
-        items = await parser();
+        items = await parser.parse(normalizedContent, file.name);
       } else {
         (loggers.app || console).debug("使用文本文件解析器");
         items = parseTextFile(normalizedContent, file.name);
@@ -415,20 +258,24 @@ async function __parseFileAsyncImpl(file) {
     }
 
     (loggers.app || console).info(`文件 ${file.name} 解析完成，找到 ${items.length} 个翻译项`);
-    showNotification(
-      "success",
-      "文件解析成功",
-      `文件 ${file.name} 已成功解析，找到 ${items.length} 个翻译项`
-    );
+    if (!silent) {
+      showNotification(
+        "success",
+        "文件解析成功",
+        `文件 ${file.name} 已成功解析，找到 ${items.length} 个翻译项`
+      );
+    }
 
     return { success: true, items, fileName: file.name, warnings };
   } catch (error) {
     (loggers.app || console).error(`解析文件 ${file.name} 时出错:`, error);
-    showNotification(
-      "error",
-      "文件解析错误",
-      `无法解析文件 ${file.name}: ${error.message}`
-    );
+    if (!silent) {
+      showNotification(
+        "error",
+        "文件解析错误",
+        `无法解析文件 ${file.name}: ${error.message}`
+      );
+    }
 
     // 返回错误信息项
     return {

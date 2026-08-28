@@ -61,13 +61,8 @@
   function __applyProjectToState(project) {
     if (!project) return;
 
-    AppState.project = project;
-
-    AppState.translations.items = project.translationItems || [];
-    AppState.project.translationItems = AppState.translations.items;
-
-    AppState.fileMetadata = project.fileMetadata || {};
-    hydrateFileMetadataContentKeys(AppState.project?.id);
+    // 经 ProjectStore 统一载入：写 project + 同步 translations 视图 + 写 fileMetadata + 水合 contentKey
+    ProjectStore.loadProject(project);
 
     if (project.terminologyList && Array.isArray(project.terminologyList)) {
       AppState.terminology.list = project.terminologyList;
@@ -75,11 +70,6 @@
       AppState.terminology.currentPage = 1;
       if (typeof updateTerminologyList === "function") updateTerminologyList();
     }
-
-    AppState.translations.selected = -1;
-    AppState.translations.currentPage = 1;
-    AppState.translations.filtered = [...AppState.translations.items];
-    AppState.translations.searchQuery = "";
 
     try {
       const sourceLanguageEl = DOMCache.get("sourceLanguage");
@@ -625,12 +615,7 @@
               if (p) __applyProjectToState(p);
             } else if (!activeId && AppState.project?.id === projectId) {
               // 删除的是当前项目且无其他项目：清空状态，避免 refresh 时被重新索引复活
-              AppState.project = null;
-              AppState.translations.items = [];
-              AppState.translations.filtered = [];
-              AppState.translations.selected = -1;
-              AppState.translations.currentPage = 1;
-              AppState.fileMetadata = {};
+              ProjectStore.clearProject();
               try {
                 if (typeof updateFileTree === "function") updateFileTree();
                 if (typeof updateTranslationLists === "function") updateTranslationLists();

@@ -87,7 +87,8 @@ async function __runQualityCheckImpl() {
 
   try {
     if (AppState?.project && Array.isArray(originalProjectItems)) {
-      AppState.project.translationItems = items;
+      // 经 ProjectStore 临时替换条目（检查范围限定，结束后恢复）
+      ProjectStore.setTranslationItems(items);
     }
   } catch (e) {
     (loggers.app || console).debug("qualityCheck restoreItems:", e);
@@ -205,7 +206,8 @@ async function __runQualityCheckImpl() {
   } finally {
     try {
       if (AppState?.project && Array.isArray(originalProjectItems)) {
-        AppState.project.translationItems = originalProjectItems;
+        // 经 ProjectStore 恢复原条目
+        ProjectStore.setTranslationItems(originalProjectItems);
       }
     } catch (e) {
       (loggers.app || console).debug("qualityCheck finalRestore:", e);

@@ -20,15 +20,8 @@ async function createNewProject() {
     if (!ok) return;
   }
 
-  // 清空现有数据
-  AppState.translations.items = [];
-  AppState.translations.selected = -1;
-  AppState.translations.currentPage = 1;
-  AppState.translations.filtered = [];
-  AppState.translations.searchQuery = "";
-
-  // 创建新项目
-  AppState.project = {
+  // 经 ProjectStore 创建并载入新项目（loadProject 内部统一重置 translations 视图）
+  ProjectStore.createProject({
     id: "project-" + Date.now(),
     name: name,
     sourceLanguage: sourceLang,
@@ -36,9 +29,7 @@ async function createNewProject() {
     fileFormat: "mixed",
     translationItems: [],
     terminologyList: [...AppState.terminology.list],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  });
 
   // 更新UI
   updateFileTree();
@@ -120,19 +111,8 @@ function openProject() {
           if (!ok) return;
         }
 
-        // 加载项目数据
-        AppState.project = projectData;
-        AppState.translations.items = projectData.translationItems || [];
-        AppState.project.translationItems = AppState.translations.items;
-
-        // 加载文件元数据
-        if (projectData.fileMetadata) {
-          AppState.fileMetadata = projectData.fileMetadata;
-        } else {
-          AppState.fileMetadata = {};
-        }
-
-        hydrateFileMetadataContentKeys(AppState.project?.id);
+        // 经 ProjectStore 统一载入项目（含 translations 视图同步、fileMetadata、contentKey 水合）
+        ProjectStore.loadProject(projectData);
 
         // 如果项目中有术语库，加载它
         if (
@@ -143,12 +123,6 @@ function openProject() {
           AppState.terminology.filtered = [...AppState.terminology.list];
           updateTerminologyList();
         }
-
-        // 重置状态
-        AppState.translations.selected = -1;
-        AppState.translations.currentPage = 1;
-        AppState.translations.filtered = [...AppState.translations.items];
-        AppState.translations.searchQuery = "";
 
         // 更新UI
         DOMCache.get("sourceLanguage").value =
@@ -195,9 +169,8 @@ async function saveProject() {
     return;
   }
 
-  // 更新项目数据
-  AppState.project.updatedAt = new Date().toISOString();
-  AppState.project.translationItems = AppState.translations.items;
+  // 更新项目数据（translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步）
+  ProjectStore.touchProject();
   AppState.project.terminologyList = AppState.terminology.list;
 
   // 保存原始内容到IndexedDB，项目文件仅保存引用（contentKey）

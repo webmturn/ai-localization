@@ -5,9 +5,8 @@
 function getOrCreateProjectId() {
   if (AppState.project?.id) return AppState.project.id;
   const fallbackId = `project-${Date.now()}`;
-  if (!AppState.project) AppState.project = { id: fallbackId };
-  AppState.project.id = AppState.project.id || fallbackId;
-  return AppState.project.id;
+  // 经 ProjectStore 兜底创建项目（唯一写入方）
+  return ProjectStore.ensureProject(fallbackId);
 }
 
 const CONTENT_KEY_VERSION = 1;

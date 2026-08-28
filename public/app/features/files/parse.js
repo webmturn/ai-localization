@@ -114,17 +114,17 @@ async function __parseFileAsyncImpl(file, options) {
 
     // 保存文件元数据（到 AppState）。skipPersist：仅解析条目，不覆盖导入缓存
     if (!skipPersist) {
-      if (!AppState.fileMetadata) AppState.fileMetadata = {};
       const projectId = AppState.project?.id || getOrCreateProjectId();
       const contentKey = buildFileContentKey(projectId, file.name);
-      AppState.fileMetadata[file.name] = {
+      // 经 ProjectStore 写入（含 project.fileMetadata 派生引用维护）
+      ProjectStore.setFileMetadata(file.name, {
         size: file.size,
         lastModified: file.lastModified,
         type: file.type || "text/xml",
         originalContent: content, // 保存原始文件内容
         contentKey,
         extension: fileExtension,
-      };
+      });
 
       try {
         await idbPutFileContent(contentKey, content);

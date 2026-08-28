@@ -15,7 +15,8 @@
     "build-prod": "npm run build-production",
     "check-node": "node scripts/tools.mjs check-node",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check-state": "node scripts/check-state-ownership.mjs"
   },
   "keywords": [
     "translation",

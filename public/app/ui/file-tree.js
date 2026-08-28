@@ -12,7 +12,7 @@ function updateFileTree(files) {
   }
   const fileTree = DOMCache.get("fileTree");
 
-  if (!AppState.fileMetadata) AppState.fileMetadata = {};
+  ProjectStore.ensureFileMetadata();
 
   // 如果有新上传的文件，直接处理
   let uploadedFiles = [];
@@ -61,20 +61,20 @@ function updateFileTree(files) {
   uploadedFiles.forEach((file) => {
     uniqueFiles.add(file.name);
 
-    // 立即保存 size 等基础元数据，确保文件树能显示“文件大小”
+    // 立即保存 size 等基础元数据，确保文件树能显示“文件大小”（经 ProjectStore 写入）
     const extension = file.name.split(".").pop().toLowerCase();
     if (!AppState.fileMetadata[file.name]) {
-      AppState.fileMetadata[file.name] = {
+      ProjectStore.setFileMetadata(file.name, {
         size: file.size,
         lastModified: file.lastModified,
         type: file.type || "text/plain",
         extension,
-      };
+      });
     } else if (
       typeof AppState.fileMetadata[file.name].size !== "number" &&
       typeof file.size === "number"
     ) {
-      AppState.fileMetadata[file.name].size = file.size;
+      ProjectStore.patchFileMetadata(file.name, { size: file.size });
     }
   });
 
@@ -112,16 +112,16 @@ function updateFileTree(files) {
   if (uniqueFiles.size === 0) {
     uniqueFiles.add("default.xml");
 
-    // 占位示例文件：确保大小展示稳定
+    // 占位示例文件：确保大小展示稳定（经 ProjectStore 写入）
     if (!AppState.fileMetadata["default.xml"]) {
-      AppState.fileMetadata["default.xml"] = {
+      ProjectStore.setFileMetadata("default.xml", {
         size: 0,
         lastModified: Date.now(),
         type: "text/xml",
         extension: "xml",
-      };
+      });
     } else if (typeof AppState.fileMetadata["default.xml"].size !== "number") {
-      AppState.fileMetadata["default.xml"].size = 0;
+      ProjectStore.patchFileMetadata("default.xml", { size: 0 });
     }
   }
 
@@ -316,22 +316,17 @@ async function removeFileFromProject(filename) {
       }
     }
 
-    // 2. 删除文件元数据
-    if (AppState.fileMetadata && AppState.fileMetadata[filename]) {
-      delete AppState.fileMetadata[filename];
-    }
-    if (AppState.project?.fileMetadata && AppState.project.fileMetadata[filename]) {
-      delete AppState.project.fileMetadata[filename];
-    }
+    // 2. 删除文件元数据（经 ProjectStore，含 project.fileMetadata 派生引用维护）
+    ProjectStore.removeFileMetadata(filename);
 
-    // 3. 移除该文件的全部翻译项
+    // 3. 移除该文件的全部翻译项（经 ProjectStore 同步 translations 视图）
     if (AppState.project) {
-      AppState.project.translationItems = (
-        AppState.project.translationItems || []
-      ).filter((item) => item?.metadata?.file !== filename);
+      ProjectStore.replaceFileItems(filename, []);
+    } else {
+      // 无项目时仅清空翻译视图（与旧行为一致）
+      ProjectStore.setTranslationItems([]);
+      AppState.translations.filtered = [];
     }
-    AppState.translations.items = AppState.project?.translationItems || [];
-    AppState.translations.filtered = [...AppState.translations.items];
 
     // 4. 清理选中状态
     if (AppState.translations.selectedFile === filename) {

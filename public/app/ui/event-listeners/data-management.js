@@ -759,13 +759,6 @@ function registerEventListenersDataManagement(ctx) {
 
             if (activeWasSample) {
               try {
-                AppState.translations.items = [];
-                AppState.translations.filtered = [];
-              } catch (e) {
-                (loggers.app || console).debug("clearSampleData reset translations:", e);
-              }
-
-              try {
                 AppState.terminology.list = [];
                 AppState.terminology.filtered = [];
               } catch (e) {
@@ -773,8 +766,8 @@ function registerEventListenersDataManagement(ctx) {
               }
 
               try {
-                AppState.project = null;
-                AppState.fileMetadata = {};
+                // 经 ProjectStore 统一清空（project + fileMetadata + translations 视图）
+                ProjectStore.clearProject();
               } catch (e) {
                 (loggers.app || console).debug("clearSampleData reset project:", e);
               }

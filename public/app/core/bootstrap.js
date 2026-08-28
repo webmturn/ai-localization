@@ -652,22 +652,8 @@ async function initializeProjectData() {
     }
     
     if (restoredProject) {
-      // 恢复项目数据
-      AppState.project = restoredProject;
-      AppState.translations.items = restoredProject.translationItems || [];
-      AppState.project.translationItems = AppState.translations.items;
-      AppState.fileMetadata = restoredProject.fileMetadata || {};
-
-      // 恢复文件元数据
-      if (typeof hydrateFileMetadataContentKeys === 'function') {
-        hydrateFileMetadataContentKeys(AppState.project?.id);
-      }
-
-      // 重置状态
-      AppState.translations.selected = -1;
-      AppState.translations.currentPage = 1;
-      AppState.translations.filtered = [...AppState.translations.items];
-      AppState.translations.searchQuery = "";
+      // 经 ProjectStore 统一载入恢复项目（含 translations 视图同步、fileMetadata、contentKey 水合）
+      ProjectStore.loadProject(restoredProject);
 
       // 设置语言选择器
       const sourceLanguageEl = DOMCache.get("sourceLanguage");

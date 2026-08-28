@@ -5,24 +5,10 @@ async function __processFilesImpl(files) {
     const isSampleProject = !!AppState.project?.__isSampleProject;
     if (isSampleProject) {
       try {
-        AppState.project = null;
+        // 经 ProjectStore 统一清空（project + fileMetadata + translations 视图）
+        ProjectStore.clearProject();
       } catch (e) {
         (loggers.app || console).debug("processFiles reset project:", e);
-      }
-
-      try {
-        AppState.fileMetadata = {};
-      } catch (e) {
-        (loggers.app || console).debug("processFiles reset fileMetadata:", e);
-      }
-
-      try {
-        AppState.translations.items = [];
-        AppState.translations.filtered = [];
-        AppState.translations.selected = -1;
-        AppState.translations.currentPage = 1;
-      } catch (e) {
-        (loggers.app || console).debug("processFiles reset translations:", e);
       }
 
       showNotification(
@@ -40,8 +26,8 @@ async function __processFilesImpl(files) {
       const targetLanguage =
         DOMCache.get("targetLanguage")?.value || "zh";
 
-      AppState.fileMetadata = {};
-      AppState.project = {
+      // 经 ProjectStore 创建并载入新项目（自动建项目场景）
+      ProjectStore.createProject({
         id: importProjectId,
         name: "未命名项目",
         sourceLanguage,
@@ -50,14 +36,7 @@ async function __processFilesImpl(files) {
         translationItems: [],
         terminologyList: AppState.terminology?.list || [],
         fileMetadata: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      AppState.translations.items = [];
-      AppState.translations.filtered = [];
-      AppState.translations.selected = -1;
-      AppState.translations.currentPage = 1;
+      });
 
       AppState.__autoCreatedProjectOnImport = true;
       showNotification(
@@ -67,7 +46,8 @@ async function __processFilesImpl(files) {
       );
     } else {
       if (!AppState.fileMetadata) {
-        AppState.fileMetadata = AppState.project?.fileMetadata || {};
+        // 派生引用缺失时经 ProjectStore 重建（不新建数据，仅对齐别名）
+        ProjectStore.resetFileMetadata(AppState.project?.fileMetadata || {});
       }
     }
 
@@ -144,14 +124,8 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
         !meta.originalContent &&
         (!meta.lastModified || typeof meta.lastModified === "number");
       if (looksLikePlaceholder) {
-        delete AppState.fileMetadata["default.xml"];
-        if (AppState.project?.fileMetadata) {
-          try {
-            delete AppState.project.fileMetadata["default.xml"];
-          } catch (e) {
-            (loggers.app || console).debug("delete default.xml metadata:", e);
-          }
-        }
+        // 经 ProjectStore 删除（含 project.fileMetadata 派生引用维护）
+        ProjectStore.removeFileMetadata("default.xml");
       }
     }
   } catch (e) {
@@ -167,20 +141,16 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
   });
   const mergedItems = [...keptItems, ...(newItems || [])];
 
-  if (AppState.project) {
-    AppState.project.translationItems = mergedItems;
-    AppState.project.fileMetadata = AppState.fileMetadata || {};
-    AppState.project.updatedAt = new Date().toISOString();
-  }
+  // 经 ProjectStore 整体替换条目并同步 translations 视图（含 project.fileMetadata 别名对齐）
+  ProjectStore.setTranslationItems(mergedItems);
+  ProjectStore.ensureFileMetadata();
+  ProjectStore.touchProject();
 
   if (projectId) hydrateFileMetadataContentKeys(projectId);
   AppState.__pendingImportProjectId = null;
 
   // 同步 AppState 翻译状态
-  AppState.translations.items = mergedItems;
-  AppState.translations.filtered = [...mergedItems];
-  AppState.translations.selected = -1;
-  AppState.translations.currentPage = 1;
+  ProjectStore.resetTranslationView();
 
   // 显示成功通知
   if (AppState.__autoCreatedProjectOnImport) {

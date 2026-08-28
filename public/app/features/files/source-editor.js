@@ -206,15 +206,10 @@
         if (merged.sourceChanged && merged.keptTranslation) sourceChangedCount++;
       }
 
-      var kept = (AppState.project?.translationItems || []).filter(
-        function (it) { return it?.metadata?.file !== fileName; }
-      );
-      if (!AppState.project) throw new Error("当前没有打开的项目");
-      AppState.project.translationItems = kept.concat(newItems);
-      AppState.translations.items = AppState.project.translationItems;
-      AppState.translations.filtered = [...AppState.translations.items];
+      // 经 ProjectStore 替换该文件条目并同步 translations 视图（含项目存在性校验）
+      ProjectStore.replaceFileItems(fileName, newItems);
 
-      if (!AppState.fileMetadata) AppState.fileMetadata = {};
+      // 经 ProjectStore 更新文件元数据（含 project.fileMetadata 派生引用维护）
       var meta = AppState.fileMetadata[fileName] || {};
       meta.originalContent = newContent;
       meta.size = new Blob([newContent]).size;
@@ -223,14 +218,7 @@
       if (!meta.extension) {
         meta.extension = String(fileName).split(".").pop().toLowerCase();
       }
-      AppState.fileMetadata[fileName] = meta;
-      if (AppState.project) {
-        if (!AppState.project.fileMetadata) {
-          AppState.project.fileMetadata = AppState.fileMetadata;
-        } else {
-          AppState.project.fileMetadata[fileName] = meta;
-        }
-      }
+      ProjectStore.setFileMetadata(fileName, meta);
       try {
         if (meta.contentKey && typeof idbPutFileContent === "function") {
           await idbPutFileContent(meta.contentKey, newContent);

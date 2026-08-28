@@ -1,6 +1,7 @@
 function loadSampleProject() {
-  // 模拟项目数据
-  AppState.project = {
+  // 模拟项目数据（经 ProjectStore 统一载入：同步 translations 视图与 fileMetadata 别名）
+  // fileMetadata 重置避免沿用上一项目残留文件；示例无原始内容，不设 contentKey
+  ProjectStore.loadProject({
     __isSampleProject: true,
     id: "sample-project-1",
     name: "示例项目",
@@ -69,23 +70,16 @@ function loadSampleProject() {
         metadata: { file: "sample-project.json", position: "form.error.email" },
       },
     ],
+    fileMetadata: {
+      "sample-project.json": {
+        size: 1024,
+        type: "application/json",
+        extension: "json",
+      },
+    },
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
-
-  // 重置文件元数据，避免沿用上一项目残留文件；示例无原始内容，不设 contentKey
-  AppState.fileMetadata = {
-    "sample-project.json": {
-      size: 1024,
-      type: "application/json",
-      extension: "json",
-    },
-  };
-  AppState.project.fileMetadata = AppState.fileMetadata;
-
-  // 同步 AppState
-  AppState.translations.items = AppState.project.translationItems;
-  AppState.translations.filtered = [...AppState.project.translationItems];
+  });
 
   // 更新UI
   updateFileTree();

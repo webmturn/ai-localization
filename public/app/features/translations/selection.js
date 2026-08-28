@@ -316,8 +316,7 @@ function updateTranslationItem(index, targetText) {
       if (typeof invalidateSearchCache === "function") invalidateSearchCache();
     }
 
-    // 同步到 AppState.translations.items
-    AppState.translations.items = AppState.project.translationItems;
+    // translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步
 
     // 更新计数器
     updateCounters();

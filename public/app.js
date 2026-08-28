@@ -48,6 +48,7 @@
     // runtime-type-checker.js、dom-performance-optimizer.js 已移至开发模式按需加载（未被业务代码引用）
     "app/core/dom-cache.js",
     "app/core/dev-tools.js",
+    "app/core/project-store.js",                    // 项目状态存储（依赖 state.js 与 dev-tools.js 的 isDevelopment）
     "app/core/performance-monitor.js",                // 性能监控系统
     // enhanced-performance-monitor.js 已移至开发模式按需加载（未被业务代码引用）
     // 错误处理系统

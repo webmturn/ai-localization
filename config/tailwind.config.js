@@ -29,11 +29,14 @@ module.exports = {
         dark: '#1f2937'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
       },
       boxShadow: {
         'inner-lg': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
         'dark-elevated': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(75, 85, 99, 0.3)',
+        // 品牌主按钮专用阴影（蓝→青渐变配套）
+        'brand': '0 2px 10px rgba(37, 99, 235, 0.35)',
       }
     }
   },

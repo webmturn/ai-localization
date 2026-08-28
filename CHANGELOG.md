@@ -35,12 +35,18 @@
   - 导出改用 jsyaml.dump（forceQuotes 可配）
   - parse.js 解析调度改为 await 兼容同步/异步解析器
   - 实测：多行块/数组/锚点全部正确提取（旧解析器均不支持）
-- **示例项目补全文件元数据** — loadSampleProject 条目增加 file 字段并初始化 fileMetadata：文件树显示 sample-project.json（67% 进度 + 1 KB），替代占位 default.xml；图片模型布局审查确认三栏结构/对齐/深色对比度良好
+- **示例项目补全文件元数据** — loadSampleProject 条目增加 file 字段并重置 fileMetadata：文件树显示 sample-project.json（67% 进度 + 1 KB），替代占位 default.xml；加载示例不再沿用上一项目残留文件；无原始内容时不显示「编辑源文件」
+- **品牌视觉统一（P0/P1）**：
+  - 主 CTA 统一 `.btn-brand`（蓝→青渐变 + 阴影），补 `:focus-visible` 焦点环；标签页/描边按钮保持原样式
+  - 顶栏暗色背景与侧栏对齐为 `dark:bg-gray-800`，避免与 body `gray-900` 融层
+  - Logo 徽章、质量统计卡片色条、空状态引导按钮、术语删除图标化同步打磨
 - **源文件编辑器（方案 B）** — 文件树操作菜单新增"编辑源文件"入口：
   - 弹窗内编辑导入文件的原始内容（等宽字体、Ctrl+Enter 保存、Esc 取消）
   - 保存时按格式语法校验（XML/JSON/YAML），非法内容报错不保存
-  - 重新解析并保留已翻译项（按 key/路径回填译文与状态），新增条目自动追加
-  - 更新原始内容缓存（IndexedDB）并持久化项目
+  - 重新解析走 silent + skipPersist，避免导入 toast / 解析失败仍覆盖原始内容
+  - 按 key/路径回填译文、状态、质量分、id、issues 与缺失 metadata；重复原文分桶匹配
+  - 原文已变但仍保留旧译文时提示核对；保存期间禁用按钮防连点
+  - 成功后再更新 IndexedDB 原始内容并持久化项目
 - **XLIFF 命名空间前缀支持** — getElementsByTagName → getElementsByTagNameNS("*", ...)，带 `<xliff:trans-unit>` 前缀的文件可正常解析（修复前解析 0 条）
 - **PO 复数导出** — 原格式导出时同时更新 msgstr[0]（主译文）与 msgstr[1]（metadata.pluralTarget 复数译文），复数语言往返不再丢译文
 - **格式解析器修复（PO/iOS strings/YAML/XLIFF）**：

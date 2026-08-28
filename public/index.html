@@ -11,6 +11,11 @@
     
     <!-- Font Awesome - 本地版本 -->
     <link rel="stylesheet" href="lib/font-awesome/css/all.min.css">
+
+    <!-- 品牌字体：Outfit 用于标题/数字，Inter 用于正文（中文回退系统字体） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap">
     
     <!-- Tailwind CSS - 本地构建版本（生产环境） -->
     <link rel="stylesheet" href="styles.css">
@@ -22,12 +27,12 @@
     <!-- 顶部导航栏 -->
     <header class="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm dark:shadow-dark-elevated border-b border-gray-200 dark:border-gray-700">
         <div class="w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-1 sm:space-x-2">
-                <i class="fa-solid fa-language text-primary text-xl sm:text-2xl"></i>
-                <h1 class="text-base sm:text-xl font-bold text-primary"><span class="hidden sm:inline">智能翻译工具</span><span class="sm:hidden">翻译</span></h1>
+            <div class="flex items-center space-x-2 sm:space-x-2.5">
+                <span class="logo-badge" aria-hidden="true"><i class="fa-solid fa-language"></i></span>
+                <h1 class="text-base sm:text-xl font-bold text-primary font-display tracking-tight"><span class="hidden sm:inline">智能翻译工具</span><span class="sm:hidden">翻译</span></h1>
             </div>
             <div class="flex items-center space-x-1 sm:space-x-4">
-                <button id="newProjectBtn" class="flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-xs sm:text-sm min-h-[36px]" title="新建项目 (Ctrl+Alt+N)">
+                <button id="newProjectBtn" class="btn-brand flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 text-white rounded-lg transition-all text-xs sm:text-sm min-h-[36px]" title="新建项目 (Ctrl+Alt+N)">
                     <i class="fa-solid fa-plus sm:mr-2"></i><span class="hidden sm:inline">新建项目</span>
                 </button>
                 <button id="openProjectBtn" class="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm" title="打开项目">
@@ -119,12 +124,12 @@
         <div id="sidebarBackdrop" class="md:hidden fixed inset-0 bg-black/40 z-[41] hidden transition-opacity duration-300 opacity-0" aria-hidden="true"></div>
 
         <!-- 左侧文件浏览器 -->
-        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-left" style="--sidebar-width: 320px;">
+        <aside id="leftSidebar" class="w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform -translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-left">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-left hidden md:block" data-sidebar="left" title="拖拽调整宽度"></div>
             <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 class="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">项目文件</h2>
-                <button class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onclick="document.getElementById('leftSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭文件浏览器" aria-label="关闭文件浏览器">
+                <button id="closeLeftSidebarBtn" class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" title="关闭文件浏览器" aria-label="关闭文件浏览器">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -132,7 +137,7 @@
                 <div id="fileDropArea" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900/40 data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary transition-colors">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl sm:text-3xl text-gray-400 dark:text-gray-500 mb-2"></i>
                     <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">拖拽文件到此处或</p>
-                    <button id="browseFilesBtn" class="mt-2 px-3 py-1 bg-primary text-white dark:text-white text-xs sm:text-sm rounded hover:bg-primary/90 transition-colors" title="浏览文件" aria-label="浏览文件">
+                    <button id="browseFilesBtn" class="btn-brand mt-2 px-3 py-1 text-white dark:text-white text-xs sm:text-sm rounded transition-colors" title="浏览文件" aria-label="浏览文件">
                         浏览文件
                     </button>
                     <input type="file" id="fileInput" class="hidden" multiple accept=".xml,.xlf,.xliff,.strings,.resx,.po,.json,.ts,.txt" title="选择要上传的翻译文件" aria-label="选择要上传的翻译文件">
@@ -199,10 +204,10 @@
 
                     <!-- 翻译操作按钮 -->
                     <div class="toolbar-actions flex items-center space-x-2 flex-shrink-0">
-                        <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm" title="翻译选中项" aria-label="翻译选中项">
+                        <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary btn-brand px-3 sm:px-4 py-2 text-white rounded-lg transition-all flex items-center justify-center text-xs sm:text-sm font-medium" title="翻译选中项" aria-label="翻译选中项">
                             <i class="fa-solid fa-language mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">翻译选中</span><span class="sm:hidden">翻译</span>
                         </button>
-                        <button id="translateAllBtn" class="toolbar-btn hidden sm:flex px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors items-center justify-center text-sm font-medium shadow-sm" title="翻译所有项" aria-label="翻译所有项">
+                        <button id="translateAllBtn" class="toolbar-btn hidden sm:flex px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors items-center justify-center text-sm font-medium" title="翻译所有项" aria-label="翻译所有项">
                             <i class="fa-solid fa-bolt mr-2"></i>全部翻译
                         </button>
                     </div>
@@ -275,7 +280,7 @@
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                         <button id="inlinePauseBtn" type="button" class="px-2.5 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="暂停翻译">暂停</button>
-                        <button id="inlineResumeBtn" type="button" class="hidden px-2.5 py-1.5 text-xs bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="继续翻译">继续</button>
+                        <button id="inlineResumeBtn" type="button" class="hidden btn-brand px-2.5 py-1.5 text-xs text-white rounded-md transition-all" title="继续翻译">继续</button>
                         <button id="inlineLogBtn" type="button" class="px-2.5 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="查看详细日志">
                             <i class="fa-solid fa-list-ul"></i>
                         </button>
@@ -301,7 +306,7 @@
                     <div class="translation-column-header flex-1 min-w-0 p-3 flex items-center justify-between translation-column-header-source">
                         <h3 class="font-medium text-gray-700 dark:text-gray-100 text-sm md:text-base">原文</h3>
                         <div class="flex items-center space-x-2">
-                            <span id="sourceCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400">0 项</span>
+                            <span id="sourceCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 tabular-nums">0 项</span>
                             <button id="filterSourceBtn" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-primary" title="筛选原文" aria-label="筛选原文">
                                 <i class="fa-solid fa-filter"></i>
                             </button>
@@ -310,7 +315,7 @@
                     <div class="translation-column-header flex-1 min-w-0 p-3 flex items-center justify-between hidden md:flex">
                         <h3 class="font-medium text-gray-700 dark:text-gray-100 text-sm md:text-base">译文</h3>
                         <div class="flex items-center space-x-2">
-                            <span id="targetCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400">0 项</span>
+                            <span id="targetCount" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 tabular-nums">0 项</span>
                             <button id="filterTargetBtn" class="text-xs md:text-sm text-gray-500 dark:text-gray-400 hover:text-primary" title="筛选译文" aria-label="筛选译文">
                                 <i class="fa-solid fa-filter"></i>
                             </button>
@@ -361,11 +366,11 @@
                         显示 <span id="sourceStartRange" class="font-semibold text-gray-800 dark:text-gray-200">1</span>-<span id="sourceEndRange" class="font-semibold text-gray-800 dark:text-gray-200">20</span> 项，共 <span id="sourceTotalItems" class="font-semibold text-gray-800 dark:text-gray-200">49</span> 项
                     </div>
                     <div id="sourcePagination" class="pagination-controls flex items-center space-x-2 sm:order-2">
-                        <button id="sourcePrevBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm dark:shadow-dark-elevated" title="上一页" aria-label="上一页" disabled>
+                        <button id="sourcePrevBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all" title="上一页" aria-label="上一页" disabled>
                             <i class="fa-solid fa-chevron-left text-gray-700 dark:text-gray-200 text-sm"></i>
                         </button>
-                        <div id="sourcePageInfo" class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 min-w-[80px] sm:min-w-[100px] text-center shadow-sm dark:shadow-dark-elevated">第 1 页</div>
-                        <button id="sourceNextBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm dark:shadow-dark-elevated" title="下一页" aria-label="下一页">
+                        <div id="sourcePageInfo" class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 min-w-[80px] sm:min-w-[100px] text-center">第 1 页</div>
+                        <button id="sourceNextBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all" title="下一页" aria-label="下一页">
                             <i class="fa-solid fa-chevron-right text-gray-700 dark:text-gray-200 text-sm"></i>
                         </button>
                     </div>
@@ -375,11 +380,11 @@
         </section>
 
         <!-- 右侧工具栏和设置面板 -->
-        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right" style="--sidebar-width: 384px;">
+        <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-right hidden md:block" data-sidebar="right" title="拖拽调整宽度"></div>
             <!-- 移动端关闭按钮 -->
-            <button class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" onclick="document.getElementById('rightSidebar').classList.remove('show-sidebar');var b=document.getElementById('sidebarBackdrop');if(b){b.classList.remove('show');setTimeout(function(){b.classList.add('hidden')},300)}" title="关闭设置面板" aria-label="关闭设置面板">
+            <button id="closeRightSidebarBtn" class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="关闭设置面板" aria-label="关闭设置面板">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <!-- 标签页导航（增强版） -->
@@ -449,7 +454,7 @@
 
             <!-- 底部操作按钮 -->
             <div id="exportBtnContainer" class="p-4 border-t border-gray-200 dark:border-gray-700">
-                <button id="exportBtn" class="w-full py-2 bg-primary text-white dark:text-white rounded-md hover:bg-primary/90 transition-colors flex items-center justify-center" title="导出翻译文件">
+                <button id="exportBtn" class="btn-brand w-full py-2 text-white dark:text-white rounded-lg transition-all flex items-center justify-center" title="导出翻译文件">
                     <i class="fa-solid fa-download mr-2"></i>导出翻译
                 </button>
             </div>
@@ -504,7 +509,7 @@
 
             <div class="static w-full pt-6 mt-4 flex justify-end space-x-3">
                 <button class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600">取消</button>
-                <button id="createProjectBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center">
+                <button id="createProjectBtn" class="btn-brand px-4 py-2 text-white rounded-md flex items-center transition-all">
                     <i class="fa-solid fa-plus mr-2"></i>创建项目
                 </button>
             </div>
@@ -552,7 +557,7 @@
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">创建项目</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">快速创建一个空项目，然后再导入文件。</div>
                             </div>
-                            <button id="projectManagerCreateBtn" type="button" class="flex-shrink-0 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm whitespace-nowrap min-w-[5rem]" title="创建项目">
+                            <button id="projectManagerCreateBtn" type="button" class="btn-brand flex-shrink-0 px-4 py-2 text-white rounded-md transition-colors text-sm whitespace-nowrap min-w-[5rem]" title="创建项目">
                                 <i class="fa-solid fa-plus mr-1"></i>创建
                             </button>
                         </div>
@@ -624,7 +629,7 @@
                 <p id="confirmDialogError" class="hidden text-xs text-red-500 dark:text-red-400 mb-3"></p>
                 <div class="flex justify-end gap-2">
                     <button type="button" id="confirmDialogCancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                    <button type="button" id="confirmDialogOk" class="px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90">确定</button>
+                    <button type="button" id="confirmDialogOk" class="btn-brand px-4 py-2 text-white rounded-md text-sm transition-all">确定</button>
                 </div>
             </div>
         </div>
@@ -649,7 +654,7 @@
             </div>
             <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <button type="button" id="sourceEditorCancelBtn" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                <button type="button" id="sourceEditorSaveBtn" class="px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90">保存并重新解析</button>
+                <button type="button" id="sourceEditorSaveBtn" class="btn-brand px-4 py-2 text-white rounded-md text-sm transition-all">保存并重新解析</button>
             </div>
         </div>
     </div>
@@ -688,7 +693,7 @@
                     <button id="resumeTranslationBtn" class="px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-600" title="继续翻译" aria-label="继续翻译">
                         <i class="fa-solid fa-play mr-1"></i>继续
                     </button>
-                    <button id="retryFailedTranslationBtn" class="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="重试失败项" aria-label="重试失败项">
+                    <button id="retryFailedTranslationBtn" class="btn-brand px-3 py-1.5 text-sm text-white rounded-md transition-colors" title="重试失败项" aria-label="重试失败项">
                         <i class="fa-solid fa-arrows-rotate mr-1"></i>重试失败
                     </button>
                 </div>
@@ -733,7 +738,7 @@
             </div>
             <div class="mt-6 flex justify-end space-x-3">
                 <button class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-50 dark:hover:bg-gray-600">取消</button>
-                <button id="confirmExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">导出</button>
+                <button id="confirmExportBtn" class="btn-brand px-4 py-2 text-white rounded-md transition-all">导出</button>
             </div>
         </div>
     </div>
@@ -797,7 +802,7 @@
             <div class="mt-6 flex justify-end space-x-3">
                 <button class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
                 <button id="findReplacePreviewBtn" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">预览</button>
-                <button id="findReplaceApplyBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">执行替换</button>
+                <button id="findReplaceApplyBtn" class="btn-brand px-4 py-2 text-white rounded-md transition-all">执行替换</button>
             </div>
         </div>
     </div>
@@ -839,7 +844,7 @@
                             <option value="other">其他</option>
                         </select>
                     </div>
-                    <button id="addTermBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center text-sm">
+                    <button id="addTermBtn" class="btn-brand px-4 py-2 text-white rounded-md flex items-center text-sm transition-all">
                         <i class="fa-solid fa-plus mr-2"></i>添加术语
                     </button>
                 </div>
@@ -888,7 +893,7 @@
                                 <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 dark:text-gray-500 mb-3"></i>
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">拖拽文件到此处或点击选择文件</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">支持 CSV、JSON 格式</p>
-                                <button id="browseImportFileBtn" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 text-sm">
+                                <button id="browseImportFileBtn" class="btn-brand px-4 py-2 text-white rounded text-sm transition-all">
                                     选择文件
                                 </button>
                                 <input type="file" id="importFileInput" class="hidden" accept=".csv,.json" title="选择要导入的术语文件" aria-label="选择要导入的术语文件">
@@ -910,7 +915,7 @@
                                 </div>
                             </div>
                             
-                            <button id="importTerminologyBtn" class="w-full mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <button id="importTerminologyBtn" class="btn-brand w-full mt-4 px-4 py-2 text-white rounded flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled>
                                 <i class="fa-solid fa-upload mr-2"></i>导入术语
                             </button>
                             
@@ -992,7 +997,7 @@
             <div class="flex items-center justify-between p-6 pb-4">
                 <h3 id="qualityReportModalTitle" class="text-lg font-medium text-gray-900 dark:text-gray-100">翻译质量报告</h3>
                 <div class="flex items-center space-x-3">
-                    <button id="runQualityCheckBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 text-sm flex items-center">
+                    <button id="runQualityCheckBtn" class="btn-brand px-4 py-2 text-white rounded-md text-sm flex items-center transition-all">
                         <i class="fa-solid fa-arrows-rotate mr-2"></i>重新检查
                     </button>
                     <button class="close-modal text-gray-400 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
@@ -1003,36 +1008,37 @@
             
             <!-- 可滚动内容区域 -->
             <div class="flex-1 overflow-y-auto px-6">
+            <!-- 统计卡片：浅色底 + 左侧状态色条，与翻译列表状态指示条同一色彩语言 -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4">
+                <div class="quality-stat-card border-l-primary">
                     <div class="text-sm text-gray-500 dark:text-gray-400">总体评分</div>
-                    <div id="overallScore" class="text-3xl font-bold text-primary">0/100</div>
+                    <div id="overallScore" class="text-3xl font-bold text-primary font-display tabular-nums">0/100</div>
                     <p id="scoreThresholdHint" class="mt-1 text-xs text-red-500 dark:text-red-400"></p>
-                    <div class="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <div id="overallScoreBar" class="h-2 bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div class="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
+                        <div id="overallScoreBar" class="h-1.5 bg-primary rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
                     <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">根据所有检查项计算</div>
                 </div>
-                <div class="bg-green-50 dark:bg-emerald-500/20 rounded-lg p-4">
+                <div class="quality-stat-card border-l-success">
                     <div class="text-sm text-gray-500 dark:text-gray-400">已翻译</div>
-                    <div id="translatedCount" class="text-3xl font-bold text-success dark:text-emerald-400">0/0</div>
-                    <div class="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <div id="translatedBar" class="h-2 bg-success dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div id="translatedCount" class="text-3xl font-bold text-success dark:text-emerald-400 font-display tabular-nums">0/0</div>
+                    <div class="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full">
+                        <div id="translatedBar" class="h-1.5 bg-success dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
                     <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">翻译完成度</div>
                 </div>
-                <div class="bg-yellow-50 dark:bg-amber-900 rounded-lg p-4">
+                <div class="quality-stat-card border-l-warning">
                     <div class="text-sm text-gray-500 dark:text-gray-400">问题项</div>
-                    <div id="issuesCount" class="text-3xl font-bold text-warning dark:text-amber-400">0</div>
+                    <div id="issuesCount" class="text-3xl font-bold text-warning dark:text-amber-400 font-display tabular-nums">0</div>
                     <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
                         <span id="highIssues" class="text-red-600 dark:text-red-400">0</span> 高 / 
                         <span id="mediumIssues" class="text-yellow-600 dark:text-amber-400">0</span> 中 / 
                         <span id="lowIssues" class="text-gray-600 dark:text-gray-300">0</span> 低
                     </div>
                 </div>
-                <div class="bg-purple-50 dark:bg-purple-500/10 rounded-lg p-4">
+                <div class="quality-stat-card border-l-purple-500">
                     <div class="text-sm text-gray-500 dark:text-gray-400">术语一致性</div>
-                    <div id="termConsistency" class="text-3xl font-bold text-purple-600 dark:text-purple-400">100%</div>
+                    <div id="termConsistency" class="text-3xl font-bold text-purple-600 dark:text-purple-400 font-display tabular-nums">100%</div>
                     <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
                         <span id="termMatches" class="text-green-600 dark:text-emerald-400">0</span> 匹配
                     </div>
@@ -1204,7 +1210,7 @@
                     <button id="exportQualityReportPdf" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
                         <i class="fa-regular fa-file-pdf mr-2"></i>导出PDF
                     </button>
-                    <button class="close-modal px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">关闭</button>
+                    <button class="btn-brand close-modal px-4 py-2 text-white rounded-md transition-all">关闭</button>
                 </div>
             </div>
         </div>
@@ -1245,7 +1251,7 @@
             </div>
             <div class="mt-6 flex justify-end space-x-3">
                 <button class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                <button id="saveTermBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存</button>
+                <button id="saveTermBtn" class="btn-brand px-4 py-2 text-white rounded-md transition-all">保存</button>
             </div>
         </div>
     </div>
@@ -2051,7 +2057,7 @@
                                 <div>
                                     <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">导出数据</h5>
                                     <div class="space-y-2">
-                                        <button id="exportAllBtn" class="w-full py-2.5 px-4 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors text-left flex items-center justify-between">
+                                        <button id="exportAllBtn" class="btn-brand w-full py-2.5 px-4 text-white rounded-md transition-colors text-left flex items-center justify-between">
                                             <span><i class="fa-solid fa-download mr-2"></i>导出所有数据</span>
                                             <span class="text-xs opacity-80">设置+术语+项目</span>
                                         </button>
@@ -2109,7 +2115,7 @@
                 <button class="close-modal px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-50 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     取消
                 </button>
-                <button id="saveSettings" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                <button id="saveSettings" class="btn-brand px-4 py-2 text-white rounded-md transition-colors">
                     保存设置
                 </button>
             </div>
@@ -2383,7 +2389,7 @@
                     </div>
                 </div>
                 
-                <button class="close-modal w-full py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                <button class="btn-brand close-modal w-full py-2 text-white rounded-md transition-colors">
                     关闭
                 </button>
             </div>
@@ -2433,7 +2439,7 @@
                 <div class="text-xs text-gray-500 dark:text-gray-400">将保存到设置中（需要点击“保存设置”生效）</div>
                 <div class="flex items-center gap-2">
                     <button id="cancelAiPrimingSamples" type="button" class="close-modal px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                    <button id="saveAiPrimingSamples" type="button" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">保存样本</button>
+                    <button id="saveAiPrimingSamples" type="button" class="btn-brand px-4 py-2 text-white rounded-md transition-all">保存样本</button>
                 </div>
             </div>
         </div>
@@ -2456,7 +2462,7 @@
                         <div id="aiConversationMeta" class="mt-2 text-xs text-gray-500 dark:text-gray-400 break-words whitespace-pre-line"></div>
                         <div class="mt-3 flex items-center gap-2">
                             <button id="copyAiConversation" type="button" class="px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="复制会话" aria-label="复制会话">复制</button>
-                            <button type="button" class="close-modal px-3 py-2 text-xs sm:text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors" title="关闭" aria-label="关闭">关闭</button>
+                            <button type="button" class="btn-brand close-modal px-3 py-2 text-xs sm:text-sm text-white rounded-md transition-colors" title="关闭" aria-label="关闭">关闭</button>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0 flex flex-col overflow-hidden min-h-0">
@@ -2493,7 +2499,7 @@
             <!-- 搜索栏 -->
             <div class="flex gap-2 mb-3 flex-shrink-0">
                 <input type="text" id="tmSearchInput" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="搜索源文本…" aria-label="搜索翻译记忆">
-                <button id="tmSearchBtn" class="px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90">搜索</button>
+                <button id="tmSearchBtn" class="btn-brand px-4 py-2 text-white rounded-md text-sm transition-all">搜索</button>
                 <button id="tmRefreshBtn" class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-600" title="刷新">
                     <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
@@ -2536,7 +2542,7 @@
             <div class="mb-4 flex-shrink-0">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">已注册引擎</h4>
-                    <button id="ceAddNewBtn" class="px-3 py-1.5 bg-primary text-white rounded-md text-xs hover:bg-primary/90 flex items-center gap-1">
+                    <button id="ceAddNewBtn" class="btn-brand px-3 py-1.5 text-white rounded-md text-xs flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-plus text-xs"></i>添加引擎
                     </button>
                 </div>
@@ -2601,7 +2607,7 @@
                 </div>
                 <div class="mt-4 flex justify-end gap-2">
                     <button id="ceCancelFormBtn" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
-                    <button id="ceSaveFormBtn" class="px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90">保存</button>
+                    <button id="ceSaveFormBtn" class="btn-brand px-4 py-2 text-white rounded-md text-sm transition-all">保存</button>
                 </div>
             </div>
         </div>

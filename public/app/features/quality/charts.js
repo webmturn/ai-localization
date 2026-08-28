@@ -117,10 +117,10 @@ function __updateQualityChartsImpl() {
         aspectRatio: 1,
         layout: {
           padding: {
-            top: 12,
-            right: 12,
-            bottom: 24,
-            left: 12,
+            top: 20,
+            right: 24,
+            bottom: 28,
+            left: 24,
           },
         },
         scales: {
@@ -135,7 +135,7 @@ function __updateQualityChartsImpl() {
             },
             grid: { color: chartGridColor },
             angleLines: { color: chartGridColor },
-            pointLabels: { color: chartTextColor, padding: 8 },
+            pointLabels: { color: chartTextColor, padding: 12 },
           },
         },
         plugins: {
@@ -164,7 +164,11 @@ function __updateQualityChartsImpl() {
         chart.options.scales.r.pointLabels = {
           ...(chart.options.scales.r.pointLabels || {}),
           color: chartTextColor,
-          padding: 8,
+          padding: 12,
+        };
+        // 与创建时保持一致的内边距，避免标签贴边裁切
+        chart.options.layout = {
+          padding: { top: 20, right: 24, bottom: 28, left: 24 },
         };
       }
       chart.update("none");

@@ -213,6 +213,46 @@ function registerEventListenersDataAndUi(ctx) {
     );
   }
 
+  // 移动端侧边栏关闭按钮（替代原内联 onclick）
+  const closeLeftSidebarBtn = DOMCache.get("closeLeftSidebarBtn");
+  if (closeLeftSidebarBtn) {
+    EventManager.add(
+      closeLeftSidebarBtn,
+      "click",
+      closeBothSidebars,
+      { tag: "ui", scope: "sidebar", label: "closeLeftSidebarBtn:click" }
+    );
+  }
+  const closeRightSidebarBtn = DOMCache.get("closeRightSidebarBtn");
+  if (closeRightSidebarBtn) {
+    EventManager.add(
+      closeRightSidebarBtn,
+      "click",
+      closeBothSidebars,
+      { tag: "ui", scope: "sidebar", label: "closeRightSidebarBtn:click" }
+    );
+  }
+
+  // 空状态行动按钮：加载示例项目 / 上传文件（事件委托，列表会被重渲染）
+  const translationScrollWrapper = DOMCache.get("translationScrollWrapper");
+  if (translationScrollWrapper) {
+    EventManager.add(
+      translationScrollWrapper,
+      "click",
+      (e) => {
+        if (e.target.closest(".empty-load-sample-btn")) {
+          if (typeof loadSampleProject === "function") loadSampleProject();
+          return;
+        }
+        if (e.target.closest(".empty-upload-btn")) {
+          const fileInput = DOMCache.get("fileInput");
+          if (fileInput) fileInput.click();
+        }
+      },
+      { tag: "ui", scope: "emptyState", label: "translationScrollWrapper:emptyStateActions" }
+    );
+  }
+
   if (toggleLeftSidebar && leftSidebar) {
     EventManager.add(
       toggleLeftSidebar,

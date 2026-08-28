@@ -192,14 +192,16 @@ function updateTerminologyList() {
 
       const editBtn = document.createElement("button");
       editBtn.className =
-        "edit-term-btn text-primary hover:text-primary/80 mr-3";
+        "edit-term-btn text-primary hover:text-primary/80 mr-2 px-2 py-1 rounded-md hover:bg-primary/10 dark:hover:bg-blue-400/10 transition-colors";
       editBtn.dataset.id = String(term.id);
       editBtn.textContent = "编辑";
 
       const delBtn = document.createElement("button");
       delBtn.className = "delete-term-btn text-danger hover:text-danger/80";
       delBtn.dataset.id = String(term.id);
-      delBtn.textContent = "删除";
+      delBtn.title = "删除术语";
+      delBtn.setAttribute("aria-label", "删除术语");
+      delBtn.innerHTML = '<i class="fa-regular fa-trash-can" aria-hidden="true"></i>';
 
       td4.appendChild(editBtn);
       td4.appendChild(delBtn);

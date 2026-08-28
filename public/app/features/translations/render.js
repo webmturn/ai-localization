@@ -297,11 +297,27 @@ function createMobileCombinedTranslationItemElement(
 }
 
 // 创建空状态元素
-function createEmptyStateElement(message) {
+// withActions=true 时渲染富空状态（图标 + 引导文案 + 上传/加载示例按钮）
+function createEmptyStateElement(message, withActions) {
   const div = document.createElement("div");
-  div.className =
-    "text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center";
-  div.textContent = message;
+  if (!withActions) {
+    div.className =
+      "text-gray-500 dark:text-gray-400 text-sm italic p-4 text-center";
+    div.textContent = message;
+    return div;
+  }
+  div.className = "flex flex-col items-center justify-center gap-3 py-12 px-4";
+  const title = message || "尚无翻译项";
+  div.innerHTML =
+    '<i class="fa-solid fa-language text-4xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>' +
+    '<p class="text-sm text-gray-500 dark:text-gray-400"></p>' +
+    '<p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译，<br>或加载示例项目快速体验</p>' +
+    '<div class="flex items-center gap-2 mt-1">' +
+    '<button type="button" class="empty-load-sample-btn px-3 py-1.5 text-xs sm:text-sm text-primary dark:text-blue-400 border border-primary/40 dark:border-blue-400/40 rounded-lg hover:bg-primary/10 dark:hover:bg-blue-400/10 transition-colors">加载示例项目</button>' +
+    '<button type="button" class="empty-upload-btn btn-brand px-3 py-1.5 text-xs sm:text-sm text-white rounded-lg transition-all">上传文件</button>' +
+    "</div>";
+  const titleEl = div.querySelector("p");
+  if (titleEl) titleEl.textContent = title;
   return div;
 }
 
@@ -332,14 +348,14 @@ function updateTranslationLists() {
     if (!AppState.project?.translationItems?.length) {
       __devLog("没有翻译项数据");
       if (sourceList) {
-        sourceList.replaceChildren(createEmptyStateElement("暂无翻译项"));
+        sourceList.replaceChildren(createEmptyStateElement("暂无翻译项", true));
       }
       if (targetList) {
-        targetList.replaceChildren(createEmptyStateElement("暂无翻译项"));
+        targetList.replaceChildren(createEmptyStateElement("译文将显示在这里"));
       }
       if (mobileCombinedList) {
         mobileCombinedList.replaceChildren(
-          createEmptyStateElement("暂无翻译项")
+          createEmptyStateElement("暂无翻译项", true)
         );
       }
       updatePaginationUI(0, 0, 0, 1, 1);

@@ -114,9 +114,8 @@ async function importTerminology() {
     const __persistTerminologyList = async () => {
       let savedToProject = false;
       try {
-        if (AppState && AppState.project) {
-          AppState.project.terminologyList = AppState.terminology.list;
-        }
+        // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
+        ProjectStore.setTerminologyList(AppState.terminology.list);
 
         if (
           typeof autoSaveManager !== "undefined" &&

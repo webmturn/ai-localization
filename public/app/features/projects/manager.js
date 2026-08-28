@@ -583,9 +583,8 @@
                 (loggers.storage || console).error("重命名失败:", e);
               });
 
-            if (AppState.project?.id === projectId) {
-              AppState.project.name = nextName;
-            }
+            // 经 ProjectStore 同步内存态项目名（仅命中当前项目时生效）
+            ProjectStore.renameProject(projectId, nextName);
 
             await refreshProjectManagerList();
             showNotification("success", "已更新", "项目名称已更新");

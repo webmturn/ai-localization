@@ -556,9 +556,8 @@ function registerEventListenersDataManagement(ctx) {
                   AppState.terminology.list = mergedTerms;
                   AppState.terminology.filtered = [...mergedTerms];
                   AppState.terminology.currentPage = 1;
-                  if (AppState && AppState.project) {
-                    AppState.project.terminologyList = mergedTerms;
-                  }
+                  // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
+                  ProjectStore.setTerminologyList(mergedTerms);
                   if (typeof updateTerminologyList === "function") {
                     updateTerminologyList();
                   }

@@ -6,6 +6,10 @@
  *   AppState.project / AppState.fileMetadata 两个切片的唯一写入方是
  *   public/app/core/project-store.js（ProjectStore）。
  *
+ * 第三阶段扩展：属性级确权——不仅守护切片顶层赋值，还守护
+ *   AppState.project.<任意属性> 的属性级赋值（name / terminologyList /
+ *   updatedAt / sourceLanguage 等），杜绝绕过意图式 API 的裸写。
+ *
  * 本脚本扫描 public/app 下所有业务源码，查找绕过 ProjectStore 的
  * 直接"写入"（赋值 / delete），命中即报错并以非零码退出（供 CI 拦截）。
  * 读取（含可选链 `?.`）与 `==`/`===` 比较不算写入，不报错。
@@ -34,15 +38,11 @@ const GUARDED_PATTERNS = [
     /AppState\.project\s*=(?!=)/,
     "AppState.project 顶层赋值",
   ],
-  // AppState.project.translationItems = ...
+  // AppState.project.<任意属性> = ...（属性级确权：name / terminologyList /
+  // updatedAt / translationItems / fileMetadata 等一律经 ProjectStore 意图式 API）
   [
-    /AppState\.project\.translationItems\s*=(?!=)/,
-    "AppState.project.translationItems 赋值",
-  ],
-  // AppState.project.fileMetadata = ...
-  [
-    /AppState\.project\.fileMetadata\s*=(?!=)/,
-    "AppState.project.fileMetadata 赋值",
+    /AppState\.project\.[a-zA-Z_$][\w$]*\s*[+\-*/]?=(?!=)/,
+    "AppState.project.<属性> 赋值",
   ],
   // AppState.fileMetadata = ...（顶层赋值）
   [

@@ -171,7 +171,7 @@ async function saveProject() {
 
   // 更新项目数据（translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步）
   ProjectStore.touchProject();
-  AppState.project.terminologyList = AppState.terminology.list;
+  ProjectStore.setTerminologyList(AppState.terminology.list);
 
   // 保存原始内容到IndexedDB，项目文件仅保存引用（contentKey）
   hydrateFileMetadataContentKeys(AppState.project?.id);

@@ -70,9 +70,8 @@ function saveTerm() {
   }
 
   try {
-    if (AppState && AppState.project) {
-      AppState.project.terminologyList = AppState.terminology.list;
-    }
+    // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
+    ProjectStore.setTerminologyList(AppState.terminology.list);
   } catch (e) {
     (loggers.app || console).error("同步术语到项目状态失败:", e);
   }
@@ -358,9 +357,8 @@ async function deleteTerm(termId) {
       AppState.terminology.list.splice(index, 1);
 
       try {
-        if (AppState && AppState.project) {
-          AppState.project.terminologyList = AppState.terminology.list;
-        }
+        // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
+        ProjectStore.setTerminologyList(AppState.terminology.list);
       } catch (e) {
         (loggers.app || console).error("同步术语到项目状态失败:", e);
       }

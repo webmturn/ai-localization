@@ -236,6 +236,36 @@ const ProjectStore = {
   },
 
   /**
+   * 重命名项目（项目管理器重命名场景）。
+   * 仅当目标 id 命中当前加载的项目时才写入 name（持久化由调用方经
+   * storageManager 完成，本方法只负责内存态同步）。
+   *
+   * @param {string} projectId - 目标项目 ID
+   * @param {string} name - 新名称
+   * @returns {boolean} 是否命中并更新了当前项目
+   */
+  renameProject(projectId, name) {
+    if (AppState.project && AppState.project.id === projectId) {
+      AppState.project.name = name;
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * 同步术语库到当前项目（术语增删改、导入、保存前快照等场景）。
+   * 无项目时不写入（术语库自身状态由 terminology 切片维护，不受影响）。
+   *
+   * @param {Array} list - 术语列表
+   * @returns {Array|null} 写入后的 project.terminologyList；无项目时返回 null
+   */
+  setTerminologyList(list) {
+    if (!AppState.project) return null;
+    AppState.project.terminologyList = list || [];
+    return AppState.project.terminologyList;
+  },
+
+  /**
    * 替换指定文件的翻译条目（源文件编辑器重解析后合并）。
    * 移除该文件旧条目并追加新条目，同步 translations 视图。
    *

@@ -219,3 +219,41 @@ describe("翻译条目操作", () => {
     expect(AppState.project.updatedAt).not.toBe(before);
   });
 });
+
+describe("属性级确权（第三阶段）", () => {
+  it("renameProject 命中当前项目时更新 name", () => {
+    ProjectStore.loadProject({ id: "p14", name: "旧名" });
+    const ok = ProjectStore.renameProject("p14", "新名");
+    expect(ok).toBe(true);
+    expect(AppState.project.name).toBe("新名");
+  });
+
+  it("renameProject 未命中当前项目时不写入", () => {
+    ProjectStore.loadProject({ id: "p15", name: "当前" });
+    const ok = ProjectStore.renameProject("other-id", "别的名字");
+    expect(ok).toBe(false);
+    expect(AppState.project.name).toBe("当前");
+  });
+
+  it("renameProject 无项目时安全返回 false", () => {
+    expect(ProjectStore.renameProject("p16", "x")).toBe(false);
+  });
+
+  it("setTerminologyList 写入 project.terminologyList", () => {
+    ProjectStore.loadProject({ id: "p17" });
+    const terms = [{ id: 1, source: "API", target: "接口" }];
+    const ret = ProjectStore.setTerminologyList(terms);
+    expect(ret).toBe(terms);
+    expect(AppState.project.terminologyList).toBe(terms);
+  });
+
+  it("setTerminologyList 无项目时返回 null 且不抛错", () => {
+    expect(ProjectStore.setTerminologyList([{ id: 1 }])).toBeNull();
+  });
+
+  it("setTerminologyList 传 null/undefined 时写入空数组", () => {
+    ProjectStore.loadProject({ id: "p18" });
+    ProjectStore.setTerminologyList(null);
+    expect(AppState.project.terminologyList).toEqual([]);
+  });
+});

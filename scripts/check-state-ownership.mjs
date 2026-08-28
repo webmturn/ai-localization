@@ -54,6 +54,12 @@ const GUARDED_PATTERNS = [
     /AppState\.fileMetadata\[[^\]]*\]\s*=(?!=)/,
     "AppState.fileMetadata[key] 赋值",
   ],
+  // AppState.translations.items = ...（别名同步依赖此字段与 project.translationItems 同引用，
+  // 直写会静默断裂别名，导致 saveProject 持久化旧条目）
+  [
+    /AppState\.translations\.items\s*=(?!=)/,
+    "AppState.translations.items 赋值",
+  ],
   // delete AppState.fileMetadata[key]
   [
     /delete\s+AppState\.fileMetadata\[/,

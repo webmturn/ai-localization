@@ -1599,6 +1599,12 @@ input[type="range"]::-moz-range-thumb {
     background-color: #1f2937;
     border-color: #374151;
 }
+/* 浅色模式下 border-left 颜色需单独指定（border 简写会重置左边框颜色，
+   且本规则在构建产物中排在 Tailwind 工具类之后，会覆盖 border-l-* 工具类） */
+.quality-stat-card.border-l-primary { border-left-color: #2563eb; }
+.quality-stat-card.border-l-success { border-left-color: #10b981; }
+.quality-stat-card.border-l-warning { border-left-color: #f59e0b; }
+.quality-stat-card.border-l-purple-500 { border-left-color: #a855f7; }
 /* 深色模式下 border-left 颜色需单独指定（border-color 简写会覆盖左边框） */
 .dark-mode .quality-stat-card.border-l-primary { border-left-color: #2563eb; }
 .dark-mode .quality-stat-card.border-l-success { border-left-color: #10b981; }

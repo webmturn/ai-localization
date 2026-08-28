@@ -205,6 +205,21 @@ const ProjectStore = {
   },
 
   /**
+   * 临时换出 canonical 条目数组（质量检查按文件范围限定检查的场景）。
+   * 仅替换 project.translationItems，不触碰 translations 视图（与历史行为一致：
+   * 检查期间视图仍显示全量，渲染走 filtered 不受影响）；检查期间的别名断裂
+   * 是预期且临时的，调用方结束后必须用本方法传回原数组恢复。
+   *
+   * @param {Array} items - 临时使用的条目数组
+   * @returns {Array|null} 原条目数组（供恢复）
+   */
+  swapTranslationItems(items) {
+    const prev = AppState.project ? AppState.project.translationItems : null;
+    if (AppState.project) AppState.project.translationItems = items || [];
+    return prev;
+  },
+
+  /**
    * 将 translations 视图重置为初始分页状态（导入合并后等场景）。
    */
   resetTranslationView() {

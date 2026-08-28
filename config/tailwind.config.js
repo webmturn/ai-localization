@@ -29,8 +29,9 @@ module.exports = {
         dark: '#1f2937'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
-        display: ['Outfit', 'Inter', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+        // 全本地化设计：不依赖外部字体（Google Fonts 外链已移除），统一回退系统字体
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+        display: ['system-ui', '-apple-system', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
       },
       boxShadow: {
         'inner-lg': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',

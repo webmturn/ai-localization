@@ -7,13 +7,12 @@ function initTerminology() {
       Array.isArray(AppState.project.terminologyList) &&
       AppState.project.terminologyList.length > 0
     ) {
-      AppState.terminology.list = AppState.project.terminologyList;
-      AppState.terminology.filtered = [...AppState.terminology.list];
-      AppState.terminology.currentPage = 1;
+      // 项目已有术语库：经 TerminologyStore 载入（内部重置视图并同步项目快照）
+      TerminologyStore.loadTerminology(AppState.project.terminologyList);
       return;
     }
 
-    // 尝试从 localStorage 加载术语库
+    // 尝试从 localStorage 加载术语库（仅引导：加载后即并入运行时源）
     let savedTerminology = localStorage.getItem("terminologyList");
 
     if (!savedTerminology) {
@@ -33,17 +32,9 @@ function initTerminology() {
     if (savedTerminology) {
       const parsedTerminology = safeJsonParse(savedTerminology, []);
       if (Array.isArray(parsedTerminology) && parsedTerminology.length > 0) {
-        // 使用保存的术语库
-        AppState.terminology.list = parsedTerminology;
-        AppState.terminology.filtered = [...parsedTerminology];
-        AppState.terminology.currentPage = 1;
-
-        try {
-          // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
-          ProjectStore.setTerminologyList(parsedTerminology);
-        } catch (e) {
-          (loggers.app || console).error("同步术语到项目状态失败:", e);
-        }
+        // 使用保存的术语库（经 TerminologyStore；内部重置视图并经
+        // ProjectStore 同步到项目，无项目时自动跳过）
+        TerminologyStore.loadTerminology(parsedTerminology);
 
         (loggers.app || console).debug(
           `从 localStorage 加载了 ${parsedTerminology.length} 个术语`

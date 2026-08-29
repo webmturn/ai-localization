@@ -9,8 +9,8 @@ function exportTerminology() {
     "exportIncludeMetadata"
   ).checked;
 
-  // 根据筛选条件过滤术语
-  let termsToExport = [...AppState.terminology.list];
+  // 根据筛选条件过滤术语（运行时唯一数据源：TerminologyStore getter）
+  let termsToExport = [...TerminologyStore.getList()];
   if (filter !== "all") {
     termsToExport = termsToExport.filter(
       (term) => term.partOfSpeech === filter

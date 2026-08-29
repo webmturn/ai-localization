@@ -28,7 +28,7 @@ async function createNewProject() {
     targetLanguage: targetLang,
     fileFormat: "mixed",
     translationItems: [],
-    terminologyList: [...AppState.terminology.list],
+    terminologyList: [...TerminologyStore.getList()],
   });
 
   // 更新UI
@@ -114,13 +114,12 @@ function openProject() {
         // 经 ProjectStore 统一载入项目（含 translations 视图同步、fileMetadata、contentKey 水合）
         ProjectStore.loadProject(projectData);
 
-        // 如果项目中有术语库，加载它
+        // 如果项目中有术语库，加载它（经 TerminologyStore；内部重置视图并同步快照）
         if (
           projectData.terminologyList &&
           Array.isArray(projectData.terminologyList)
         ) {
-          AppState.terminology.list = projectData.terminologyList;
-          AppState.terminology.filtered = [...AppState.terminology.list];
+          TerminologyStore.loadTerminology(projectData.terminologyList);
           updateTerminologyList();
         }
 
@@ -171,7 +170,8 @@ async function saveProject() {
 
   // 更新项目数据（translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步）
   ProjectStore.touchProject();
-  ProjectStore.setTerminologyList(AppState.terminology.list);
+  // 术语快照由 TerminologyStore 在每次变更时经 ProjectStore 同步；此处兜底对齐
+  ProjectStore.setTerminologyList(TerminologyStore.getList());
 
   // 保存原始内容到IndexedDB，项目文件仅保存引用（contentKey）
   hydrateFileMetadataContentKeys(AppState.project?.id);
@@ -192,7 +192,7 @@ async function saveProject() {
     targetLanguage: AppState.project.targetLanguage,
     fileFormat: AppState.project.fileFormat || "mixed",
     translationItems: AppState.translations.items,
-    terminologyList: AppState.terminology.list,
+    terminologyList: TerminologyStore.getList(),
     promptTemplate: AppState.project.promptTemplate,
     fileMetadata: safeFileMetadata,
     createdAt: AppState.project.createdAt,

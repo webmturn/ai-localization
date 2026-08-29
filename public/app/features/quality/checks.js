@@ -79,8 +79,13 @@ async function __checkTranslationItemOptimizedImpl(item) {
     }
   }
 
-  if (opts.checkTerminology && AppState.terminology.list && AppState.terminology.list.length > 0) {
-    const termsToCheck = AppState.terminology.list.slice(0, 100);
+  // 术语上下文读自 TerminologyStore getter（阶段 4 将改为 run() 入参注入）
+  const __termList =
+    typeof TerminologyStore !== "undefined" && TerminologyStore
+      ? TerminologyStore.getList()
+      : [];
+  if (opts.checkTerminology && __termList && __termList.length > 0) {
+    const termsToCheck = __termList.slice(0, 100);
     const sourceLower = item.sourceText.toLowerCase();
     const targetLower = item.targetText.toLowerCase();
     for (const term of termsToCheck) {

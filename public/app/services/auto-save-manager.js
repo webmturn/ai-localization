@@ -166,8 +166,8 @@ class AutoSaveManager {
           AppState.translations.items ||
           AppState.project.translationItems ||
           [],
-        terminologyList:
-          AppState.terminology?.list || AppState.project.terminologyList || [],
+        // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
+        terminologyList: TerminologyStore.getList(),
         fileMetadata: safeFileMetadata,
       };
       await storageManager.saveCurrentProject(payload);
@@ -207,10 +207,8 @@ class AutoSaveManager {
               AppState.translations.items ||
               AppState.project.translationItems ||
               [],
-            terminologyList:
-              AppState.terminology?.list ||
-              AppState.project.terminologyList ||
-              [],
+            // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
+            terminologyList: TerminologyStore.getList(),
             fileMetadata: slimFileMetadata,
           };
           await storageManager.saveCurrentProject(slimPayload);

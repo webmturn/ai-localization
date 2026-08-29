@@ -697,17 +697,11 @@ function highlightTextWithTerms(text, searchQuery) {
   // 2. 术语区间
   if (termsEnabled) {
     try {
+      // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
       const list =
-        (AppState &&
-        AppState.project &&
-        Array.isArray(AppState.project.terminologyList)
-          ? AppState.project.terminologyList
-          : null) ||
-        (AppState &&
-        AppState.terminology &&
-        Array.isArray(AppState.terminology.list)
-          ? AppState.terminology.list
-          : []);
+        typeof TerminologyStore !== "undefined" && TerminologyStore
+          ? TerminologyStore.getList()
+          : [];
       for (const term of list) {
         const src = String((term && term.source) || "");
         if (!src) continue;

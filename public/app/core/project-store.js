@@ -292,71 +292,13 @@ if (typeof window !== "undefined") {
 }
 
 // ==================== 开发模式写审计 ====================
-// 仅在开发模式生效：将 AppState.project / AppState.fileMetadata 重定义为 accessor，
+// 仅在开发模式生效：复用 dev-tools.js 的 installSliceOwnershipAudit，
+// 将 AppState.project / AppState.fileMetadata 重定义为 accessor，
 // 任何未经 ProjectStore 的顶层赋值都会打印带调用栈的告警，用于暴露绕过所有权边界
 // 的越权写入。生产环境不安装，零开销、零行为影响。
-(function installStateOwnershipAudit() {
-  try {
-    const isDev = typeof isDevelopment !== "undefined" && isDevelopment;
-    if (!isDev) return;
-    if (typeof AppState === "undefined" || !AppState) return;
-
-    // Owner 写入深度计数（嵌套调用安全）：>0 表示当前处于 ProjectStore 写入栈内
-    let ownerDepth = 0;
-
-    // 将 ProjectStore 全部方法标记为 Owner 写入
-    Object.keys(ProjectStore).forEach((name) => {
-      const original = ProjectStore[name];
-      if (typeof original !== "function") return;
-      ProjectStore[name] = function (...args) {
-        ownerDepth++;
-        try {
-          return original.apply(this, args);
-        } finally {
-          ownerDepth--;
-        }
-      };
-    });
-
-    const guard = (slice) => {
-      if (ownerDepth === 0) {
-        (window.loggers?.app || console).warn(
-          `[StateOwnership] 检测到绕过 ProjectStore 直接写入 AppState.${slice}`,
-          new Error().stack
-        );
-      }
-    };
-
-    let _project = AppState.project;
-    Object.defineProperty(AppState, "project", {
-      get() {
-        return _project;
-      },
-      set(v) {
-        guard("project");
-        _project = v;
-      },
-      enumerable: true,
-      configurable: true,
-    });
-
-    let _fileMetadata = AppState.fileMetadata;
-    Object.defineProperty(AppState, "fileMetadata", {
-      get() {
-        return _fileMetadata;
-      },
-      set(v) {
-        guard("fileMetadata");
-        _fileMetadata = v;
-      },
-      enumerable: true,
-      configurable: true,
-    });
-  } catch (e) {
-    // 审计安装失败不应影响应用运行
-    (typeof window !== "undefined" && window.loggers?.app || console).debug(
-      "State ownership audit install failed:",
-      e
-    );
-  }
-})();
+if (typeof installSliceOwnershipAudit === "function") {
+  installSliceOwnershipAudit("ProjectStore", ProjectStore, [
+    "project",
+    "fileMetadata",
+  ]);
+}

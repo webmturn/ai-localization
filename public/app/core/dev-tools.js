@@ -107,3 +107,73 @@ if (isDevelopment) {
     return null;
   };
 }
+
+/**
+ * 切片所有权开发审计（可复用工具，供各 Owner Store 复用）
+ *
+ * 将 AppState.<slice> 重定义为 accessor：任何未经 Owner Store 方法的
+ * 顶层赋值都会打印带调用栈的告警，用于暴露绕过所有权边界的越权写入。
+ * 生产环境不安装，零开销、零行为影响。
+ *
+ * 用法（在 Owner Store 文件末尾）：
+ *   if (typeof installSliceOwnershipAudit === "function") {
+ *     installSliceOwnershipAudit("ProjectStore", ProjectStore, ["project", "fileMetadata"]);
+ *   }
+ *
+ * 局限：仅审计切片顶层赋值（AppState.<slice> = ...）；属性级写入
+ * （AppState.<slice>.x = ...）由 CI 静态检查（scripts/check-state-ownership.mjs）守护。
+ *
+ * @param {string} ownerName - Owner 名称（告警文案用）
+ * @param {Object} ownerObject - Owner Store 对象（其全部方法被标记为 Owner 写入）
+ * @param {string[]} slices - 受守护的 AppState 切片名列表
+ */
+function installSliceOwnershipAudit(ownerName, ownerObject, slices) {
+  try {
+    const isDev = typeof isDevelopment !== "undefined" && isDevelopment;
+    if (!isDev) return;
+    if (typeof AppState === "undefined" || !AppState) return;
+
+    // Owner 写入深度计数（嵌套调用安全）：>0 表示当前处于 Owner 写入栈内
+    let ownerDepth = 0;
+
+    // 将 Owner Store 全部方法标记为 Owner 写入
+    Object.keys(ownerObject).forEach((name) => {
+      const original = ownerObject[name];
+      if (typeof original !== "function") return;
+      ownerObject[name] = function (...args) {
+        ownerDepth++;
+        try {
+          return original.apply(this, args);
+        } finally {
+          ownerDepth--;
+        }
+      };
+    });
+
+    (slices || []).forEach((slice) => {
+      let _value = AppState[slice];
+      Object.defineProperty(AppState, slice, {
+        get() {
+          return _value;
+        },
+        set(v) {
+          if (ownerDepth === 0) {
+            (window.loggers?.app || console).warn(
+              `[StateOwnership] 检测到绕过 ${ownerName} 直接写入 AppState.${slice}`,
+              new Error().stack
+            );
+          }
+          _value = v;
+        },
+        enumerable: true,
+        configurable: true,
+      });
+    });
+  } catch (e) {
+    // 审计安装失败不应影响应用运行
+    ((typeof window !== "undefined" && window.loggers?.app) || console).debug(
+      "Slice ownership audit install failed:",
+      e
+    );
+  }
+}

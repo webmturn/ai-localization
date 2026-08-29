@@ -11,26 +11,25 @@ beforeAll(() => {
   globalThis.TranslationService = class TranslationService {};
   globalThis.translationService = new globalThis.TranslationService();
   globalThis.AppState = {
-    project: { terminologyList: [
-      { id: 1, source: "API", target: "应用程序接口" },
-      { id: 2, source: "XML", target: "可扩展标记语言" },
-      { id: 3, source: "C++", target: "C加加" },
-    ] },
+    project: { terminologyList: [] },
     translations: { items: [] },
-    terminology: { list: [] },
+    terminology: { list: [], filtered: [], currentPage: 1, perPage: 10 },
   };
   globalThis.SettingsCache = {
     _s: {},
     get() { return this._s; },
     update(fn) { fn(this._s); },
   };
+  // 阶段 1：术语匹配改读 TerminologyStore（运行时唯一数据源）
+  loadSource("public/app/core/terminology-store.js");
   loadSource("public/app/services/translation/terminology.js");
 });
 
 beforeEach(() => {
   globalThis.SettingsCache._s = {};
   // 每个用例前恢复完整术语列表（避免用例间互相污染）
-  globalThis.AppState.project.terminologyList = [
+  // 阶段 1 后运行时唯一数据源为 AppState.terminology.list
+  globalThis.AppState.terminology.list = [
     { id: 1, source: "API", target: "应用程序接口" },
     { id: 2, source: "XML", target: "可扩展标记语言" },
     { id: 3, source: "C++", target: "C加加" },
@@ -60,9 +59,9 @@ describe("findTerminologyMatches 匹配模式", () => {
   });
 
   it("空术语库返回空数组", () => {
-    globalThis.AppState.project.terminologyList = [];
+    globalThis.AppState.terminology.list = [];
     expect(translationService.findTerminologyMatches("anything")).toEqual([]);
-    globalThis.AppState.project.terminologyList = [
+    globalThis.AppState.terminology.list = [
       { id: 1, source: "API", target: "应用程序接口" },
     ];
   });

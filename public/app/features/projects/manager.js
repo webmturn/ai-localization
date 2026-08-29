@@ -65,9 +65,8 @@
     ProjectStore.loadProject(project);
 
     if (project.terminologyList && Array.isArray(project.terminologyList)) {
-      AppState.terminology.list = project.terminologyList;
-      AppState.terminology.filtered = [...AppState.terminology.list];
-      AppState.terminology.currentPage = 1;
+      // 经 TerminologyStore 载入（内部重置视图并同步项目快照）
+      TerminologyStore.loadTerminology(project.terminologyList);
       if (typeof updateTerminologyList === "function") updateTerminologyList();
     }
 

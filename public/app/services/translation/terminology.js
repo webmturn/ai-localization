@@ -4,17 +4,11 @@ TranslationService.prototype.findTerminologyMatches = function (text) {
   const matches = [];
 
   try {
+    // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
     const terminologyList =
-      (AppState &&
-      AppState.project &&
-      Array.isArray(AppState.project.terminologyList)
-        ? AppState.project.terminologyList
-        : null) ||
-      (AppState &&
-      AppState.terminology &&
-      Array.isArray(AppState.terminology.list)
-        ? AppState.terminology.list
-        : []);
+      typeof TerminologyStore !== "undefined" && TerminologyStore
+        ? TerminologyStore.getList()
+        : [];
     if (!terminologyList || terminologyList.length === 0) return matches;
 
     // 匹配模式（设置项，default contains）
@@ -99,16 +93,9 @@ TranslationService.prototype.applyTerminologyToTranslation = function (text) {
     if (settings && settings.autoApplyTerms === false) return text;
 
     const terminologyList =
-      (AppState &&
-      AppState.project &&
-      Array.isArray(AppState.project.terminologyList)
-        ? AppState.project.terminologyList
-        : null) ||
-      (AppState &&
-      AppState.terminology &&
-      Array.isArray(AppState.terminology.list)
-        ? AppState.terminology.list
-        : []);
+      typeof TerminologyStore !== "undefined" && TerminologyStore
+        ? TerminologyStore.getList()
+        : [];
     if (!terminologyList || terminologyList.length === 0) return text;
 
     let result = text;

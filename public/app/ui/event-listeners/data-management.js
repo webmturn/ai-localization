@@ -445,17 +445,8 @@ function registerEventListenersDataManagement(ctx) {
       exportTermsBtn,
       "click",
       () => {
-        const terminologyList =
-          (AppState &&
-          AppState.project &&
-          Array.isArray(AppState.project.terminologyList)
-            ? AppState.project.terminologyList
-            : null) ||
-          (AppState &&
-          AppState.terminology &&
-          Array.isArray(AppState.terminology.list)
-            ? AppState.terminology.list
-            : []);
+        // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
+        const terminologyList = TerminologyStore.getList();
         const data = {
           version: "1.1.0",
           exportDate: new Date().toISOString(),
@@ -524,40 +515,10 @@ function registerEventListenersDataManagement(ctx) {
               // 导入术语库（合并模式）
               const importedTerms = data.terminologyList || data.terminology;
               if (includeTerms && importedTerms) {
-                const existingTerms =
-                  (AppState &&
-                  AppState.project &&
-                  Array.isArray(AppState.project.terminologyList)
-                    ? AppState.project.terminologyList
-                    : null) ||
-                  (AppState &&
-                  AppState.terminology &&
-                  Array.isArray(AppState.terminology.list)
-                    ? AppState.terminology.list
-                    : []);
-                const mergedTerms = [...(existingTerms || [])];
-
-                // 合并术语，根据设置的duplicateHandling处理重复
-                importedTerms.forEach((newTerm) => {
-                  const existingIndex = mergedTerms.findIndex(
-                    (t) =>
-                      t.source.toLowerCase() === newTerm.source.toLowerCase()
-                  );
-
-                  if (existingIndex === -1) {
-                    mergedTerms.push(newTerm);
-                  } else {
-                    // 覆盖模式：更新现有术语
-                    mergedTerms[existingIndex] = newTerm;
-                  }
-                });
-
                 try {
-                  AppState.terminology.list = mergedTerms;
-                  AppState.terminology.filtered = [...mergedTerms];
-                  AppState.terminology.currentPage = 1;
-                  // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
-                  ProjectStore.setTerminologyList(mergedTerms);
+                  // 经 TerminologyStore 合并（按 source 判重，重复时覆盖现有条目；
+                  // 内部重置视图并同步项目与 localStorage 快照）
+                  TerminologyStore.mergeTerms(importedTerms);
                   if (typeof updateTerminologyList === "function") {
                     updateTerminologyList();
                   }
@@ -579,7 +540,7 @@ function registerEventListenersDataManagement(ctx) {
                         AppState.project?.translationItems ||
                         AppState.translations?.items ||
                         [],
-                      terminologyList: mergedTerms,
+                      terminologyList: TerminologyStore.getList(),
                       fileMetadata: AppState.fileMetadata || {},
                     };
                     await storageManager.saveCurrentProject(payload);
@@ -758,8 +719,9 @@ function registerEventListenersDataManagement(ctx) {
 
             if (activeWasSample) {
               try {
-                AppState.terminology.list = [];
-                AppState.terminology.filtered = [];
+                // 经 TerminologyStore 清空（不同步项目快照与 localStorage，
+                // 避免误删用户自有术语；项目随后经 ProjectStore 清空）
+                TerminologyStore.clearTerminology();
               } catch (e) {
                 (loggers.app || console).debug("clearSampleData reset terminology:", e);
               }

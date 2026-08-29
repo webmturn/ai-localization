@@ -34,7 +34,7 @@ async function __processFilesImpl(files) {
         targetLanguage,
         fileFormat: "mixed",
         translationItems: [],
-        terminologyList: AppState.terminology?.list || [],
+        terminologyList: TerminologyStore.getList() || [],
         fileMetadata: {},
       });
 

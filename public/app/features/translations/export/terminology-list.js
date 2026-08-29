@@ -14,21 +14,16 @@ function saveTerm() {
   const isEditing = saveBtn.dataset.editingId;
 
   if (isEditing) {
-    // 更新现有术语
+    // 更新现有术语（经 TerminologyStore 意图式 API；内部同步项目与 localStorage 快照）
     const termId = parseInt(isEditing);
-    const termIndex = AppState.terminology.list.findIndex(
-      (t) => t.id === termId
-    );
+    const updated = TerminologyStore.updateTerm(termId, {
+      source: sourceTerm,
+      target: targetTerm,
+      partOfSpeech: partOfSpeech,
+      definition: termDefinition,
+    });
 
-    if (termIndex !== -1) {
-      AppState.terminology.list[termIndex] = {
-        ...AppState.terminology.list[termIndex],
-        source: sourceTerm,
-        target: targetTerm,
-        partOfSpeech: partOfSpeech,
-        definition: termDefinition,
-      };
-
+    if (updated) {
       showNotification("success", "更新成功", `术语 "${sourceTerm}" 已更新`);
     }
 
@@ -37,7 +32,7 @@ function saveTerm() {
     saveBtn.textContent = "保存";
   } else {
     // 添加新术语（防重复：同源术语已存在时提示，避免术语库混乱）
-    const dup = AppState.terminology.list.find(
+    const dup = TerminologyStore.getList().find(
       (t) => t.source.toLowerCase() === String(sourceTerm).toLowerCase()
     );
     if (dup) {
@@ -53,27 +48,14 @@ function saveTerm() {
       return;
     }
 
-    // 添加新术语
-    const newTerm = {
-      id:
-        AppState.terminology.list.length > 0
-          ? Math.max(...AppState.terminology.list.map((t) => t.id)) + 1
-          : 1,
+    // 添加新术语（id 由 Store 自动分配；内部同步项目与 localStorage 快照）
+    TerminologyStore.addTerm({
       source: sourceTerm,
       target: targetTerm,
       partOfSpeech: partOfSpeech,
       definition: termDefinition,
-    };
-
-    AppState.terminology.list.push(newTerm);
+    });
     showNotification("success", "添加成功", `术语 "${sourceTerm}" 已成功添加`);
-  }
-
-  try {
-    // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
-    ProjectStore.setTerminologyList(AppState.terminology.list);
-  } catch (e) {
-    (loggers.app || console).error("同步术语到项目状态失败:", e);
   }
 
   try {
@@ -88,16 +70,6 @@ function saveTerm() {
     }
   } catch (e) {
     (loggers.storage || console).error("触发项目保存失败:", e);
-  }
-
-  // localStorage 兜底，与 deleteTerm 保持一致；无项目时刷新仍可恢复
-  try {
-    localStorage.setItem(
-      "terminologyList",
-      JSON.stringify(AppState.terminology.list)
-    );
-  } catch (e) {
-    (loggers.storage || console).error("保存术语库到 localStorage 失败:", e);
   }
 
   // 重置表单
@@ -131,11 +103,11 @@ function updateTerminologyList() {
   const terminologyListElement = DOMCache.get("terminologyList");
   if (!terminologyListElement) return;
 
-  // 使用 AppState 获取数据
-  const terminologyList = AppState.terminology?.list || [];
-  const currentTerminologyPage = AppState.terminology?.currentPage || 1;
-  const terminologyPerPage = AppState.terminology?.perPage || 10;
-  const filteredTerminology = AppState.terminology?.filtered || terminologyList;
+  // 使用 TerminologyStore getter 获取数据
+  const terminologyList = TerminologyStore.getList() || [];
+  const currentTerminologyPage = TerminologyStore.getCurrentPage() || 1;
+  const terminologyPerPage = TerminologyStore.getPerPage() || 10;
+  const filteredTerminology = TerminologyStore.getFiltered() || terminologyList;
 
   // 计算分页
   const startIndex = (currentTerminologyPage - 1) * terminologyPerPage;
@@ -232,10 +204,10 @@ function getPartOfSpeechText(pos) {
 
 // 更新术语分页信息
 function updateTerminologyPagination() {
-  // 使用 AppState 获取数据
-  const filteredTerminology = AppState.terminology.filtered;
-  const terminologyPerPage = AppState.terminology.perPage;
-  const currentTerminologyPage = AppState.terminology.currentPage;
+  // 使用 TerminologyStore getter 获取数据
+  const filteredTerminology = TerminologyStore.getFiltered();
+  const terminologyPerPage = TerminologyStore.getPerPage();
+  const currentTerminologyPage = TerminologyStore.getCurrentPage();
 
   const totalPages = Math.max(
     1,
@@ -279,18 +251,18 @@ function updateTerminologyPagination() {
 
 // 处理术语分页
 function handleTerminologyPagination(direction) {
-  const filteredTerminology = AppState.terminology.filtered;
-  const terminologyPerPage = AppState.terminology.perPage;
+  const filteredTerminology = TerminologyStore.getFiltered();
+  const terminologyPerPage = TerminologyStore.getPerPage();
   const totalPages = Math.max(
     1,
     Math.ceil(filteredTerminology.length / terminologyPerPage)
   );
-  const currentTerminologyPage = AppState.terminology.currentPage;
+  const currentTerminologyPage = TerminologyStore.getCurrentPage();
 
   if (direction === "prev" && currentTerminologyPage > 1) {
-    AppState.terminology.currentPage = currentTerminologyPage - 1;
+    TerminologyStore.setPage(currentTerminologyPage - 1);
   } else if (direction === "next" && currentTerminologyPage < totalPages) {
-    AppState.terminology.currentPage = currentTerminologyPage + 1;
+    TerminologyStore.setPage(currentTerminologyPage + 1);
   }
 
   updateTerminologyList();
@@ -304,7 +276,8 @@ function filterTerminology() {
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
   const filterValue = filterSelect ? filterSelect.value : "all";
 
-  AppState.terminology.filtered = AppState.terminology.list.filter((term) => {
+  // 经 TerminologyStore 意图式 API 应用过滤（内部重置页码）
+  TerminologyStore.applyFilter((term) => {
     // 搜索过滤
     const matchesSearch =
       !searchTerm ||
@@ -319,13 +292,12 @@ function filterTerminology() {
     return matchesSearch && matchesFilter;
   });
 
-  AppState.terminology.currentPage = 1;
   updateTerminologyList();
 }
 
 // 编辑术语
 function editTerm(termId) {
-  const term = AppState.terminology.list.find((t) => t.id === termId);
+  const term = TerminologyStore.getList().find((t) => t.id === termId);
   if (!term) return;
 
   // 填充编辑模态框
@@ -352,17 +324,9 @@ async function deleteTerm(termId) {
     danger: true,
   });
   if (ok) {
-    const index = AppState.terminology.list.findIndex((t) => t.id === termId);
-    if (index !== -1) {
-      AppState.terminology.list.splice(index, 1);
-
-      try {
-        // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
-        ProjectStore.setTerminologyList(AppState.terminology.list);
-      } catch (e) {
-        (loggers.app || console).error("同步术语到项目状态失败:", e);
-      }
-
+    // 经 TerminologyStore 意图式 API 删除（内部同步项目与 localStorage 快照）
+    const removed = TerminologyStore.removeTerm(termId);
+    if (removed) {
       try {
         if (
           typeof autoSaveManager !== "undefined" &&
@@ -375,16 +339,6 @@ async function deleteTerm(termId) {
         }
       } catch (e) {
         (loggers.storage || console).error("触发项目保存失败:", e);
-      }
-
-      // 保存到 localStorage
-      try {
-        localStorage.setItem(
-          "terminologyList",
-          JSON.stringify(AppState.terminology.list)
-        );
-      } catch (e) {
-        (loggers.storage || console).error("保存术语库失败:", e);
       }
 
       filterTerminology(); // 重新过滤并更新列表

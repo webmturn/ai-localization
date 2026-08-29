@@ -114,9 +114,8 @@ async function importTerminology() {
     const __persistTerminologyList = async () => {
       let savedToProject = false;
       try {
-        // 经 ProjectStore 同步术语库到项目（无项目时自动跳过）
-        ProjectStore.setTerminologyList(AppState.terminology.list);
-
+        // 项目快照与 localStorage 快照已由 TerminologyStore 在写入时同步；
+        // 此处仅触发项目存储保存
         if (
           typeof autoSaveManager !== "undefined" &&
           autoSaveManager &&
@@ -127,16 +126,6 @@ async function importTerminology() {
         }
       } catch (e) {
         (loggers.storage || console).error("保存术语到项目存储失败:", e);
-      }
-
-      // localStorage 兜底，与 saveTerm/deleteTerm 一致；无项目时也能持久化
-      try {
-        localStorage.setItem(
-          "terminologyList",
-          JSON.stringify(AppState.terminology.list)
-        );
-      } catch (e) {
-        (loggers.storage || console).error("保存术语库到 localStorage 失败:", e);
       }
 
       if (!savedToProject) {
@@ -166,7 +155,7 @@ async function importTerminology() {
                 AppState.project.translationItems ||
                 AppState.translations.items ||
                 [],
-              terminologyList: AppState.terminology.list,
+              terminologyList: TerminologyStore.getList(),
               fileMetadata: safeFileMetadata,
             };
 
@@ -266,19 +255,14 @@ async function importTerminology() {
       importStatus.textContent = "写入术语数据...";
 
       if (overwrite) {
-        AppState.terminology.list = importedTerms;
+        // 覆盖模式：整体替换（经 TerminologyStore；内部重置视图并同步项目快照）
+        TerminologyStore.loadTerminology(importedTerms);
       } else {
-        const existingSources = new Set(
-          AppState.terminology.list.map((t) => t.source.toLowerCase())
-        );
-        const newTerms = importedTerms.filter(
-          (t) => !existingSources.has(t.source.toLowerCase())
-        );
-        AppState.terminology.list = [...AppState.terminology.list, ...newTerms];
+        // 合并模式：跳过已存在的源术语（经 TerminologyStore；内部重置视图并同步快照）
+        TerminologyStore.mergeTerms(importedTerms, {
+          overwriteDuplicates: false,
+        });
       }
-
-      AppState.terminology.filtered = [...AppState.terminology.list];
-      AppState.terminology.currentPage = 1;
 
       importProgressBar.style.width = "85%";
       importPercentage.textContent = "85%";

@@ -312,7 +312,6 @@ function switchTabState(tabSelector, panelSelector, tabName, options) {
 
     const parts = [
       "app/features/quality/checks.js",
-      "app/features/quality/enhanced-checks.js",
       "app/features/quality/scoring.js",
       "app/features/quality/charts.js",
       "app/features/quality/ui.js",

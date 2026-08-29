@@ -146,10 +146,9 @@ html/
 │       │   │       ├── terminology-import.js    # 术语导入
 │       │   │       └── terminology-list.js      # 术语列表
 │       │   │
-│       │   ├── quality/                 # 质量检查（7个文件）
+│       │   ├── quality/                 # 质量检查（6个文件）
 │       │   │   ├── run.js                   # 质量检查执行
 │       │   │   ├── checks.js                # 基础检查项
-│       │   │   ├── enhanced-checks.js       # 增强检查项
 │       │   │   ├── scoring.js               # 评分系统
 │       │   │   ├── ui.js                    # 质量检查UI
 │       │   │   ├── charts.js                # 质量图表

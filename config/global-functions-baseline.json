@@ -163,12 +163,6 @@
     "EnhancedParserManager": [
       "parsers/parser-utils.js"
     ],
-    "enhancedQualityChecker": [
-      "features/quality/enhanced-checks.js"
-    ],
-    "EnhancedQualityChecker": [
-      "features/quality/enhanced-checks.js"
-    ],
     "ERROR_CATEGORIES": [
       "core/errors/error-manager.js"
     ],

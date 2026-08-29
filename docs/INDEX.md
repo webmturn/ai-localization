@@ -1,7 +1,7 @@
 # 文档索引
 
 **项目**: 智能翻译工具 (AI Localization)  
-**最后更新**: 2026-02-16
+**最后更新**: 2026-08-30（v1.3.3）
 
 ---
 
@@ -10,8 +10,8 @@
 | 文档 | 说明 |
 |------|------|
 | [CHANGELOG.md](../CHANGELOG.md) | 更新日志（所有版本变更记录） |
-| [API-REFERENCE.md](API-REFERENCE.md) | 核心服务和工具 API 参考 |
-| [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | 项目目录结构说明 |
+| [API-REFERENCE.md](API-REFERENCE.md) | 核心服务与状态所有权 Store API 参考 |
+| [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | 项目目录结构说明（含 tests/ 与 CI 守护脚本） |
 | [APP-JS-Function-Guide.md](APP-JS-Function-Guide.md) | app 模块与函数说明 |
 
 ---
@@ -47,6 +47,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [RELEASE-v1.3.3.md](RELEASE-v1.3.3.md) | ⭐ v1.3.3 发布说明（并发分块 + 状态所有权重构 + UI 交互修复） |
 | [RELEASE-v1.2.0.md](RELEASE-v1.2.0.md) | v1.2.0 发布说明（多引擎支持 + JS Bundle + UI/UX） |
 | [RELEASE-v1.1.0.md](RELEASE-v1.1.0.md) | v1.1.0 发布说明（移动端优化 + 桌面客户端预览） |
 | [RELEASE-v1.0.0.md](RELEASE-v1.0.0.md) | v1.0.0 发布说明 |

@@ -1,22 +1,134 @@
 # API 参考文档
 
 **项目**: 智能翻译工具 (AI Localization)  
-**版本**: 1.3.2  
-**更新日期**: 2026-03-07
+**版本**: 1.3.3  
+**更新日期**: 2026-08-30
 
 ---
 
 ## 目录
 
-1. [核心服务](#核心服务)
-2. [依赖注入系统](#依赖注入系统)
-3. [错误管理](#错误管理)
-4. [性能监控](#性能监控)
-5. [网络工具](#网络工具)
-6. [验证器](#验证器)
-7. [翻译服务](#翻译服务)
-8. [存储管理](#存储管理)
-9. [事件管理](#事件管理)
+1. [状态所有权 Store](#状态所有权-store)
+2. [核心服务](#核心服务)
+3. [依赖注入系统](#依赖注入系统)
+4. [错误管理](#错误管理)
+5. [性能监控](#性能监控)
+6. [网络工具](#网络工具)
+7. [验证器](#验证器)
+8. [翻译服务](#翻译服务)
+9. [存储管理](#存储管理)
+10. [事件管理](#事件管理)
+
+---
+
+## 状态所有权 Store
+
+> v1.3.3 起 AppState 全部切片均有唯一 Owner Store。业务代码**禁止直接写入**切片字段，
+> 一律经意图式 API；由 `scripts/check-state-ownership.mjs` CI 静态守护
+> （`npm run check-state`）。读取经 getter。
+
+### ProjectStore — `AppState.project` / `AppState.fileMetadata`
+
+```javascript
+// 加载/创建/清空项目（内部同步 translations 视图与 fileMetadata 派生引用）
+ProjectStore.loadProject(projectData);            // 载入完整项目
+ProjectStore.createProject({ name, sourceLanguage, targetLanguage, ... });
+ProjectStore.clearProject();
+
+// 翻译条目（canonical: project.translationItems）
+ProjectStore.getTranslationItems();               // 读取 canonical 条目
+ProjectStore.setTranslationItems(items);          // 整体替换
+ProjectStore.replaceFileItems(fileName, newItems); // 替换指定文件条目（源文件编辑器）
+ProjectStore.swapTranslationItems(items);         // 临时换出（质量检查范围限定），传回原数组恢复
+
+// 文件元数据
+ProjectStore.setFileMetadata(fileName, meta);
+ProjectStore.patchFileMetadata(fileName, patch);  // 局部合并
+ProjectStore.removeFileMetadata(fileName);
+ProjectStore.resetFileMetadata(map);
+ProjectStore.ensureFileMetadata();
+
+// 其他
+ProjectStore.touchProject();                     // 更新 updatedAt
+ProjectStore.renameProject(projectId, name);
+ProjectStore.setTerminologyList(list);            // 同步术语快照到项目
+ProjectStore.resetTranslationView();              // 经 TranslationViewStore.resetView
+```
+
+### TerminologyStore — `AppState.terminology`（运行时唯一数据源）
+
+```javascript
+// 写入（意图式）
+TerminologyStore.loadTerminology(list);
+TerminologyStore.mergeTerms(terms);
+TerminologyStore.addTerm(term);                   // 同源重复检测
+TerminologyStore.updateTerm(id, patch);
+TerminologyStore.removeTerm(id);
+TerminologyStore.clearTerminology();
+TerminologyStore.setPage(page);                   // 分页
+TerminologyStore.applyFilter(query);              // 过滤
+TerminologyStore.resetFilter();
+
+// 读取
+TerminologyStore.getList();                       // canonical 列表（project.terminologyList 仅快照）
+TerminologyStore.getFiltered();
+TerminologyStore.getCurrentPage();
+TerminologyStore.getPerPage();
+```
+
+### TranslationViewStore — `AppState.translations` 视图态
+
+```javascript
+// 写入（意图式）
+TranslationViewStore.setViewItems(items);          // 稳定视图条目引用（ProjectStore 调用）
+TranslationViewStore.setFilter(items);             // 过滤结果
+TranslationViewStore.setSelection(index);          // 主选中（-1 取消）
+TranslationViewStore.setMultiSelection(arr);
+TranslationViewStore.setPage(page);
+TranslationViewStore.setSearchQuery(query);
+TranslationViewStore.setItemsPerPage(count);
+TranslationViewStore.setSelectedFile(fileName);    // null = 全项目
+TranslationViewStore.resetView();                  // 项目切换复位（保留 multiSelected/selectedFile/itemsPerPage）
+TranslationViewStore.clearView();                  // 全清空
+
+// 读取
+TranslationViewStore.getViewItems();               // ⭐ 视图条目唯一数据源（旧 translations.items 别名已删除）
+TranslationViewStore.getFiltered();
+TranslationViewStore.getSelected();
+TranslationViewStore.getMultiSelected();
+TranslationViewStore.getCurrentPage();
+TranslationViewStore.getSearchQuery();
+TranslationViewStore.getItemsPerPage();
+TranslationViewStore.getSelectedFile();
+```
+
+### BatchProgressStore — `AppState.translations` 批量进度态
+
+```javascript
+// 生命周期
+BatchProgressStore.beginBatch(context);            // 批量开始（复位取消协议、写上下文）
+BatchProgressStore.endBatch();                     // 批量结束（保留失败项与上下文供重试）
+BatchProgressStore.cancelBatch();                  // 用户取消（置取消协议标记）
+BatchProgressStore.pauseBatch();
+BatchProgressStore.resumeBatch();
+
+// 进度与失败项
+BatchProgressStore.reportProgress(current, total, status);  // 数值守卫
+BatchProgressStore.recordFailedItems(items);       // 供 retryFailedTranslations 读取
+BatchProgressStore.clearBatch();                   // 全清空
+
+// 读取
+BatchProgressStore.isBatchInProgress();            // isInProgress
+BatchProgressStore.isBatchPaused();                // isPaused
+BatchProgressStore.getProgress();                  // { current, total, status }
+BatchProgressStore.getLastFailedItems();
+BatchProgressStore.getLastBatchContext();
+BatchProgressStore.isUserCancelled();              // ⭐ 跨模块取消协议（引擎层取消判定）
+```
+
+> **注意**：`AppState.translations.items` 别名与 `window.qualityCheckResults` 全局别名
+> 已在 v1.3.3 删除——视图条目读取一律 `TranslationViewStore.getViewItems()`，
+> 质量检查结果读取一律 `AppState.qualityCheckResults`。
 
 ---
 

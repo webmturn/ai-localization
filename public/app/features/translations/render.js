@@ -919,8 +919,12 @@ function navigateToSearchResult(index) {
     const searchResultsPanel = DOMCache.get("searchResultsPanel");
     if (searchResultsPanel) searchResultsPanel.classList.add("hidden");
 
-    // 选择对应的翻译项
-    selectTranslationItem(index);
+    // 选择对应的翻译项并聚焦译文框（focus 带 preventScroll 不触发原生滚动；
+    // 滚动统一交给 scrollToItem 的 animateScrollTo 动画，含跨页翻页）
+    selectTranslationItem(index, { shouldFocusTextarea: true });
+
+    // 滚动到目标条目（目标不在当前页时 scrollToItem 内部翻页并等待渲染）
+    scrollToItem(index);
 
     // 显示成功通知
     const item = AppState.project.translationItems[index];
@@ -1096,6 +1100,22 @@ async function scrollToItem(index) {
     };
 
     if (tryScroll()) return;
+
+    // 目标不在当前渲染范围：目标在其它页时先翻页（否则下面的渲染等待必然超时）
+    const item = AppState?.project?.translationItems?.[index];
+    const filtered = AppState?.translations?.filtered;
+    const perPage = AppState?.translations?.itemsPerPage || 20;
+    const page = AppState?.translations?.currentPage || 1;
+    if (item && Array.isArray(filtered) && filtered.length > 0 && perPage > 0) {
+      const pos = filtered.indexOf(item);
+      if (pos >= 0) {
+        const targetPage = Math.floor(pos / perPage) + 1;
+        if (targetPage !== page) {
+          TranslationViewStore.setPage(targetPage);
+          updateTranslationLists();
+        }
+      }
+    }
 
     const beforeVersion = AppState?.translations?.renderVersion || 0;
     await __waitForTranslationsRendered(beforeVersion + 1, 800);

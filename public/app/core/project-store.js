@@ -8,11 +8,16 @@
 //
 // 约定：
 // - canonical 数据：翻译条目以 AppState.project.translationItems 为准；
-//   AppState.translations.items 为指向同一数组的派生引用（由 Store 维护）。
+//   AppState.translations.items 为视图稳定引用 + 兼容别名，由
+//   TranslationViewStore.setViewItems 统一写入（阶段 3b 删除该字段）。
 // - fileMetadata 以 AppState.fileMetadata 为准；
 //   AppState.project.fileMetadata 为指向同一对象的派生引用（由 Store 维护）。
 // - 业务代码禁止再直接写 AppState.project / AppState.fileMetadata，
 //   一律经由本 Store（CI 静态检查 scripts/check-state-ownership.mjs 守护）。
+// - translations 视图态字段（filtered / selected / multiSelected / currentPage /
+//   searchQuery / itemsPerPage / selectedFile）的唯一 Owner 是
+//   TranslationViewStore（core/translation-view-store.js）；本 Store 经其
+//   意图式 API 写入，不直写。
 
 const ProjectStore = {
   /**
@@ -27,19 +32,16 @@ const ProjectStore = {
     AppState.project = projectData || null;
 
     const items = (projectData && projectData.translationItems) || [];
-    // canonical：project.translationItems；translations.items 为派生引用
+    // canonical：project.translationItems；视图稳定引用 + 兼容别名经 TranslationViewStore 设置
     if (AppState.project) AppState.project.translationItems = items;
-    AppState.translations.items = items;
+    TranslationViewStore.setViewItems(items);
 
     // fileMetadata：canonical 为 AppState.fileMetadata
     AppState.fileMetadata = (projectData && projectData.fileMetadata) || {};
     if (AppState.project) AppState.project.fileMetadata = AppState.fileMetadata;
 
-    // 重置翻译视图状态（项目切换的原子组成部分）
-    AppState.translations.selected = -1;
-    AppState.translations.currentPage = 1;
-    AppState.translations.filtered = [...AppState.translations.items];
-    AppState.translations.searchQuery = "";
+    // 重置翻译视图状态（项目切换的原子组成部分，经 TranslationViewStore）
+    TranslationViewStore.resetView();
 
     // 水合文件元数据的 contentKey（storage 层能力，运行期可用时调用）
     if (
@@ -95,11 +97,8 @@ const ProjectStore = {
   clearProject() {
     AppState.project = null;
     AppState.fileMetadata = {};
-    AppState.translations.items = [];
-    AppState.translations.filtered = [];
-    AppState.translations.selected = -1;
-    AppState.translations.currentPage = 1;
-    AppState.translations.searchQuery = "";
+    // 视图态全清空（含稳定引用与兼容别名），经 TranslationViewStore
+    TranslationViewStore.clearView();
   },
 
   /**
@@ -192,7 +191,8 @@ const ProjectStore = {
 
   /**
    * 整体替换翻译条目（导入合并、质量检查临时替换/恢复等场景）。
-   * canonical 写入 project.translationItems 并同步 translations 视图。
+   * canonical 写入 project.translationItems，视图稳定引用 + 兼容别名经
+   * TranslationViewStore.setViewItems 同步。
    *
    * @param {Array} items - 新的完整条目数组
    * @returns {Array} 写入后的条目数组
@@ -200,14 +200,15 @@ const ProjectStore = {
   setTranslationItems(items) {
     const list = items || [];
     if (AppState.project) AppState.project.translationItems = list;
-    AppState.translations.items = list;
+    TranslationViewStore.setViewItems(list);
     return list;
   },
 
   /**
    * 临时换出 canonical 条目数组（质量检查按文件范围限定检查的场景）。
-   * 仅替换 project.translationItems，不触碰 translations 视图（与历史行为一致：
-   * 检查期间视图仍显示全量，渲染走 filtered 不受影响）；检查期间的别名断裂
+   * 仅替换 project.translationItems，不触碰视图稳定引用
+   * （TranslationViewStore.getViewItems 仍指向全量列表，渲染不受影响——
+   * 显式设计，见 translation-view-store.js 头部说明）；检查期间的别名断裂
    * 是预期且临时的，调用方结束后必须用本方法传回原数组恢复。
    *
    * @param {Array} items - 临时使用的条目数组
@@ -221,11 +222,10 @@ const ProjectStore = {
 
   /**
    * 将 translations 视图重置为初始分页状态（导入合并后等场景）。
+   * 经 TranslationViewStore.resetView 完成。
    */
   resetTranslationView() {
-    AppState.translations.filtered = [...(AppState.translations.items || [])];
-    AppState.translations.selected = -1;
-    AppState.translations.currentPage = 1;
+    TranslationViewStore.resetView();
   },
 
   /**
@@ -267,7 +267,8 @@ const ProjectStore = {
 
   /**
    * 替换指定文件的翻译条目（源文件编辑器重解析后合并）。
-   * 移除该文件旧条目并追加新条目，同步 translations 视图。
+   * 移除该文件旧条目并追加新条目；视图稳定引用 + 兼容别名与过滤视图
+   * 经 TranslationViewStore 同步。
    *
    * @param {string} fileName - 文件名
    * @param {Array} newItems - 该文件的新翻译条目
@@ -280,8 +281,8 @@ const ProjectStore = {
     );
     const merged = kept.concat(newItems || []);
     AppState.project.translationItems = merged;
-    AppState.translations.items = merged;
-    AppState.translations.filtered = [...merged];
+    TranslationViewStore.setViewItems(merged);
+    TranslationViewStore.setFilter([...merged]);
     return merged;
   },
 };

@@ -28,8 +28,8 @@ async function loadSettings() {
       if (settings.itemsPerPage) {
         const itemsPerPage = DOMCache.get("itemsPerPage");
         if (itemsPerPage) itemsPerPage.value = settings.itemsPerPage;
-        // 同步到 AppState
-        AppState.translations.itemsPerPage = parseInt(settings.itemsPerPage);
+        // 同步到 AppState（经 TranslationViewStore）
+        TranslationViewStore.setItemsPerPage(parseInt(settings.itemsPerPage));
       }
 
       if (settings.sourceSelectionIndicatorEnabled !== undefined) {
@@ -387,8 +387,8 @@ function applySettings(settings) {
 
   // 应用每页显示数量设置
   if (settings.itemsPerPage) {
-    AppState.translations.itemsPerPage = parseInt(settings.itemsPerPage);
-    AppState.translations.currentPage = 1; // 重置到第一页
+    TranslationViewStore.setItemsPerPage(parseInt(settings.itemsPerPage));
+    TranslationViewStore.setPage(1); // 重置到第一页
     // 刷新翻译列表
     if (AppState.translations.items.length > 0) {
       updateTranslationLists();

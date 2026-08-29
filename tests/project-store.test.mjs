@@ -7,6 +7,20 @@ import { loadSource, setupGlobals } from "./setup.mjs";
 
 beforeAll(() => {
   setupGlobals(); // 提供 AppState 桩（含 translations/terminology 切片）
+  // 补齐 translations 视图态字段（setupGlobals 桩只含 items）
+  globalThis.AppState.translations = Object.assign(
+    globalThis.AppState.translations,
+    {
+      filtered: [],
+      selected: -1,
+      multiSelected: [],
+      currentPage: 1,
+      itemsPerPage: 20,
+      searchQuery: "",
+      selectedFile: null,
+    }
+  );
+  loadSource("public/app/core/translation-view-store.js"); // ProjectStore 依赖其意图式 API
   loadSource("public/app/core/project-store.js");
 });
 
@@ -17,8 +31,11 @@ function resetState() {
   AppState.translations.items = [];
   AppState.translations.filtered = [];
   AppState.translations.selected = -1;
+  AppState.translations.multiSelected = [];
   AppState.translations.currentPage = 1;
   AppState.translations.searchQuery = "";
+  AppState.translations.selectedFile = null;
+  TranslationViewStore._viewItems = [];
 }
 
 beforeEach(resetState);

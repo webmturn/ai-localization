@@ -269,7 +269,8 @@ function applyFindReplace() {
   }
 
   appState.project.updatedAt = new Date();
-  appState.translations.items = appState.project.translationItems;
+  // 防御性重同步视图条目引用（经 TranslationViewStore，保持与 canonical 同引用）
+  TranslationViewStore.setViewItems(appState.project.translationItems);
   
   const autoSave = getServiceSafely('autoSaveManager', 'autoSaveManager');
   if (autoSave) {

@@ -325,16 +325,16 @@ async function removeFileFromProject(filename) {
     } else {
       // 无项目时仅清空翻译视图（与旧行为一致）
       ProjectStore.setTranslationItems([]);
-      AppState.translations.filtered = [];
+      TranslationViewStore.setFilter([]);
     }
 
-    // 4. 清理选中状态
+    // 4. 清理选中状态（经 TranslationViewStore）
     if (AppState.translations.selectedFile === filename) {
-      AppState.translations.selectedFile = null;
+      TranslationViewStore.setSelectedFile(null);
     }
-    AppState.translations.selected = -1;
-    AppState.translations.currentPage = 1;
-    AppState.translations.searchQuery = "";
+    TranslationViewStore.setSelection(-1);
+    TranslationViewStore.setPage(1);
+    TranslationViewStore.setSearchQuery("");
 
     // 5. 持久化项目
     if (typeof storageManager !== "undefined" && storageManager && AppState.project) {
@@ -367,15 +367,17 @@ function filterTranslationItemsByFile(filename) {
   showNotification("info", "文件选中", `已选择文件: ${filename}`);
 
   // translations 切片已在 state.js 显式声明（阶段 0），无需动态建切片
-  AppState.translations.selectedFile = filename;
+  TranslationViewStore.setSelectedFile(filename);
 
   // 过滤当前项目的翻译项
-  AppState.translations.filtered = AppState.project.translationItems.filter(
-    (item) => item.metadata?.file === filename
+  TranslationViewStore.setFilter(
+    AppState.project.translationItems.filter(
+      (item) => item.metadata?.file === filename
+    )
   );
 
   // 重置到第一页
-  AppState.translations.currentPage = 1;
+  TranslationViewStore.setPage(1);
 
   // 更新翻译列表
   updateTranslationLists();

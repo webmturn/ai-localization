@@ -25,7 +25,7 @@ function applySearchFilter() {
       !AppState.project.translationItems ||
       AppState.project.translationItems.length === 0
     ) {
-      AppState.translations.filtered = [];
+      TranslationViewStore.setFilter([]);
       return;
     }
 
@@ -53,7 +53,7 @@ function applySearchFilter() {
     const searchQuery = (AppState.translations.searchQuery || "").toString();
 
     if (!searchQuery.trim()) {
-      AppState.translations.filtered = [...baseItems];
+      TranslationViewStore.setFilter([...baseItems]);
       searchCache.clear();
       lastSearchQuery = "";
     } else {
@@ -95,19 +95,19 @@ function applySearchFilter() {
         searchCache.set(cacheKey, filteredItems);
       }
 
-      AppState.translations.filtered = filteredItems;
+      TranslationViewStore.setFilter(filteredItems);
       lastSearchQuery = query;
     }
 
     __devLog("搜索过滤完成，结果数量:", AppState.translations.filtered.length);
 
     // 重置到第一页
-    AppState.translations.currentPage = 1;
+    TranslationViewStore.setPage(1);
   } catch (error) {
     (loggers.app || console).error("应用搜索过滤时出错:", error);
-    AppState.translations.filtered = AppState.project
-      ? [...AppState.project.translationItems]
-      : [];
+    TranslationViewStore.setFilter(
+      AppState.project ? [...AppState.project.translationItems] : []
+    );
   }
 }
 
@@ -189,13 +189,13 @@ function handlePagination(direction) {
     __devLog("总页数:", totalPages);
 
     if (direction === "prev" && AppState.translations.currentPage > 1) {
-      AppState.translations.currentPage--;
+      TranslationViewStore.setPage(AppState.translations.currentPage - 1);
       __devLog("切换到上一页，新页码:", AppState.translations.currentPage);
     } else if (
       direction === "next" &&
       AppState.translations.currentPage < totalPages
     ) {
-      AppState.translations.currentPage++;
+      TranslationViewStore.setPage(AppState.translations.currentPage + 1);
       __devLog("切换到下一页，新页码:", AppState.translations.currentPage);
     } else {
       __devLog("无法切换页面，已到达边界");

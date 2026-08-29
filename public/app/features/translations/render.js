@@ -378,12 +378,12 @@ function updateTranslationLists() {
 
     // 准备数据
     let filteredItems = AppState.translations.filtered;
-    const translationItems = AppState.translations.items;
+    const translationItems = TranslationViewStore.getViewItems();
 
     // 使用 filteredItems
     if (filteredItems.length === 0 && translationItems.length > 0) {
       filteredItems = [...translationItems];
-      AppState.translations.filtered = filteredItems;
+      TranslationViewStore.setFilter(filteredItems);
     }
 
     // 虚拟滚动：根据数据量自动启用/禁用

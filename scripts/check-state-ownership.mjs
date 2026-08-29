@@ -16,6 +16,13 @@
  *   守护范围含赋值、索引赋值、数组变异方法（push/splice 等）与 delete，
  *   杜绝一切绕过 Store 的写入形式。
  *
+ * 阶段 2 扩展：translations 视图态确权——新增
+ *   AppState.translations.(filtered|selected|multiSelected|currentPage|
+ *   searchQuery|itemsPerPage|selectedFile) 视图态字段守护（唯一写入方为
+ *   public/app/core/translation-view-store.js / TranslationViewStore）。
+ *   守护范围含赋值（含复合赋值与自增减）、索引赋值、数组变异方法与 delete。
+ *   ProjectStore 经 TranslationViewStore 意图式 API 写入，不直写，故无需豁免。
+ *
  * 本脚本扫描 public/app 下所有业务源码，查找绕过 Owner Store 的
  * 直接"写入"（赋值 / 变异 / delete），命中即报错并以非零码退出（供 CI 拦截）。
  * 读取（含可选链 `?.`）与 `==`/`===` 比较不算写入，不报错。
@@ -63,12 +70,13 @@ const GUARDED_PATTERNS = [
     "AppState.fileMetadata[key] 赋值",
     "core/project-store.js",
   ],
-  // AppState.translations.items = ...（别名同步依赖此字段与 project.translationItems 同引用，
-  // 直写会静默断裂别名，导致 saveProject 持久化旧条目）
+  // AppState.translations.items = ...（视图稳定引用 + 兼容别名；阶段 2 起由
+  // TranslationViewStore.setViewItems 统一写入，阶段 3b 删除。直写会静默断裂
+  // 与 project.translationItems 的同引用，导致 saveProject 持久化旧条目）
   [
     /AppState\.translations\.items\s*=(?!=)/,
     "AppState.translations.items 赋值",
-    "core/project-store.js",
+    "core/translation-view-store.js",
   ],
   // delete AppState.fileMetadata[key]
   [
@@ -114,6 +122,39 @@ const GUARDED_PATTERNS = [
     /delete\s+AppState\.terminology\.(list|filtered)\[/,
     "delete AppState.terminology.<字段>[i]",
     "core/terminology-store.js",
+  ],
+
+  // ── Owner: TranslationViewStore（core/translation-view-store.js）──
+  // AppState.translations.(filtered|selected|multiSelected|currentPage|
+  // searchQuery|itemsPerPage|selectedFile) = ...（视图态字段赋值；含复合赋值）
+  [
+    /AppState\.translations\.(filtered|selected|multiSelected|currentPage|searchQuery|itemsPerPage|selectedFile)\s*[+\-*/]?=(?!=)/,
+    "AppState.translations.<视图态字段> 赋值",
+    "core/translation-view-store.js",
+  ],
+  // AppState.translations.currentPage++ / --（自增减写入）
+  [
+    /AppState\.translations\.currentPage\s*(\+\+|--)/,
+    "AppState.translations.currentPage 自增减",
+    "core/translation-view-store.js",
+  ],
+  // AppState.translations.(filtered|multiSelected)[i] = ...（索引赋值）
+  [
+    /AppState\.translations\.(filtered|multiSelected)\[[^\]]*\]\s*=(?!=)/,
+    "AppState.translations.<视图态字段>[i] 索引赋值",
+    "core/translation-view-store.js",
+  ],
+  // AppState.translations.(filtered|multiSelected).push/splice/...（数组变异方法）
+  [
+    /AppState\.translations\.(filtered|multiSelected)\.(push|pop|shift|unshift|splice|sort|reverse|fill|copyWithin)\s*\(/,
+    "AppState.translations.<视图态字段> 变异方法写入",
+    "core/translation-view-store.js",
+  ],
+  // delete AppState.translations.(filtered|multiSelected)[i]
+  [
+    /delete\s+AppState\.translations\.(filtered|multiSelected)\[/,
+    "delete AppState.translations.<视图态字段>[i]",
+    "core/translation-view-store.js",
   ],
 ];
 
@@ -167,12 +208,16 @@ if (violations.length > 0) {
   }
   console.error(
     "请改用对应 Owner Store 的意图式 API：\n" +
-      "  - project / fileMetadata / translations.items → ProjectStore\n" +
+      "  - project / fileMetadata → ProjectStore\n" +
       "    （loadProject / createProject / clearProject / setFileMetadata /\n" +
       "     patchFileMetadata / removeFileMetadata / replaceFileItems 等）\n" +
       "  - terminology 切片 → TerminologyStore\n" +
       "    （loadTerminology / mergeTerms / addTerm / updateTerm / removeTerm /\n" +
-      "     clearTerminology / setPage / applyFilter / resetFilter 等）"
+      "     clearTerminology / setPage / applyFilter / resetFilter 等）\n" +
+      "  - translations 视图态字段（含 items 别名）→ TranslationViewStore\n" +
+      "    （setViewItems / setFilter / setSelection / setMultiSelection /\n" +
+      "     setPage / setSearchQuery / setItemsPerPage / setSelectedFile /\n" +
+      "     resetView / clearView 等）"
   );
   process.exit(1);
 }

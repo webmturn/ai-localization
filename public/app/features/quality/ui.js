@@ -391,8 +391,8 @@ async function __focusTranslationItemImpl(itemId) {
 
   const didResetFilter = filteredIndex === -1;
   if (filteredIndex === -1) {
-    AppState.translations.searchQuery = "";
-    AppState.translations.filtered = [...allItems];
+    TranslationViewStore.setSearchQuery("");
+    TranslationViewStore.setFilter([...allItems]);
   }
 
   const beforeVersion = AppState.translations.renderVersion || 0;
@@ -411,7 +411,7 @@ async function __focusTranslationItemImpl(itemId) {
     if (typeof isDevelopment !== "undefined" && isDevelopment) {
       (loggers.app || console).info(`切换到第 ${targetPage} 页以显示索引 ${index} 的项`);
     }
-    AppState.translations.currentPage = targetPage;
+    TranslationViewStore.setPage(targetPage);
     willUpdateList = true;
     updateTranslationLists();
   } else if (didResetFilter) {

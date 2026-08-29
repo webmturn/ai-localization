@@ -10,8 +10,8 @@ function registerEventListenersTranslationSearch(ctx) {
   // 搜索翻译项函数（使用统一过滤函数）
   function searchTranslationItems(keyword) {
     const trimmedKeyword = keyword?.trim() || "";
-    // 统一将搜索词存入 AppState，供列表渲染/高亮等逻辑复用
-    AppState.translations.searchQuery = trimmedKeyword;
+    // 统一将搜索词存入 AppState，供列表渲染/高亮等逻辑复用（经 TranslationViewStore）
+    TranslationViewStore.setSearchQuery(trimmedKeyword);
 
     if (!trimmedKeyword) {
       // 清除搜索，显示所有项
@@ -36,7 +36,7 @@ function registerEventListenersTranslationSearch(ctx) {
     }
 
     // 重置到第一页并更新显示
-    AppState.translations.currentPage = 1;
+    TranslationViewStore.setPage(1);
     updateTranslationLists();
     updateCounters();
   }

@@ -292,15 +292,15 @@ class TranslationResultHandler {
         updateTranslationProgressUI({ show: false });
       }
 
-      // 清除选择状态
+      // 清除选择状态（经 TranslationViewStore 意图式 API）
       if (clearSelection && this.appState?.translations) {
-        this.appState.translations.selected = -1;
-        this.appState.translations.selectedFile = null;
+        TranslationViewStore.setSelection(-1);
+        TranslationViewStore.setSelectedFile(null);
       }
 
       // 重置过滤器（如果需要）
       if (options.resetFilters && this.appState?.translations) {
-        this.appState.translations.searchQuery = "";
+        TranslationViewStore.setSearchQuery("");
         // 可以添加更多重置逻辑
       }
 

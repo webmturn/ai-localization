@@ -1,6 +1,6 @@
 function rebuildFilteredTranslationItems(options = {}) {
   const appState = getServiceSafely('appState', 'AppState');
-    
+
   const all = Array.isArray(appState?.project?.translationItems)
     ? appState.project.translationItems
     : [];
@@ -35,7 +35,7 @@ function rebuildFilteredTranslationItems(options = {}) {
     });
   }
 
-  appState.translations.filtered = [...base];
+  TranslationViewStore.setFilter([...base]);
 }
 
 function formatTranslationError(errorLike, engine) {

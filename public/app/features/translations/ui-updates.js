@@ -187,8 +187,8 @@ function resetTranslationUI(options = {}) {
     
     // 清除选择
     if (clearSelection && window.AppState?.translations) {
-      window.AppState.translations.selected = -1;
-      window.AppState.translations.selectedFile = null;
+      TranslationViewStore.setSelection(-1);
+      TranslationViewStore.setSelectedFile(null);
     }
     
     // 重置过滤器

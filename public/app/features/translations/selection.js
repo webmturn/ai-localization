@@ -184,7 +184,7 @@ function updateSelectionStyles() {
 }
 
 function clearMultiSelection() {
-  AppState.translations.multiSelected = [];
+  TranslationViewStore.setMultiSelection([]);
   updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
 }
 
@@ -196,8 +196,8 @@ function toggleMultiSelection(index) {
   } else {
     next.add(index);
   }
-  AppState.translations.multiSelected = Array.from(next);
-  AppState.translations.selected = index;
+  TranslationViewStore.setMultiSelection(Array.from(next));
+  TranslationViewStore.setSelection(index);
   // 多选切换也不自动滚动，只更新样式
   updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
 }
@@ -268,8 +268,8 @@ function selectCurrentPageTranslationItems() {
   const uniqueSorted = Array.from(new Set(indices)).sort((a, b) => a - b);
   if (uniqueSorted.length === 0) return;
 
-  AppState.translations.multiSelected = uniqueSorted;
-  AppState.translations.selected = uniqueSorted[0];
+  TranslationViewStore.setMultiSelection(uniqueSorted);
+  TranslationViewStore.setSelection(uniqueSorted[0]);
   updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
 }
 
@@ -288,8 +288,8 @@ function selectTranslationItem(index) {
     return;
   }
 
-  AppState.translations.multiSelected = [];
-  AppState.translations.selected = index;
+  TranslationViewStore.setMultiSelection([]);
+  TranslationViewStore.setSelection(index);
   updateSelectionStyles({ shouldScroll, shouldFocusTextarea });
 }
 

@@ -1,3 +1,45 @@
+// ==================== 动画滚动（全局共享） ====================
+// 不依赖浏览器原生 behavior:"smooth"——在 prefers-reduced-motion: reduce
+// 环境（如 Windows 关闭"显示动画效果"）下浏览器会忽略 smooth 直接瞬跳，
+// 导致选中项滚动无动画。此处用 requestAnimationFrame 插值（easeOutCubic）
+// 自绘动画，任何环境表现一致；新滚动请求到来时自动取消进行中的动画
+// （快速键盘导航不排队、不抖动）。
+var __scrollAnim = { raf: 0 };
+
+function animateScrollTo(container, target) {
+  if (!container) return;
+  var max = Math.max(0, container.scrollHeight - container.clientHeight);
+  var goal = Math.max(0, Math.min(max, Number(target) || 0));
+  var start = container.scrollTop;
+  var delta = goal - start;
+
+  if (Math.abs(delta) < 2) {
+    container.scrollTop = goal;
+    return;
+  }
+
+  // 距离驱动时长（约 0.55ms/px），钳制 180–450ms：短距离轻盈、长距离可感知
+  var duration = Math.max(180, Math.min(450, Math.abs(delta) * 0.55));
+  var t0 = 0;
+
+  if (__scrollAnim.raf && typeof cancelAnimationFrame === "function") {
+    cancelAnimationFrame(__scrollAnim.raf);
+  }
+
+  var step = function (ts) {
+    if (!t0) t0 = ts;
+    var p = Math.min(1, (ts - t0) / duration);
+    var eased = 1 - Math.pow(1 - p, 3); // easeOutCubic：先快后缓
+    container.scrollTop = start + delta * eased;
+    if (p < 1) {
+      __scrollAnim.raf = requestAnimationFrame(step);
+    } else {
+      __scrollAnim.raf = 0;
+    }
+  };
+  __scrollAnim.raf = requestAnimationFrame(step);
+}
+
 function updateSelectionStyles() {
   const options = arguments.length > 0 && arguments[0] ? arguments[0] : {};
   // 默认「不滚动」，只有显式传入 shouldScroll: true（例如键盘导航）时才滚动
@@ -5,20 +47,15 @@ function updateSelectionStyles() {
   const shouldFocusTextarea = options.shouldFocusTextarea !== false;
 
   // 更简单、稳定的滚动算法：尽量居中 + 夹紧到顶部/底部，保证整行可见
-  const smartScrollToComfortZone = (el, behavior = "smooth") => {
+  const smartScrollToComfortZone = (el) => {
     if (!el) return;
 
     const container =
       DOMCache.get("translationScrollWrapper") ||
       el.closest(".translation-scroll-wrapper");
-    if (!container) {
-      el.scrollIntoView({ behavior, block: "center" });
-      return;
-    }
-
-    const containerHeight = container.clientHeight || 0;
-    if (!containerHeight) {
-      el.scrollIntoView({ behavior, block: "center" });
+    // 降级路径（无容器/无高度）：scrollIntoView 兜底（动画不可控，罕见）
+    if (!container || !container.clientHeight) {
+      el.scrollIntoView({ block: "center" });
       return;
     }
 
@@ -32,10 +69,11 @@ function updateSelectionStyles() {
       if (node === container) foundContainer = true;
     }
     if (!foundContainer) {
-      el.scrollIntoView({ behavior, block: "center" });
+      el.scrollIntoView({ block: "center" });
       return;
     }
 
+    const containerHeight = container.clientHeight;
     const itemHeight = el.offsetHeight || 0;
     const current = container.scrollTop;
     const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
@@ -52,7 +90,7 @@ function updateSelectionStyles() {
     target = Math.max(0, Math.min(maxScroll, target));
 
     if (Math.abs(target - current) < 2) return;
-    container.scrollTo({ top: target, behavior });
+    animateScrollTo(container, target);
   };
 
   const isMobile = isMobileViewport();
@@ -168,7 +206,7 @@ function updateSelectionStyles() {
     // 选择变更不会改变内容高度，跳过 syncTranslationHeights 避免高度重置导致屏闪
     requestAnimationFrame(() => {
       if (!scrollTargetEl.isConnected) return;
-      smartScrollToComfortZone(scrollTargetEl, "smooth");
+      smartScrollToComfortZone(scrollTargetEl);
     });
     return;
   }

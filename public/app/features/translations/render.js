@@ -536,7 +536,7 @@ function updateTranslationLists() {
             }
             target = Math.max(0, Math.min(maxScroll, target));
             if (Math.abs(target - current) >= 2) {
-              container.scrollTo({ top: target, behavior: "smooth" });
+              animateScrollTo(container, target);
             }
           }
         }
@@ -1003,19 +1003,21 @@ function handleSearchEnter() {
 // 滚动到指定的翻译项
 async function scrollToItem(index) {
   try {
-    const smartScrollToComfortZone = (el, behavior = "smooth") => {
+    // 与 selection.js 的 smartScrollToComfortZone 同算法；滚动执行统一走
+    // 全局 animateScrollTo（rAF 自绘动画，不受 prefers-reduced-motion 影响）
+    const smartScrollToComfortZone = (el) => {
       if (!el) return;
       const container =
         DOMCache.get("translationScrollWrapper") ||
         el.closest(".translation-scroll-wrapper");
       if (!container) {
-        el.scrollIntoView({ behavior, block: "nearest" });
+        el.scrollIntoView({ block: "nearest" });
         return;
       }
 
       const containerHeight = container.clientHeight || 0;
       if (!containerHeight) {
-        el.scrollIntoView({ behavior, block: "nearest" });
+        el.scrollIntoView({ block: "nearest" });
         return;
       }
 
@@ -1050,7 +1052,7 @@ async function scrollToItem(index) {
       target = Math.max(0, Math.min(maxScroll, target));
       if (Math.abs(target - current) < 2) return;
 
-      container.scrollTo({ top: target, behavior });
+      animateScrollTo(container, target);
     };
 
     const tryScroll = () => {
@@ -1067,7 +1069,7 @@ async function scrollToItem(index) {
           `.responsive-translation-item[data-index="${index}"]`
         );
         if (mobileItem) {
-          smartScrollToComfortZone(mobileItem, "smooth");
+          smartScrollToComfortZone(mobileItem);
           return true;
         }
 
@@ -1086,10 +1088,10 @@ async function scrollToItem(index) {
       const targetItem = targetList.querySelector(`[data-index="${index}"]`);
 
       if (sourceItem) {
-        smartScrollToComfortZone(sourceItem, "smooth");
+        smartScrollToComfortZone(sourceItem);
       }
       if (targetItem) {
-        smartScrollToComfortZone(targetItem, "smooth");
+        smartScrollToComfortZone(targetItem);
       }
 
       return !!(sourceItem || targetItem);

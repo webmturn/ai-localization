@@ -148,7 +148,12 @@ var VirtualScrollManager = (function () {
     // 居中显示
     var target = Math.max(0, offset - viewportHeight / 3);
 
-    this._container.scrollTo({ top: target, behavior: "smooth" });
+    // 统一走全局 animateScrollTo（rAF 自绘动画，不受 prefers-reduced-motion 影响）
+    if (typeof animateScrollTo === "function") {
+      animateScrollTo(this._container, target);
+    } else {
+      this._container.scrollTo({ top: target, behavior: "smooth" });
+    }
   };
 
   /**

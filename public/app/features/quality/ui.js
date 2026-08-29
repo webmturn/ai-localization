@@ -454,19 +454,21 @@ async function __focusTranslationItemImpl(itemId) {
   const selectorByIndex = `.responsive-translation-item[data-index="${index}"]`;
 
   const isMobile = isMobileViewport();
-  const smartScrollToComfortZone = (el, behavior = "smooth") => {
+  // 与 selection.js 同算法；滚动执行统一走全局 animateScrollTo
+  // （rAF 自绘动画，不受 prefers-reduced-motion 影响）
+  const smartScrollToComfortZone = (el) => {
     if (!el) return;
     const container =
       DOMCache.get("translationScrollWrapper") ||
       el.closest(".translation-scroll-wrapper");
     if (!container) {
-      el.scrollIntoView({ behavior, block: "nearest" });
+      el.scrollIntoView({ block: "nearest" });
       return;
     }
 
     const containerHeight = container.clientHeight || 0;
     if (!containerHeight) {
-      el.scrollIntoView({ behavior, block: "nearest" });
+      el.scrollIntoView({ block: "nearest" });
       return;
     }
 
@@ -501,7 +503,7 @@ async function __focusTranslationItemImpl(itemId) {
     target = Math.max(0, Math.min(maxScroll, target));
     if (Math.abs(target - current) < 2) return;
 
-    container.scrollTo({ top: target, behavior });
+    animateScrollTo(container, target);
   };
   if (isMobile) {
     const mobileCombinedList = DOMCache.get("mobileCombinedList");
@@ -509,7 +511,7 @@ async function __focusTranslationItemImpl(itemId) {
       ? mobileCombinedList.querySelector(selectorById || selectorByIndex)
       : null;
     if (mobileItem) {
-      smartScrollToComfortZone(mobileItem, "smooth");
+      smartScrollToComfortZone(mobileItem);
       highlight(mobileItem);
       return;
     }
@@ -525,7 +527,7 @@ async function __focusTranslationItemImpl(itemId) {
     : null;
 
   if (sourceItem && targetItem) {
-    smartScrollToComfortZone(sourceItem, "smooth");
+    smartScrollToComfortZone(sourceItem);
     highlight(sourceItem);
     highlight(targetItem);
     return;

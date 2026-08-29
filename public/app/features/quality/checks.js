@@ -37,6 +37,28 @@ async function __checkTranslationItemCachedImpl(item, terms) {
   return result;
 }
 
+function __extractPlaceholderTokensImpl(text) {
+  // 提取占位符 token 列表（多重集比较的基础）。
+  // 提取顺序：{{}} 先于 {}、%n$s 先于 %s，避免外层/通用模式误吞内层 token
+  // （旧实现的 /\{[^}]+\}/ 会把 {{name}} 误匹配为 "{{name}"，导致风格互换漏报）。
+  const tokens = [];
+  if (!text) return tokens;
+  let rest = String(text);
+  const families = [
+    /\{\{[^{}]+\}\}/g, // {{name}}
+    /%\d+\$[sdf]/g, // %1$s 等
+    /\{[^{}]+\}/g, // {name}
+    /%[sd]/g, // %s / %d
+  ];
+  for (const pattern of families) {
+    rest = rest.replace(pattern, (match) => {
+      tokens.push(match);
+      return "\u0000";
+    });
+  }
+  return tokens;
+}
+
 async function __checkTranslationItemOptimizedImpl(item, terms) {
   const result = {
     isTranslated: false,
@@ -107,28 +129,35 @@ async function __checkTranslationItemOptimizedImpl(item, terms) {
   }
 
   if (opts.checkPlaceholders) {
-    const variableChecks = [
-      { pattern: /\{\{[^}]+\}\}/g, name: "{{}}" },
-      { pattern: /\{[^}]+\}/g, name: "{}" },
-      { pattern: /%[sd]/g, name: "%s/%d" },
-      { pattern: /%\d+\$[sdf]/g, name: "%n$s 等" },
-    ];
-    for (const check of variableChecks) {
-      const sourceVars = item.sourceText.match(check.pattern);
-      const targetVars = item.targetText.match(check.pattern);
-      const sourceCount = sourceVars ? sourceVars.length : 0;
-      const targetCount = targetVars ? targetVars.length : 0;
-      if (sourceCount !== targetCount) {
+    // 占位符按 token 多重集比较（而非按家族计数）：
+    // 可检出风格互换（{{a}} {b} ↔ {a} {{b}}）与重命名（{name} → {nom}）等
+    // 旧计数实现漏报的场景；顺序不同但集合相同不算问题。
+    const sourceTokens = __extractPlaceholderTokensImpl(item.sourceText);
+    const targetTokens = __extractPlaceholderTokensImpl(item.targetText);
+    if (sourceTokens.length > 0 || targetTokens.length > 0) {
+      const pool = targetTokens.slice();
+      const missing = [];
+      for (const token of sourceTokens) {
+        const idx = pool.indexOf(token);
+        if (idx === -1) {
+          missing.push(token);
+        } else {
+          pool.splice(idx, 1);
+        }
+      }
+      if (missing.length > 0 || pool.length > 0) {
+        const parts = [];
+        if (missing.length > 0) parts.push(`译文缺少 ${missing.join("、")}`);
+        if (pool.length > 0) parts.push(`译文多出 ${pool.join("、")}`);
         result.issues.push({
           itemId: item.id,
           sourceText: item.sourceText,
           targetText: item.targetText,
           type: "variable",
-          typeName: "变量/占位符丢失",
+          typeName: "变量/占位符不一致",
           severity: "high",
-          description: `${check.name}数量不匹配：原文${sourceCount}个，译文${targetCount}个`,
+          description: parts.join("；"),
         });
-        break;
       }
     }
 
@@ -211,5 +240,6 @@ function __escapeRegexImpl(text) {
   App.impl = App.impl || {};
   App.impl.checkTranslationItemCached = __checkTranslationItemCachedImpl;
   App.impl.checkTranslationItemOptimized = __checkTranslationItemOptimizedImpl;
+  App.impl.extractPlaceholderTokens = __extractPlaceholderTokensImpl;
   App.impl.escapeRegex = __escapeRegexImpl;
 })();

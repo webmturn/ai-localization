@@ -366,7 +366,7 @@ function filterTranslationItemsByFile(filename) {
   // 显示通知
   showNotification("info", "文件选中", `已选择文件: ${filename}`);
 
-  if (!AppState.translations) AppState.translations = {};
+  // translations 切片已在 state.js 显式声明（阶段 0），无需动态建切片
   AppState.translations.selectedFile = filename;
 
   // 过滤当前项目的翻译项

@@ -349,21 +349,8 @@ async function loadSettings() {
 
 // 应用设置
 function applySettings(settings) {
-  if (
-    settings.sourceSelectionIndicatorEnabled === undefined &&
-    AppState.ui?.sourceSelectionIndicatorEnabled === undefined
-  ) {
-    AppState.ui.sourceSelectionIndicatorEnabled = true;
-  }
-  if (!AppState.ui?.sourceSelectionIndicatorUnselectedStyle) {
-    AppState.ui.sourceSelectionIndicatorUnselectedStyle = "gray";
-  }
-  if (
-    settings.autoScrollEnabled === undefined &&
-    AppState.ui?.autoScrollEnabled === undefined
-  ) {
-    AppState.ui.autoScrollEnabled = true;
-  }
+  // ui 切片默认值（sourceSelectionIndicatorEnabled / sourceSelectionIndicatorUnselectedStyle /
+  // autoScrollEnabled）已在 state.js 显式声明（阶段 0），此处不再重复兜底赋值。
 
   // 应用主题设置
   if (settings.themeMode) {
@@ -439,7 +426,7 @@ function applySettings(settings) {
   }
 
   if (settings.qualityCheckScope) {
-    if (!AppState.quality) AppState.quality = {};
+    // quality 切片已在 state.js 显式声明（阶段 0），无需动态建切片
     AppState.quality.checkScope = settings.qualityCheckScope;
   }
 }

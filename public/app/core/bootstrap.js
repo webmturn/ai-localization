@@ -216,65 +216,33 @@ function initializeFallbackEventListeners() {
 
 /**
  * 初始化应用状态
+ *
+ * 阶段 0（状态显式化）：全部切片（project / translations / ui / terminology /
+ * fileMetadata / quality / qualityCheckResults）已在 core/state.js 显式声明，
+ * 且 state.js 在脚本加载顺序中早于本文件。此处不再动态建切片，仅校验状态
+ * 单例可达（DI 优先，回退 window.AppState），避免"幽灵状态"。
  */
 function initializeApplicationState() {
   (loggers.startup || console).info('📊 初始化应用状态...');
-  
+
   try {
-    // 使用依赖注入获取应用状态
+    // 使用依赖注入获取应用状态（回退 window.AppState）
     const appState = getServiceSafely('appState', 'AppState');
-    
-    // 确保基本状态结构存在
-    if (!appState.translations) {
-      appState.translations = {
-        items: [],
-        selected: -1,
-        selectedFile: null,
-        currentPage: 1,
-        filtered: [],
-        searchQuery: "",
-        isInProgress: false,
-        isPaused: false,
-        lastFailedItems: []
-      };
+
+    if (!appState) {
+      throw new Error('AppState 单例不可达（state.js 未加载？）');
     }
-    
-    if (!appState.settings) {
-      appState.settings = {
-        translation: {}
-      };
+
+    // 校验关键切片已由 state.js 声明（只读校验，不动态建切片）
+    if (!appState.translations || !appState.quality || !appState.ui) {
+      (loggers.startup || console).warn(
+        '⚠️ AppState 关键切片缺失，请确认 core/state.js 已显式声明全部切片'
+      );
     }
-    
-    if (!appState.fileMetadata) {
-      appState.fileMetadata = {};
-    }
-    
+
     (loggers.startup || console).info('✅ 应用状态初始化完成');
   } catch (error) {
     (loggers.startup || console).error('❌ 应用状态初始化失败:', error);
-    
-    // 备用方案：创建基本的全局状态
-    if (typeof window.AppState === 'undefined') {
-      (loggers.startup || console).warn('⚠️ AppState未定义，创建基本状态');
-      window['AppState'] = {
-        project: null,
-        translations: {
-          items: [],
-          selected: -1,
-          selectedFile: null,
-          currentPage: 1,
-          filtered: [],
-          searchQuery: "",
-          isInProgress: false,
-          isPaused: false,
-          lastFailedItems: []
-        },
-        settings: {
-          translation: {}
-        },
-        fileMetadata: {}
-      };
-    }
   }
 }
 

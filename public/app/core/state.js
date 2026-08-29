@@ -41,6 +41,8 @@
  * @property {Array} issues - 问题列表
  * @property {number} termMatches - 术语匹配数
  * @property {string|null} lastCheckTime - 最后检查时间
+ * @property {"project"|"file"|null} scope - 最近一次检查范围
+ * @property {string|null} fileName - 最近一次检查的文件名（scope 为 file 时）
  */
 
 // 默认术语库数据（定义一次，避免 list/filtered 重复硬编码导致不一致）
@@ -77,6 +79,7 @@ const __defaultTerminologyList = [
  * @property {Object} terminology - 术语库状态
  * @property {Object} fileMetadata - 文件元数据
  * @property {QualityCheckResults} qualityCheckResults - 质量检查结果
+ * @property {Object} quality - 质量检查运行参数（检查范围/并发度）
  */
 const AppState = {
   /** @type {Project|null} */
@@ -89,6 +92,8 @@ const AppState = {
     currentPage: 1,
     itemsPerPage: 20,
     searchQuery: "",
+    // 当前选中的文件（文件树过滤视图；null = 全项目）
+    selectedFile: null,
     isInProgress: false,
     isPaused: false,
     progress: {
@@ -102,6 +107,8 @@ const AppState = {
   ui: {
     sourceSelectionIndicatorEnabled: true,
     sourceSelectionIndicatorUnselectedStyle: "gray",
+    // 翻译进行时自动滚动到当前条目（设置页可改）
+    autoScrollEnabled: true,
   },
   terminology: {
     list: __defaultTerminologyList,
@@ -110,7 +117,15 @@ const AppState = {
     perPage: 10,
   },
   fileMetadata: {},
-  // 质量检查结果（唯一数据源：由 features/quality/run.js 写入，charts/export/ui 读取）
+  // 质量检查运行参数（检查范围 / 并发度）。
+  // 由 ui/settings.js 的 applySettings 写入，features/quality/run.js 读取。
+  quality: {
+    checkScope: "project",
+    checkConcurrency: 8,
+  },
+  // 质量检查结果（唯一数据源：由 quality feature 写入——
+  // run.js 负责初始化与逐批累计，scoring.js 负责计算 overallScore；
+  // charts/export/ui 只读）
   qualityCheckResults: {
     overallScore: 0,
     translatedCount: 0,
@@ -118,6 +133,8 @@ const AppState = {
     issues: [],
     termMatches: 0,
     lastCheckTime: null,
+    scope: null,
+    fileName: null,
   },
 };
 
@@ -128,7 +145,9 @@ if (typeof window !== "undefined") {
     window.AppState = AppState;
   }
 
-  // 兼容旧代码中直接使用全局名 qualityCheckResults 的引用（指向 AppState.qualityCheckResults）
+  // 兼容旧代码中直接使用全局名 qualityCheckResults 的引用（指向 AppState.qualityCheckResults）。
+  // TODO(阶段3b): 全局别名待清理——先迁移全部读取方到 AppState.qualityCheckResults，
+  // 再删除此别名（见重构计划"阶段 3b 删别名"）。
   window.qualityCheckResults = AppState.qualityCheckResults;
 }
 

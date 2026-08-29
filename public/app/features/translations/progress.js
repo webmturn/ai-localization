@@ -44,11 +44,9 @@ function updateTranslationControlState() {
   const inlinePauseBtn = DOMCache.get("inlinePauseBtn");
   const inlineResumeBtn = DOMCache.get("inlineResumeBtn");
   const inlineCancelBtn = DOMCache.get("inlineCancelBtn");
-  const isInProgress = !!AppState.translations.isInProgress;
-  const isPaused = !!AppState.translations.isPaused;
-  const hasFailed =
-    Array.isArray(AppState.translations.lastFailedItems) &&
-    AppState.translations.lastFailedItems.length > 0;
+  const isInProgress = BatchProgressStore.isBatchInProgress();
+  const isPaused = BatchProgressStore.isBatchPaused();
+  const hasFailed = BatchProgressStore.getLastFailedItems().length > 0;
 
   const setState = (btn, enabled) => {
     if (!btn) return;
@@ -77,11 +75,8 @@ function updateTranslationControlState() {
 function updateProgress(current, total, status) {
   const safeCurrent = Number.isFinite(current) ? current : 0;
   const safeTotal = Number.isFinite(total) ? total : 0;
-  AppState.translations.progress = {
-    current: safeCurrent,
-    total: safeTotal,
-    status: status || "",
-  };
+  // 进度态写入经 BatchProgressStore（reportProgress 自带数值守卫）
+  BatchProgressStore.reportProgress(safeCurrent, safeTotal, status);
   const percentage = safeTotal > 0 ? Math.floor((safeCurrent / safeTotal) * 100) : 0;
   // 使用 batchUpdate 合并多次快速调用的 DOM 写入到同一帧
   DOMCache.batchUpdate("progress", function () {

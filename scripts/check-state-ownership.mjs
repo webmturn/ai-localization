@@ -124,6 +124,47 @@ const GUARDED_PATTERNS = [
     "core/terminology-store.js",
   ],
 
+  // ── Owner: BatchProgressStore（core/batch-progress-store.js）──
+  // AppState.translations 批量进度态字段（isInProgress / isPaused /
+  // progress / lastFailedItems / lastBatchContext）赋值；含复合赋值
+  [
+    /AppState\.translations\.(isInProgress|isPaused|lastFailedItems|lastBatchContext|progress)\s*[+\-*/]?=(?!=)/,
+    "AppState.translations.<批量进度态字段> 赋值",
+    "core/batch-progress-store.js",
+  ],
+  // AppState.translations.progress.<字段> = ...（进度对象字段级写入）
+  [
+    /AppState\.translations\.progress\.(current|total|status)\s*[+\-*/]?=(?!=)/,
+    "AppState.translations.progress.<字段> 赋值",
+    "core/batch-progress-store.js",
+  ],
+  // AppState.translations._batchStarted / _batchCancelled = ...（幽灵字段
+  // 复活防护：阶段 5 已收编进 BatchProgressStore 内部取消协议；Store 自身
+  // 镜像写入合法，其余任何文件直写均报错）
+  [
+    /AppState\.translations\._batch(Started|Cancelled)\s*=[^=]/,
+    "AppState.translations._batch<Started|Cancelled> 赋值（取消协议经 BatchProgressStore）",
+    "core/batch-progress-store.js",
+  ],
+  // appState.translations 小写别名写法（阶段 2 发现的绕过路径，一并守护）
+  [
+    /appState\.translations\.(isInProgress|isPaused|lastFailedItems|lastBatchContext|progress|_batchStarted|_batchCancelled)\s*[+\-*/]?=[^=]/,
+    "appState.translations.<批量进度态字段> 赋值（别名绕过）",
+    "core/batch-progress-store.js",
+  ],
+  // this.appState.translations.<字段> = ...（类实例别名写法）
+  [
+    /this\.appState\.translations\.(isInProgress|isPaused|lastFailedItems|lastBatchContext|progress|_batchStarted|_batchCancelled)\s*[+\-*/]?=[^=]/,
+    "this.appState.translations.<批量进度态字段> 赋值（实例别名绕过）",
+    "core/batch-progress-store.js",
+  ],
+  // window.AppState.translations.<字段> = ...（window 前缀绕过，阶段 5 已消灭）
+  [
+    /window\.AppState\.translations\.(isInProgress|isPaused|lastFailedItems|lastBatchContext|progress|_batchStarted|_batchCancelled)\s*[+\-*/]?=[^=]/,
+    "window.AppState.translations.<批量进度态字段> 赋值（window 绕过）",
+    "core/batch-progress-store.js",
+  ],
+
   // ── Owner: TranslationViewStore（core/translation-view-store.js）──
   // AppState.translations.(filtered|selected|multiSelected|currentPage|
   // searchQuery|itemsPerPage|selectedFile) = ...（视图态字段赋值；含复合赋值）
@@ -218,7 +259,13 @@ if (violations.length > 0) {
       "    （setViewItems / setFilter / setSelection / setMultiSelection /\n" +
       "     setPage / setSearchQuery / setItemsPerPage / setSelectedFile /\n" +
       "     resetView / clearView 等）；视图条目读取一律 getViewItems()\n" +
-      "    （AppState.translations.items 别名已在阶段 3b 删除，禁止复活）"
+      "    （AppState.translations.items 别名已在阶段 3b 删除，禁止复活）\n" +
+      "  - translations 批量进度态字段（isInProgress / isPaused / progress /\n" +
+      "     lastFailedItems / lastBatchContext / _batchStarted / _batchCancelled）\n" +
+      "    → BatchProgressStore\n" +
+      "    （beginBatch / endBatch / cancelBatch / pauseBatch / resumeBatch /\n" +
+      "     reportProgress / recordFailedItems / clearBatch；取消检测一律\n" +
+      "     isUserCancelled()）"
   );
   process.exit(1);
 }

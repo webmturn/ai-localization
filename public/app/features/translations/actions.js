@@ -324,19 +324,14 @@ async function translateSelectedFallback() {
     showTranslationProgress();
     updateProgress(0, selectedItems.length, "准备翻译...");
 
-    // 设置翻译状态
-    appState.translations.isInProgress = true;
-    appState.translations.isPaused = false;
-    appState.translations._batchStarted = true;
-    appState.translations._batchCancelled = false;
-    appState.translations.lastFailedItems = [];
-    appState.translations.lastBatchContext = {
+    // 批量进度态经 BatchProgressStore（beginBatch 复位取消协议并写入上下文）
+    BatchProgressStore.beginBatch({
       scope: "selected",
       sourceLang,
       targetLang,
       engine,
       selectedFile: appState?.translations?.selectedFile || null,
-    };
+    });
     updateTranslationControlState();
 
     let translationCount = 0;
@@ -389,12 +384,12 @@ async function translateSelectedFallback() {
 
     } finally {
       // 确保清理状态
-      appState.translations.isInProgress = false;
+      BatchProgressStore.endBatch();
       updateTranslationControlState();
     }
   } catch (error) {
     (loggers.translation || console).error('翻译选中项失败:', error);
-    
+
     // 使用错误管理器处理错误
     const errorManager = getServiceSafely('errorManager');
     if (errorManager) {
@@ -405,12 +400,9 @@ async function translateSelectedFallback() {
     } else {
       showNotification("error", "翻译失败", error.message || "未知错误");
     }
-    
+
     // 清理状态
-    const appState = getServiceSafely('appState', 'AppState');
-    if (appState) {
-      appState.translations.isInProgress = false;
-    }
+    BatchProgressStore.endBatch();
     updateTranslationControlState();
   }
 }
@@ -494,19 +486,14 @@ async function translateAllFallback() {
     showTranslationProgress();
     updateProgress(0, pendingItems.length, "准备翻译...");
 
-    // 设置翻译状态
-    appState.translations.isInProgress = true;
-    appState.translations.isPaused = false;
-    appState.translations._batchStarted = true;
-    appState.translations._batchCancelled = false;
-    appState.translations.lastFailedItems = [];
-    appState.translations.lastBatchContext = {
+    // 批量进度态经 BatchProgressStore（beginBatch 复位取消协议并写入上下文）
+    BatchProgressStore.beginBatch({
       scope: "file",
       sourceLang,
       targetLang,
       engine,
       selectedFile: selectedFile || null,
-    };
+    });
     updateTranslationControlState();
 
     let translationCount = 0;
@@ -564,16 +551,14 @@ async function translateAllFallback() {
       );
 
     } finally {
-      // 确保清理状态
-      window.AppState.translations.isInProgress = false;
-      window.AppState.translations.isPaused = false;
+      // 确保清理状态（window. 绕写已消灭，统一走 BatchProgressStore）
+      BatchProgressStore.endBatch();
       updateTranslationControlState();
     }
   } catch (error) {
     (loggers.translation || console).error('翻译全部失败:', error);
     showNotification("error", "翻译失败", error.message || "未知错误");
-    window.AppState.translations.isInProgress = false;
-    window.AppState.translations.isPaused = false;
+    BatchProgressStore.endBatch();
     updateTranslationControlState();
   }
 }
@@ -677,13 +662,8 @@ function cancelTranslation() {
   if (controller) {
     controller.handleCancelTranslation();
   } else {
-    // 备用逻辑
-    const appState = getServiceSafely('appState', 'AppState');
-      
-    appState.translations.isInProgress = false;
-    appState.translations.isPaused = false;
-    appState.translations._batchCancelled = true;
-    appState.translations._batchStarted = false;
+    // 备用逻辑：批量进度态经 BatchProgressStore（cancelBatch 置取消协议标记）
+    BatchProgressStore.cancelBatch();
 
     // 取消所有活动的网络请求
     const networkUtils = getServiceSafely('networkUtils', 'networkUtils');
@@ -698,14 +678,14 @@ function cancelTranslation() {
 }
 
 function pauseTranslation() {
-  if (!AppState.translations.isInProgress) {
+  if (!BatchProgressStore.isBatchInProgress()) {
     showNotification("info", "无进行中的任务", "当前没有可暂停的翻译任务");
     return;
   }
-  if (AppState.translations.isPaused) return;
-  AppState.translations.isPaused = true;
+  if (BatchProgressStore.isBatchPaused()) return;
+  BatchProgressStore.pauseBatch();
   updateTranslationControlState();
-  const { current, total } = AppState.translations.progress || {};
+  const { current, total } = BatchProgressStore.getProgress();
   updateProgress(current || 0, total || 0, "暂停中（等待当前请求完成）");
   addProgressLog({
     level: "warn",
@@ -714,33 +694,31 @@ function pauseTranslation() {
 }
 
 function resumeTranslation() {
-  if (!AppState.translations.isInProgress) {
+  if (!BatchProgressStore.isBatchInProgress()) {
     showNotification("info", "无进行中的任务", "当前没有可继续的翻译任务");
     return;
   }
-  if (!AppState.translations.isPaused) return;
-  AppState.translations.isPaused = false;
+  if (!BatchProgressStore.isBatchPaused()) return;
+  BatchProgressStore.resumeBatch();
   updateTranslationControlState();
-  const { current, total } = AppState.translations.progress || {};
+  const { current, total } = BatchProgressStore.getProgress();
   updateProgress(current || 0, total || 0, "继续翻译...");
   addProgressLog({ level: "info", message: "继续翻译" });
 }
 
 async function retryFailedTranslations() {
-  if (AppState.translations.isInProgress) {
+  if (BatchProgressStore.isBatchInProgress()) {
     showNotification("warning", "任务进行中", "请先等待当前翻译任务完成");
     return;
   }
 
-  const failedItems = Array.isArray(AppState.translations.lastFailedItems)
-    ? AppState.translations.lastFailedItems.filter(Boolean)
-    : [];
+  const failedItems = BatchProgressStore.getLastFailedItems().filter(Boolean);
   if (failedItems.length === 0) {
     showNotification("info", "无失败项", "暂无可重试的翻译项");
     return;
   }
 
-  const ctx = AppState.translations.lastBatchContext || {};
+  const ctx = BatchProgressStore.getLastBatchContext() || {};
   const sourceLang = ctx.sourceLang || AppState.project?.sourceLanguage || "en";
   const targetLang = ctx.targetLang || AppState.project?.targetLanguage || "zh";
   const engine =
@@ -752,10 +730,8 @@ async function retryFailedTranslations() {
   showTranslationProgress();
   updateProgress(0, failedItems.length, "准备重试...");
 
-  AppState.translations.isInProgress = true;
-  AppState.translations.isPaused = false;
-  AppState.translations._batchStarted = true;
-  AppState.translations._batchCancelled = false;
+  // 批量进度态经 BatchProgressStore（重试沿用 beginBatch，重建取消协议）
+  BatchProgressStore.beginBatch(ctx);
   updateTranslationControlState();
 
     let translationCount = 0;
@@ -821,11 +797,11 @@ async function retryFailedTranslations() {
       // 最后的备用逻辑（保持向后兼容）
       const actualErrors = errors.filter((e) => e.error !== "用户取消");
       const cancelledCount = errors.filter((e) => e.error === "用户取消").length;
-      AppState.translations.lastFailedItems = actualErrors
-        .map((e) => e?.item)
-        .filter(Boolean);
+      BatchProgressStore.recordFailedItems(
+        actualErrors.map((e) => e?.item).filter(Boolean)
+      );
 
-      if (!AppState.translations.isInProgress && cancelledCount > 0) {
+      if (!BatchProgressStore.isBatchInProgress() && cancelledCount > 0) {
         showNotification(
           "info",
           "翻译已取消",
@@ -878,8 +854,7 @@ async function retryFailedTranslations() {
     showSplitNotification(f.type, f.title, f.message, f.detail);
     (loggers.translation || console).error("重试翻译错误:", error);
   } finally {
-    AppState.translations.isInProgress = false;
-    AppState.translations.isPaused = false;
+    BatchProgressStore.endBatch();
     updateTranslationControlState();
   }
 }

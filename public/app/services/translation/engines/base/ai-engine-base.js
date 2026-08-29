@@ -253,10 +253,13 @@ function _aiFormatContextPrompt(ctx) {
 function _aiIsCancelled() {
   try {
     if (typeof AppState === "undefined" || !AppState?.translations) return false;
-    // 显式取消标记优先（由 cancelTranslation 设置）
+    // 取消协议经 BatchProgressStore.isUserCancelled()（语义 getter，单点文档化）
+    if (typeof BatchProgressStore !== "undefined" && BatchProgressStore?.isUserCancelled) {
+      return BatchProgressStore.isUserCancelled();
+    }
+    // 兜底（Store 未加载的降级路径，语义与 isUserCancelled 一致）：
+    // 显式取消标记优先；否则仅当批量曾启动后 isInProgress 变 false 才视为取消
     if (AppState.translations._batchCancelled === true) return true;
-    // 兼容旧逻辑：仅当批量翻译曾经启动过（_batchStarted）后 isInProgress 变为 false 才视为取消
-    // 避免在翻译尚未开始时误判
     return !!(AppState.translations._batchStarted && AppState.translations.isInProgress === false);
   } catch (e) {
     return false;
@@ -675,7 +678,7 @@ var AIEngineBase = {
     var pauseNotified = false;
 
     var waitWhilePaused = async function () {
-      while (AppState?.translations?.isPaused) {
+      while (BatchProgressStore.isBatchPaused()) {
         if (_aiIsCancelled()) {
           throw _aiMakeCancelError(buildOrderedOutputs());
         }

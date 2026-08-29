@@ -14,8 +14,8 @@ TranslationService.prototype.translateBatch = async function (
   let pauseNotified = false;
 
   const waitWhilePaused = async () => {
-    while (AppState.translations.isPaused) {
-      if (!AppState.translations.isInProgress) return false;
+    while (BatchProgressStore.isBatchPaused()) {
+      if (!BatchProgressStore.isBatchInProgress()) return false;
       if (!pauseNotified) {
         pauseNotified = true;
       }
@@ -37,7 +37,7 @@ TranslationService.prototype.translateBatch = async function (
   // ========== AI 引擎批量路径 ==========
   if (engineConfig && engineConfig.category === "ai" && engineConfig.supportsBatch) {
     try {
-      if (!AppState.translations.isInProgress) {
+      if (!BatchProgressStore.isBatchInProgress()) {
         (loggers.translation || console).debug("翻译已被取消 (尚未开始)");
         return { results, errors };
       }
@@ -91,7 +91,7 @@ TranslationService.prototype.translateBatch = async function (
           (loggers.translation || console).debug("翻译已被取消");
           break;
         }
-        if (!AppState.translations.isInProgress) {
+        if (!BatchProgressStore.isBatchInProgress()) {
           flushLogs();
           errors.push({
             success: false,
@@ -180,7 +180,7 @@ TranslationService.prototype.translateBatch = async function (
       const msg = (error && error.message ? String(error.message) : String(error || ""))
         .trim();
 
-      if (translationIsUserCancelled(error, AppState.translations.isInProgress)) {
+      if (translationIsUserCancelled(error, BatchProgressStore.isBatchInProgress())) {
         const partial = Array.isArray(error?.partialOutputs)
           ? error.partialOutputs
           : [];
@@ -324,7 +324,7 @@ TranslationService.prototype.translateBatch = async function (
       return;
     }
 
-    if (!AppState.translations.isInProgress) {
+    if (!BatchProgressStore.isBatchInProgress()) {
       errors.push({
         success: false,
         index: i,
@@ -372,7 +372,7 @@ TranslationService.prototype.translateBatch = async function (
         }
       }
 
-      if (!AppState.translations.isInProgress) {
+      if (!BatchProgressStore.isBatchInProgress()) {
         errors.push({
           success: false,
           index: i,
@@ -455,12 +455,12 @@ TranslationService.prototype.translateBatch = async function (
         (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
-      if (!AppState.translations.isInProgress) {
+      if (!BatchProgressStore.isBatchInProgress()) {
         (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
       await processOne(i);
-      if (!AppState.translations.isInProgress) {
+      if (!BatchProgressStore.isBatchInProgress()) {
         (loggers.translation || console).debug("翻译已被取消");
         break;
       }
@@ -472,7 +472,7 @@ TranslationService.prototype.translateBatch = async function (
       .map(async () => {
         while (true) {
           if (!(await waitWhilePaused())) return;
-          if (!AppState.translations.isInProgress) return;
+          if (!BatchProgressStore.isBatchInProgress()) return;
           const i = nextIndex;
           nextIndex++;
           if (i >= items.length) return;

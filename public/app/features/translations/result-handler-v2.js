@@ -106,16 +106,14 @@ class TranslationResultHandler {
   }
 
   /**
-   * 更新失败项列表
+   * 更新失败项列表（经 BatchProgressStore）
    * @param {Array} actualErrors - 实际错误列表
    */
   updateFailedItemsList(actualErrors) {
     try {
-      if (this.appState && this.appState.translations) {
-        this.appState.translations.lastFailedItems = actualErrors
-          .map((e) => e?.item)
-          .filter(Boolean);
-      }
+      BatchProgressStore.recordFailedItems(
+        actualErrors.map((e) => e?.item).filter(Boolean)
+      );
     } catch (error) {
       (loggers.translation || console).warn('更新失败项列表失败:', error);
     }
@@ -135,7 +133,7 @@ class TranslationResultHandler {
       return;
     }
 
-    const isInProgress = this.appState?.translations?.isInProgress;
+    const isInProgress = BatchProgressStore.isBatchInProgress();
     const {
       successTitle = "翻译完成",
       warningTitle = "翻译部分完成",

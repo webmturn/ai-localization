@@ -122,7 +122,7 @@ class UniversalValidators {
    * @throws {Error} 翻译正在进行时抛出错误
    */
   validateNotInProgress() {
-    if (this.appState?.translations?.isInProgress) {
+    if (BatchProgressStore.isBatchInProgress()) {
       throw this.createValidationError(
         'TRANSLATION_IN_PROGRESS',
         '翻译正在进行中',

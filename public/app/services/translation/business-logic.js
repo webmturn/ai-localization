@@ -153,23 +153,16 @@ class TranslationBusinessLogic {
       if (this.validators) {
         this.validators.validateEngineConfig(config.engine);
       }
-      
-      // 设置翻译状态
-      this.setTranslationState({
-        isInProgress: true,
-        isPaused: false,
-        _batchStarted: true,
-        _batchCancelled: false,
-        lastFailedItems: [],
-        lastBatchContext: {
-          scope: 'custom',
-          sourceLang: config.sourceLang,
-          targetLang: config.targetLang,
-          engine: config.engine,
-          selectedFile: this.appState?.translations?.selectedFile || null
-        }
+
+      // 批量进度态经 BatchProgressStore（beginBatch 复位取消协议并写入上下文）
+      BatchProgressStore.beginBatch({
+        scope: 'custom',
+        sourceLang: config.sourceLang,
+        targetLang: config.targetLang,
+        engine: config.engine,
+        selectedFile: this.appState?.translations?.selectedFile || null
       });
-      
+
       // 执行翻译
       const result = await this.translationService.translateBatch(
         items,
@@ -178,15 +171,15 @@ class TranslationBusinessLogic {
         config.engine,
         progressCallback
       );
-      
+
       // 处理翻译结果
       this.processTranslationResult(result);
-      
+
       return {
         success: true,
         ...result
       };
-      
+
     } catch (error) {
       this.handleTranslationError(error, config);
       return {
@@ -197,40 +190,38 @@ class TranslationBusinessLogic {
       };
     } finally {
       // 清理状态
-      this.setTranslationState({
-        isInProgress: false,
-        isPaused: false
-      });
+      BatchProgressStore.endBatch();
     }
   }
   
   /**
-   * 设置翻译状态
+   * 设置翻译状态（兼容入口：批量进度态迁移至 BatchProgressStore 后，
+   * 本方法仅保留 lastFailedItems 一类语义；新代码请直接使用 BatchProgressStore）
    * @param {Object} state - 状态对象
    */
   setTranslationState(state) {
     if (!this.appState?.translations) {
       return;
     }
-    
-    Object.keys(state).forEach(key => {
-      this.appState.translations[key] = state[key];
-    });
+
+    if (Array.isArray(state?.lastFailedItems)) {
+      BatchProgressStore.recordFailedItems(state.lastFailedItems);
+    }
   }
-  
+
   /**
    * 处理翻译结果
    * @param {Object} result - 翻译结果
    */
   processTranslationResult(result) {
     const { results, errors } = result;
-    
-    // 更新失败项列表
+
+    // 更新失败项列表（经 BatchProgressStore）
     const actualErrors = errors.filter(e => e.error !== "用户取消");
-    this.setTranslationState({
-      lastFailedItems: actualErrors.map(e => e?.item).filter(Boolean)
-    });
-    
+    BatchProgressStore.recordFailedItems(
+      actualErrors.map(e => e?.item).filter(Boolean)
+    );
+
     // 标记项目需要保存
     if (results.length > 0 && this.autoSaveManager) {
       this.autoSaveManager.markDirty();
@@ -238,7 +229,7 @@ class TranslationBusinessLogic {
     if (results.length > 0 && typeof invalidateSearchCache === "function") {
       invalidateSearchCache();
     }
-    
+
     // 更新项目时间戳
     if (this.appState?.project && results.length > 0) {
       this.appState.project.updatedAt = new Date();
@@ -266,13 +257,9 @@ class TranslationBusinessLogic {
    * 取消翻译
    */
   cancelTranslation() {
-    this.setTranslationState({
-      isInProgress: false,
-      isPaused: false,
-      _batchCancelled: true,
-      _batchStarted: false
-    });
-    
+    // 批量进度态经 BatchProgressStore（cancelBatch 置取消协议标记）
+    BatchProgressStore.cancelBatch();
+
     // 取消网络请求
     if (this.translationService && typeof this.translationService.cancelAll === 'function') {
       this.translationService.cancelAll();
@@ -283,46 +270,42 @@ class TranslationBusinessLogic {
    * 暂停翻译
    */
   pauseTranslation() {
-    if (!this.appState?.translations?.isInProgress) {
+    if (!BatchProgressStore.isBatchInProgress()) {
       return false;
     }
-    
-    if (this.appState.translations.isPaused) {
+
+    if (BatchProgressStore.isBatchPaused()) {
       return false;
     }
-    
-    this.setTranslationState({
-      isPaused: true
-    });
-    
+
+    BatchProgressStore.pauseBatch();
+
     return true;
   }
-  
+
   /**
    * 恢复翻译
    */
   resumeTranslation() {
-    if (!this.appState?.translations?.isInProgress || !this.appState?.translations?.isPaused) {
+    if (!BatchProgressStore.isBatchInProgress() || !BatchProgressStore.isBatchPaused()) {
       return false;
     }
-    
-    this.setTranslationState({
-      isPaused: false
-    });
-    
+
+    BatchProgressStore.resumeBatch();
+
     return true;
   }
-  
+
   /**
    * 重试失败的翻译
    * @param {Function} progressCallback - 进度回调
    */
   async retryFailedTranslations(progressCallback) {
-    const failedItems = this.appState?.translations?.lastFailedItems || [];
+    const failedItems = BatchProgressStore.getLastFailedItems();
     if (failedItems.length === 0) {
       throw new Error('没有失败的翻译项需要重试');
     }
-    
+
     const config = this.getTranslationConfig();
     return this.executeTranslation(failedItems, config, progressCallback);
   }
@@ -344,7 +327,7 @@ class TranslationBusinessLogic {
     const total = items.length;
     const completed = items.filter(item => item.status === 'completed' || (item.targetText && item.targetText.trim())).length;
     const pending = items.filter(item => item.status === 'pending').length;
-    const failed = this.appState?.translations?.lastFailedItems?.length || 0;
+    const failed = BatchProgressStore.getLastFailedItems().length;
     
     return {
       total,

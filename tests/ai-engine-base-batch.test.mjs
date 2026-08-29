@@ -18,6 +18,8 @@ import { loadSource, setupGlobals } from "./setup.mjs";
 
 beforeAll(() => {
   setupGlobals();
+  // 批量进度 Store（取消协议 Owner；引擎 waitWhilePaused/isUserCancelled 依赖）
+  loadSource("public/app/core/batch-progress-store.js");
   loadSource("public/app/services/translation/helpers.js");
   loadSource("public/app/services/translation/engines/base/ai-engine-base.js");
 
@@ -144,7 +146,8 @@ function makeHarness(opts = {}) {
     service,
     stats: () => ({ maxInFlight, requests }),
     cancel: () => {
-      globalThis.AppState.translations._batchCancelled = true;
+      // 取消协议经 BatchProgressStore（阶段 5：幽灵字段直写已收编）
+      BatchProgressStore.cancelBatch();
     },
   };
 }
@@ -152,6 +155,11 @@ function makeHarness(opts = {}) {
 beforeEach(() => {
   // 每个用例重置通知标记（模块级 var 挂在 globalThis 上）
   globalThis._aiLongTextNotified = false;
+  // 重置取消协议内部标记（防止上一用例的取消状态泄漏）
+  if (globalThis.BatchProgressStore) {
+    BatchProgressStore._cancelled = false;
+    BatchProgressStore._started = false;
+  }
 });
 
 describe("translateBatch 并发优化", () => {

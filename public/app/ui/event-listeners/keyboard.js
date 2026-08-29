@@ -198,7 +198,7 @@
       return;
     }
     if (id === "cancelTranslation" && typeof cancelTranslation === "function") {
-      if (AppState && AppState.translations && AppState.translations.isInProgress) cancelTranslation();
+      if (BatchProgressStore.isBatchInProgress()) cancelTranslation();
       return;
     }
     if (id === "selectCurrentPage" && typeof selectCurrentPageTranslationItems === "function") {

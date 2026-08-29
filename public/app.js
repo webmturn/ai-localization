@@ -49,6 +49,7 @@
     "app/core/dom-cache.js",
     "app/core/dev-tools.js",
     "app/core/translation-view-store.js",           // 翻译视图状态存储（依赖 state.js 与 dev-tools.js；须在 project-store 之前）
+    "app/core/batch-progress-store.js",             // 批量翻译进度存储（依赖 state.js 与 dev-tools.js；取消协议唯一 Owner）
     "app/core/project-store.js",                    // 项目状态存储（依赖 state.js、dev-tools.js 与 translation-view-store.js）
     "app/core/terminology-store.js",                // 术语库状态存储（依赖 project-store.js 的 setTerminologyList）
     "app/core/performance-monitor.js",                // 性能监控系统

@@ -64,6 +64,9 @@
     "BatchErrorCollector": [
       "core/errors/error-utils.js"
     ],
+    "BatchProgressStore": [
+      "core/batch-progress-store.js"
+    ],
     "BatchResumeManager": [
       "services/translation/batch-resume.js"
     ],

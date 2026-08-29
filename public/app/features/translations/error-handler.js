@@ -90,18 +90,18 @@ async function handleBatchTranslation(items, engine, translateFn, onProgress = n
   for (let i = 0; i < items.length; i++) {
     try {
       // 检查是否被取消
-      if (!AppState.translations.isInProgress) {
+      if (!BatchProgressStore.isBatchInProgress()) {
         const cancelError = errorManager.createError(ERROR_CODES.USER_CANCELLED);
         collector.addError(i, cancelError, items[i]);
         break;
       }
-      
+
       // 等待暂停状态
-      while (AppState.translations.isPaused && AppState.translations.isInProgress) {
+      while (BatchProgressStore.isBatchPaused() && BatchProgressStore.isBatchInProgress()) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      
-      if (!AppState.translations.isInProgress) {
+
+      if (!BatchProgressStore.isBatchInProgress()) {
         const cancelError = errorManager.createError(ERROR_CODES.USER_CANCELLED);
         collector.addError(i, cancelError, items[i]);
         break;

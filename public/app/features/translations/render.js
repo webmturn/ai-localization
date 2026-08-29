@@ -1126,6 +1126,8 @@ async function scrollToItem(index) {
 }
 
 // 视口切换时自动重渲染（配合跳过不可见视图优化）
+// 窗口在桌面档位内缩放（未跨越移动/桌面断点）时，重同步列高与虚拟滚动测量：
+// 列宽变化会改变 textarea 换行，原固定行高会导致原文/译文错位
 (function () {
   let lastIsMobile = isMobileViewport();
   let resizeTimer = null;
@@ -1137,6 +1139,17 @@ async function scrollToItem(index) {
         lastIsMobile = nowIsMobile;
         if (typeof updateTranslationLists === "function") {
           updateTranslationLists();
+        }
+      } else if (!nowIsMobile) {
+        // 同为桌面档位（列宽因窗口/侧栏拖拽变化）：仅重同步高度，不整列表重渲染
+        if (typeof syncTranslationHeights === "function") {
+          syncTranslationHeights();
+        }
+        if (typeof VirtualScrollManager !== "undefined") {
+          const vsm = VirtualScrollManager.getInstance();
+          if (vsm && typeof vsm.measureRenderedHeights === "function") {
+            vsm.measureRenderedHeights();
+          }
         }
       }
     }, 200);

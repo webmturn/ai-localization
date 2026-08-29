@@ -118,6 +118,32 @@
     }
 }
 
+/* ==================== 窗口宽度自适应侧栏（防窄桌面挤压） ====================
+ * JS 加载前首帧预绘；applySidebarWidthsForLayout() 会以同档位内联覆盖。
+ * ID 选择器特异性高于 Tailwind md:w-80/md:w-96 工具类。
+ * 档位（与 data-and-ui.js getSidebarLayoutTiers 一致）：
+ *   768-899:   左 200 / 右 240（中间工作区 ≥320px）
+ *   900-1099:  左 240 / 右 280（中间 ≥420px）
+ *   1100-1279: 左 280 / 右 320（中间 ≥500px）
+ *   ≥1280:     左 320 / 右 384（原固定默认）
+ */
+@media (min-width: 768px) {
+    #leftSidebar { width: 200px; }
+    #rightSidebar { width: 240px; }
+}
+@media (min-width: 900px) {
+    #leftSidebar { width: 240px; }
+    #rightSidebar { width: 280px; }
+}
+@media (min-width: 1100px) {
+    #leftSidebar { width: 280px; }
+    #rightSidebar { width: 320px; }
+}
+@media (min-width: 1280px) {
+    #leftSidebar { width: 320px; }
+    #rightSidebar { width: 384px; }
+}
+
 /* 移动端模态框优化 */
 @media (max-width: 767px) {
     .modal-content {

@@ -128,50 +128,73 @@ function registerEventListenersDataAndUi(ctx) {
   const isDesktopLayout = () =>
     window.matchMedia && window.matchMedia("(min-width: 768px)").matches;
 
+  // 侧栏宽度布局：窗口大小自适应（防窄桌面窗口挤压中间工作区）
+  // 档位表（JS 与 CSS 预绘、拖拽手柄共用）：
+  //   <900:  左 200 / 右 240（中间 ≥320px）
+  //   <1100: 左 240 / 右 280（中间 ≥420px）
+  //   <1280: 左 280 / 右 320（中间 ≥500px）
+  //   ≥1280: 左 320 / 右 384（中间 ≥560px，即原固定默认值）
+  const getSidebarLayoutTiers = (viewportWidth) => {
+    if (viewportWidth < 900) {
+      return { reservedMain: 320, defaultLeft: 200, defaultRight: 240 };
+    }
+    if (viewportWidth < 1100) {
+      return { reservedMain: 420, defaultLeft: 240, defaultRight: 280 };
+    }
+    if (viewportWidth < 1280) {
+      return { reservedMain: 500, defaultLeft: 280, defaultRight: 320 };
+    }
+    return { reservedMain: 560, defaultLeft: 320, defaultRight: 384 };
+  };
+
   const applySidebarWidthsForLayout = () => {
     const desktop = isDesktopLayout();
     const viewportWidth = window.innerWidth || 0;
-    const reservedMainWidth = viewportWidth < 1100 ? 300 : (viewportWidth < 1280 ? 420 : 560);
-    const maxTotalSidebarWidth = Math.max(480, viewportWidth - reservedMainWidth);
-    const maxLeftWidth = Math.min(500, Math.floor(maxTotalSidebarWidth * 0.45));
-    const maxRightWidth = Math.min(600, Math.floor(maxTotalSidebarWidth * 0.55));
 
-    if (leftSidebar) {
-      if (desktop) {
-        leftSidebar.style.removeProperty("max-width");
-        const savedLeftWidth = localStorage.getItem("leftSidebarWidth");
-        if (savedLeftWidth) {
-          const width = Math.max(200, Math.min(maxLeftWidth, Number(savedLeftWidth)));
-          leftSidebar.style.width = width + "px";
-          leftSidebar.style.setProperty("--sidebar-width", width + "px");
-        } else {
-          leftSidebar.style.removeProperty("width");
-          leftSidebar.style.removeProperty("--sidebar-width");
-        }
-      } else {
+    if (!desktop) {
+      // 移动端：侧栏为全宽底部 Sheet（CSS 控制），清掉桌面的内联宽度
+      if (leftSidebar) {
         leftSidebar.style.width = "100%";
         leftSidebar.style.maxWidth = "100%";
         leftSidebar.style.setProperty("--sidebar-width", "100%");
       }
-    }
-
-    if (rightSidebar) {
-      if (desktop) {
-        rightSidebar.style.removeProperty("max-width");
-        const savedRightWidth = localStorage.getItem("rightSidebarWidth");
-        if (savedRightWidth) {
-          const width = Math.max(280, Math.min(maxRightWidth, Number(savedRightWidth)));
-          rightSidebar.style.width = width + "px";
-          rightSidebar.style.setProperty("--sidebar-width", width + "px");
-        } else {
-          rightSidebar.style.removeProperty("width");
-          rightSidebar.style.removeProperty("--sidebar-width");
-        }
-      } else {
+      if (rightSidebar) {
         rightSidebar.style.width = "100%";
         rightSidebar.style.maxWidth = "100%";
         rightSidebar.style.setProperty("--sidebar-width", "100%");
       }
+      return;
+    }
+
+    const tiers = getSidebarLayoutTiers(viewportWidth);
+    const maxTotalSidebarWidth = Math.max(
+      tiers.defaultLeft + tiers.defaultRight,
+      viewportWidth - tiers.reservedMain
+    );
+    const maxLeftWidth = Math.max(200, Math.min(500, Math.floor(maxTotalSidebarWidth * 0.45)));
+    const maxRightWidth = Math.max(240, Math.min(600, Math.floor(maxTotalSidebarWidth * 0.55)));
+
+    if (leftSidebar) {
+      leftSidebar.style.removeProperty("max-width");
+      const savedLeftWidth = localStorage.getItem("leftSidebarWidth");
+      // 下限不超过当前上限（窄窗口时避免历史保存值撑爆布局）
+      const floorLeft = Math.min(200, maxLeftWidth);
+      const width = savedLeftWidth
+        ? Math.max(floorLeft, Math.min(maxLeftWidth, Number(savedLeftWidth)))
+        : Math.min(tiers.defaultLeft, maxLeftWidth);
+      leftSidebar.style.width = width + "px";
+      leftSidebar.style.setProperty("--sidebar-width", width + "px");
+    }
+
+    if (rightSidebar) {
+      rightSidebar.style.removeProperty("max-width");
+      const savedRightWidth = localStorage.getItem("rightSidebarWidth");
+      const floorRight = Math.min(280, maxRightWidth);
+      const width = savedRightWidth
+        ? Math.max(floorRight, Math.min(maxRightWidth, Number(savedRightWidth)))
+        : Math.min(tiers.defaultRight, maxRightWidth);
+      rightSidebar.style.width = width + "px";
+      rightSidebar.style.setProperty("--sidebar-width", width + "px");
     }
   };
 
@@ -532,13 +555,21 @@ function registerEventListenersDataAndUi(ctx) {
         }
 
         const viewportWidth = window.innerWidth || 0;
-        const reservedMainWidth = viewportWidth < 1100 ? 300 : (viewportWidth < 1280 ? 420 : 560);
-        const maxTotalSidebarWidth = Math.max(480, viewportWidth - reservedMainWidth);
+        const tiers = getSidebarLayoutTiers(viewportWidth);
+        const maxTotalSidebarWidth = Math.max(
+          tiers.defaultLeft + tiers.defaultRight,
+          viewportWidth - tiers.reservedMain
+        );
         const otherSidebar = sidebarType === "left" ? rightSidebar : leftSidebar;
         const otherWidth = otherSidebar ? otherSidebar.offsetWidth : 0;
-        const minWidth = sidebarType === "left" ? 200 : 280;
+        const absoluteMinWidth = sidebarType === "left" ? 200 : 280;
         const absoluteMaxWidth = sidebarType === "left" ? 500 : 600;
-        const maxWidth = Math.max(minWidth, Math.min(absoluteMaxWidth, maxTotalSidebarWidth - otherWidth));
+        // 上限受总宽约束；下限不超过上限（窄窗口时避免下限反超挤压工作区）
+        const maxWidth = Math.max(
+          Math.min(absoluteMinWidth, absoluteMaxWidth),
+          Math.min(absoluteMaxWidth, maxTotalSidebarWidth - otherWidth)
+        );
+        const minWidth = Math.min(absoluteMinWidth, maxWidth);
         newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
 
         sidebar.style.width = newWidth + "px";

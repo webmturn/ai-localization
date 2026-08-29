@@ -266,7 +266,8 @@
     if (!container) return;
     var textarea = container.querySelector('textarea[data-index="' + idx + '"]');
     if (textarea) {
-      textarea.focus();
+      // preventScroll：聚焦不触发浏览器原生滚动，避免与选中动画打架
+      textarea.focus({ preventScroll: true });
       textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
     }
   }
@@ -290,7 +291,8 @@
     if (typeof selectTranslationItem === "function") {
       selectTranslationItem(nextIndex, { shouldScroll: true, shouldFocusTextarea: false });
     }
-    nextTextarea.focus();
+    // preventScroll：聚焦不触发浏览器原生滚动，避免与选中动画打架
+    nextTextarea.focus({ preventScroll: true });
     nextTextarea.selectionStart = nextTextarea.selectionEnd = nextTextarea.value.length;
   }
 

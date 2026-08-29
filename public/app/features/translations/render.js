@@ -509,12 +509,11 @@ function updateTranslationLists() {
           if (!containerHeight) {
             selectedEl.scrollIntoView({ block: "nearest" });
           } else {
-            let offsetTop = 0;
-            let node = selectedEl;
-            while (node && node !== container) {
-              offsetTop += node.offsetTop || 0;
-              node = node.offsetParent;
-            }
+            // 几何法计算（offsetParent 链在 static 容器下不可靠）
+            const containerRect = container.getBoundingClientRect();
+            const elRect = selectedEl.getBoundingClientRect();
+            const offsetTop =
+              elRect.top - containerRect.top + container.scrollTop;
             const itemHeight = selectedEl.offsetHeight || 0;
             const current = container.scrollTop;
             const maxScroll = Math.max(
@@ -1005,6 +1004,7 @@ async function scrollToItem(index) {
   try {
     // 与 selection.js 的 smartScrollToComfortZone 同算法；滚动执行统一走
     // 全局 animateScrollTo（rAF 自绘动画，不受 prefers-reduced-motion 影响）
+    // 偏移用 getBoundingClientRect 几何换算（offsetParent 链在 static 容器下不可靠）
     const smartScrollToComfortZone = (el) => {
       if (!el) return;
       const container =
@@ -1021,12 +1021,10 @@ async function scrollToItem(index) {
         return;
       }
 
-      let offsetTop = 0;
-      let node = el;
-      while (node && node !== container) {
-        offsetTop += node.offsetTop || 0;
-        node = node.offsetParent;
-      }
+      // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const offsetTop = elRect.top - containerRect.top + container.scrollTop;
 
       const itemHeight = el.offsetHeight || 0;
       const current = container.scrollTop;

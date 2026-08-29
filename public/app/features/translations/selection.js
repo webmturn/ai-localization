@@ -46,32 +46,27 @@ function updateSelectionStyles() {
   const shouldScroll = options.shouldScroll === true;
   const shouldFocusTextarea = options.shouldFocusTextarea !== false;
 
-  // 更简单、稳定的滚动算法：尽量居中 + 夹紧到顶部/底部，保证整行可见
+  // 最小揭示滚动：仅当条目越界时滚动到刚好可见（留约一行上下文），
+  // 已完全可见则不动。避免"每次选中都跳到视口中央"的大幅跳动。
+  // 偏移用 getBoundingClientRect 几何换算——offsetParent 链在
+  // position:static 的滚动容器下会跳过容器本身，永远找不到父级（已实测），
+  // 导致此前所有滚动都落入 scrollIntoView 兜底（瞬跳 + 居中）。
   const smartScrollToComfortZone = (el) => {
     if (!el) return;
 
     const container =
       DOMCache.get("translationScrollWrapper") ||
       el.closest(".translation-scroll-wrapper");
-    // 降级路径（无容器/无高度）：scrollIntoView 兜底（动画不可控，罕见）
+    // 降级路径（无容器/无高度）：scrollIntoView 兜底（罕见）
     if (!container || !container.clientHeight) {
-      el.scrollIntoView({ block: "center" });
+      el.scrollIntoView({ block: "nearest" });
       return;
     }
 
-    // 计算 el 相对容器顶部的偏移（使用 offsetTop 链，避免多重 transform 带来的误差）
-    let offset = 0;
-    let node = el;
-    let foundContainer = false;
-    while (node && node !== container) {
-      offset += node.offsetTop || 0;
-      node = node.offsetParent;
-      if (node === container) foundContainer = true;
-    }
-    if (!foundContainer) {
-      el.scrollIntoView({ block: "center" });
-      return;
-    }
+    // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const offset = elRect.top - containerRect.top + container.scrollTop;
 
     const containerHeight = container.clientHeight;
     const itemHeight = el.offsetHeight || 0;
@@ -79,14 +74,22 @@ function updateSelectionStyles() {
     const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
 
     // 如果当前整行已经完全可见，就不滚动，避免抖动
-    const visibleTop = current;
-    const visibleBottom = current + containerHeight;
-    if (offset >= visibleTop && offset + itemHeight <= visibleBottom) return;
+    if (offset >= current && offset + itemHeight <= current + containerHeight) {
+      return;
+    }
 
-    // 理想位置：尽量让条目靠中间
-    let target = offset - (containerHeight - itemHeight) / 2;
+    // 最小滚动量 + 一行上下文边距（约一个条目高度，封顶 120px）
+    const margin = Math.min(120, itemHeight || 96);
+    let target;
+    if (offset + itemHeight > current + containerHeight) {
+      // 条目在视口下方：向上滚到刚好露出，下方多留一行
+      target = offset + itemHeight - containerHeight + margin;
+    } else {
+      // 条目在视口上方：向下滚到刚好露出，上方多留一行
+      target = offset - margin;
+    }
 
-    // 夹紧到可滚动范围，保证末尾几行不会被压在最下面
+    // 夹紧到可滚动范围
     target = Math.max(0, Math.min(maxScroll, target));
 
     if (Math.abs(target - current) < 2) return;
@@ -154,7 +157,8 @@ function updateSelectionStyles() {
           textarea.classList.remove("border-transparent");
           textarea.classList.add("border-blue-500");
           if (shouldFocusTextarea) {
-            textarea.focus();
+            // preventScroll：避免浏览器原生聚焦滚动与 animateScrollTo 动画打架
+            textarea.focus({ preventScroll: true });
           }
         } else {
           textarea.classList.remove("border-blue-500");
@@ -184,7 +188,8 @@ function updateSelectionStyles() {
           textarea.classList.remove("border-gray-200", "dark:border-gray-700");
           textarea.classList.add("border-blue-500");
           if (shouldFocusTextarea) {
-            textarea.focus();
+            // preventScroll：避免浏览器原生聚焦滚动与 animateScrollTo 动画打架
+            textarea.focus({ preventScroll: true });
           }
         } else {
           textarea.classList.remove("border-blue-500");

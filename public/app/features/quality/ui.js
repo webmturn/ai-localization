@@ -456,6 +456,7 @@ async function __focusTranslationItemImpl(itemId) {
   const isMobile = isMobileViewport();
   // 与 selection.js 同算法；滚动执行统一走全局 animateScrollTo
   // （rAF 自绘动画，不受 prefers-reduced-motion 影响）
+  // 偏移用 getBoundingClientRect 几何换算（offsetParent 链在 static 容器下不可靠）
   const smartScrollToComfortZone = (el) => {
     if (!el) return;
     const container =
@@ -472,12 +473,10 @@ async function __focusTranslationItemImpl(itemId) {
       return;
     }
 
-    let offsetTop = 0;
-    let node = el;
-    while (node && node !== container) {
-      offsetTop += node.offsetTop || 0;
-      node = node.offsetParent;
-    }
+    // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const offsetTop = elRect.top - containerRect.top + container.scrollTop;
 
     const itemHeight = el.offsetHeight || 0;
     const current = container.scrollTop;

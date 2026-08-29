@@ -6,7 +6,7 @@
 
 ## [v1.3.3] — 2026-08-16
 
-> 批量翻译性能优化：并发分块 + 限速/Token 上限上调 + 超长文本告警 + JS bundle 压缩
+> 批量翻译性能优化：并发分块 + 限速/Token 上限上调 + 超长文本告警 + JS bundle 压缩；AppState 状态所有权确权重构（5 阶段）+ 选中滚动/聚焦/搜索跳转体验修复
 
 ### 新增
 - **批量翻译并发分块** (ai-engine-base.js) — AI 批量路径不再串行请求：
@@ -85,6 +85,24 @@
   - Gemini 保持 0.25（免费层 15 RPM 约束）
 - **OpenAI 输出上限上调**：单条 max_tokens 2000 → 4096；批量 8000 → 16000（gpt-4o 上限 16384）
   - DeepSeek（上限 8192）/ Claude（上限 8192）保持原值，避免请求 400
+
+### 架构重构（AppState 状态所有权确权）
+- **阶段 0 状态显式化** — state.js 显式声明全部切片（translations.selectedFile、quality 运行参数、ui.autoScrollEnabled、qualityCheckResults.scope/fileName），消灭 settings/file-tree/bootstrap 三处动态建切片的幽灵状态
+- **阶段 1 TerminologyStore 确权** — 收编 27 处裸写：意图 API（loadTerminology/mergeTerms/addTerm/updateTerm/removeTerm/setPage/applyFilter 等）；运行时 list 唯一数据源，project.terminologyList 仅快照，localStorage 仅引导；CI 守护升级为模式→Owner 映射表（赋值/索引赋值/变异方法/delete 全形态）
+- **阶段 2 TranslationViewStore 确权** — 收编 10 文件 37 处视图态裸写（filtered/selected/multiSelected/currentPage/searchQuery/itemsPerPage/selectedFile）；稳定视图条目引用 _viewItems（质量检查 swap 窗口期间渲染仍看全量，显式设计）
+- **阶段 3a/3b 别名清理** — 14 处 translations.items 直读迁移（渲染/持久化走 getViewItems，canonical 走新增 ProjectStore.getTranslationItems）；删除 translations.items 字段与 window.qualityCheckResults 全局别名，CI 守护改为全禁写
+- **阶段 4 质量检查收敛** — run.js 术语上下文入口快照注入 processBatch→checkItem（checks.js 依赖注入可测）；选中文件改经 TranslationViewStore getter
+- **阶段 5 BatchProgressStore 确权** — 收编批量进度态 36 处裸写（isInProgress/isPaused/progress/lastFailedItems/lastBatchContext）；消灭未声明幽灵字段 _batchStarted/_batchCancelled（跨模块取消协议收编为 isUserCancelled() 语义 getter）；消灭 5 处 window.AppState 绕写
+- **测试**：新增 state-explicit / terminology-store / translation-view-store / batch-progress-store / animate-scroll 契约测试，总用例 173 → 295
+
+### 修复（UI 交互）
+- **选中项滚动无动画/瞬跳** — 三处根因连环修复：
+  - 浏览器原生 smooth 滚动在 prefers-reduced-motion 环境（Windows 关闭"显示动画效果"）被忽略 → 新增 rAF 自绘动画 animateScrollTo（easeOutCubic、距离驱动时长 180-450ms、可打断不排队）
+  - offsetParent 链在 position:static 滚动容器下永远命不中容器，所有滚动都落入 scrollIntoView 瞬跳兜底 → 改用 getBoundingClientRect 几何换算
+  - 选中滚动从"跳到视口中央"改为最小揭示（已可见不动、越界才滚到刚好可见并留一行上下文），连续键盘导航为行级步进
+- **点击条目无法聚焦译文框** — 三处点击委托（桌面原文/译文列表、移动端合并列表）从 shouldFocusTextarea:false 改为聚焦对应译文框，点击即进入可输入状态（focus 带 preventScroll 不与动画冲突）
+- **搜索跳转不滚动** — navigateToSearchResult 此前依赖浏览器原生聚焦滚动（被 preventScroll 静默移除）→ 显式接入 scrollToItem 动画滚动，并新增跨页翻页能力（目标在其它页时自动翻页等待渲染后滚动）
+- **回归保障**：全部修复经浏览器实测（可见项零滚动/最小揭示采样/连续导航行级步进/同页跨页搜索跳转/桌面双栏与移动端路径）
 
 ---
 

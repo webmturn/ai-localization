@@ -16,10 +16,11 @@ function registerEventListenersTranslationLists(ctx) {
           if (multiKey) {
             toggleMultiSelection(index);
           } else {
-            // 鼠标点击行：只更新选中样式，不滚动、不自动聚焦 textarea
+            // 点击原文行：滚动揭示并聚焦对应译文框（可直接开始输入译文；
+            // focus 带 preventScroll，滚动由 animateScrollTo 统一驱动）
             selectTranslationItem(index, {
               shouldScroll: true,
-              shouldFocusTextarea: false,
+              shouldFocusTextarea: true,
             });
           }
         }
@@ -46,10 +47,10 @@ function registerEventListenersTranslationLists(ctx) {
           if (multiKey) {
             toggleMultiSelection(index);
           } else {
-            // 鼠标点击译文行（非 textarea）：同样不滚动、不强制聚焦
+            // 点击译文行（非 textarea 区域）：聚焦该行译文框，可直接输入
             selectTranslationItem(index, {
               shouldScroll: true,
-              shouldFocusTextarea: false,
+              shouldFocusTextarea: true,
             });
           }
         }
@@ -140,9 +141,10 @@ function registerEventListenersTranslationLists(ctx) {
           if (multiKey) {
             toggleMultiSelection(index);
           } else {
+            // 点击卡片（原文或译文区域）：聚焦译文框，可直接输入译文
             selectTranslationItem(index, {
               shouldScroll: true,
-              shouldFocusTextarea: false,
+              shouldFocusTextarea: true,
             });
           }
         }

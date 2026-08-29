@@ -8,9 +8,8 @@ import { loadSource, setupGlobals } from "./setup.mjs";
 
 beforeAll(() => {
   setupGlobals(); // 提供 AppState 桩
-  // 补齐 translations 视图态完整结构（setupGlobals 桩只含 items）
+  // 补齐 translations 视图态完整结构（不含 items——阶段 3b 已删除该兼容别名）
   globalThis.AppState.translations = {
-    items: [],
     filtered: [],
     selected: -1,
     multiSelected: [],
@@ -27,7 +26,6 @@ beforeAll(() => {
 function resetState() {
   AppState.project = null;
   AppState.fileMetadata = {};
-  AppState.translations.items = [];
   AppState.translations.filtered = [];
   AppState.translations.selected = -1;
   AppState.translations.multiSelected = [];
@@ -48,25 +46,24 @@ const item = (id, file) => ({
 });
 
 describe("setViewItems / getViewItems（稳定引用）", () => {
-  it("setViewItems 设置稳定引用并同步兼容别名（同一数组）", () => {
+  it("setViewItems 设置稳定引用（阶段 3b 起唯一视图条目数据源）", () => {
     const items = [item(1), item(2)];
     const ret = TranslationViewStore.setViewItems(items);
     expect(ret).toBe(items);
     expect(TranslationViewStore.getViewItems()).toBe(items);
-    expect(AppState.translations.items).toBe(items);
+    // 兼容别名已删除：translations 切片不再出现 items 字段
+    expect("items" in AppState.translations).toBe(false);
   });
 
   it("非数组输入安全降级为空数组", () => {
     TranslationViewStore.setViewItems(null);
     expect(TranslationViewStore.getViewItems()).toEqual([]);
-    expect(AppState.translations.items).toEqual([]);
   });
 
   it("ProjectStore.loadProject 经 setViewItems 建立稳定引用", () => {
     const items = [item(1)];
     ProjectStore.loadProject({ id: "p1", translationItems: items });
     expect(TranslationViewStore.getViewItems()).toBe(items);
-    expect(AppState.translations.items).toBe(items);
   });
 });
 
@@ -80,9 +77,8 @@ describe("swap 不触碰稳定引用（质量检查场景）", () => {
 
     // canonical 被换出
     expect(AppState.project.translationItems).toBe(subset);
-    // 稳定视图引用不受影响（渲染仍看全量）
+    // 稳定视图引用不受影响（渲染/持久化仍看全量）
     expect(TranslationViewStore.getViewItems()).toBe(full);
-    expect(AppState.translations.items).toBe(full);
 
     // 恢复后一致
     ProjectStore.swapTranslationItems(prev);
@@ -92,12 +88,11 @@ describe("swap 不触碰稳定引用（质量检查场景）", () => {
 });
 
 describe("setTranslationItems / replaceFileItems 同步稳定引用", () => {
-  it("setTranslationItems 更新稳定引用与别名", () => {
+  it("setTranslationItems 更新稳定引用", () => {
     ProjectStore.loadProject({ id: "p3" });
     const items = [item(1), item(2)];
     ProjectStore.setTranslationItems(items);
     expect(TranslationViewStore.getViewItems()).toBe(items);
-    expect(AppState.translations.items).toBe(items);
   });
 
   it("replaceFileItems 更新稳定引用与过滤视图", () => {
@@ -211,7 +206,7 @@ describe("resetView", () => {
 });
 
 describe("clearView", () => {
-  it("全清空视图态（含稳定引用与别名），保留 itemsPerPage", () => {
+  it("全清空视图态（含稳定引用），保留 itemsPerPage", () => {
     ProjectStore.loadProject({ id: "p9", translationItems: [item(1)] });
     TranslationViewStore.setSelection(1);
     TranslationViewStore.setMultiSelection([0]);
@@ -222,7 +217,6 @@ describe("clearView", () => {
     TranslationViewStore.clearView();
 
     expect(TranslationViewStore.getViewItems()).toEqual([]);
-    expect(AppState.translations.items).toEqual([]);
     expect(TranslationViewStore.getFiltered()).toEqual([]);
     expect(TranslationViewStore.getSelected()).toBe(-1);
     expect(TranslationViewStore.getMultiSelected()).toEqual([]);

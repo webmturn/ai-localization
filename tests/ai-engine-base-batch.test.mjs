@@ -72,7 +72,7 @@ function makeHarness(opts = {}) {
 
   globalThis.AppState = {
     project: { id: "p1", translationItems: [] },
-    translations: { items: [], _batchStarted: true, isInProgress: true, _batchCancelled: false },
+    translations: { _batchStarted: true, isInProgress: true, _batchCancelled: false },
     ui: {},
     terminology: { entries: [] },
   };

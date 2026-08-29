@@ -7,7 +7,7 @@ import { loadSource, setupGlobals } from "./setup.mjs";
 
 beforeAll(() => {
   setupGlobals(); // 提供 AppState 桩（含 translations/terminology 切片）
-  // 补齐 translations 视图态字段（setupGlobals 桩只含 items）
+  // 补齐 translations 视图态字段（不含 items——阶段 3b 已删除该兼容别名）
   globalThis.AppState.translations = Object.assign(
     globalThis.AppState.translations,
     {
@@ -28,7 +28,6 @@ beforeAll(() => {
 function resetState() {
   AppState.project = null;
   AppState.fileMetadata = {};
-  AppState.translations.items = [];
   AppState.translations.filtered = [];
   AppState.translations.selected = -1;
   AppState.translations.multiSelected = [];
@@ -52,9 +51,9 @@ describe("loadProject", () => {
     });
 
     expect(AppState.project.id).toBe("p1");
-    // canonical 与派生引用同数组
+    // canonical 与视图稳定引用同数组
     expect(AppState.project.translationItems).toBe(items);
-    expect(AppState.translations.items).toBe(items);
+    expect(TranslationViewStore.getViewItems()).toBe(items);
     // fileMetadata 别名一致
     expect(AppState.fileMetadata).toBe(fm);
     expect(AppState.project.fileMetadata).toBe(AppState.fileMetadata);
@@ -68,7 +67,7 @@ describe("loadProject", () => {
   it("缺省字段安全（无 translationItems/fileMetadata）", () => {
     ProjectStore.loadProject({ id: "p2" });
     expect(AppState.project.translationItems).toEqual([]);
-    expect(AppState.translations.items).toBe(AppState.project.translationItems);
+    expect(TranslationViewStore.getViewItems()).toBe(AppState.project.translationItems);
     expect(AppState.fileMetadata).toEqual({});
   });
 
@@ -76,7 +75,7 @@ describe("loadProject", () => {
     ProjectStore.loadProject({ id: "p3", translationItems: [{ id: "x" }] });
     ProjectStore.loadProject(null);
     expect(AppState.project).toBeNull();
-    expect(AppState.translations.items).toEqual([]);
+    expect(TranslationViewStore.getViewItems()).toEqual([]);
     expect(AppState.fileMetadata).toEqual({});
   });
 });
@@ -125,7 +124,7 @@ describe("clearProject", () => {
 
     expect(AppState.project).toBeNull();
     expect(AppState.fileMetadata).toEqual({});
-    expect(AppState.translations.items).toEqual([]);
+    expect(TranslationViewStore.getViewItems()).toEqual([]);
     expect(AppState.translations.filtered).toEqual([]);
     expect(AppState.translations.selected).toBe(-1);
     expect(AppState.translations.searchQuery).toBe("");
@@ -201,7 +200,7 @@ describe("翻译条目操作", () => {
     ]);
     expect(merged.map((it) => it.id)).toEqual(["2", "1-new"]);
     expect(AppState.project.translationItems).toBe(merged);
-    expect(AppState.translations.items).toBe(merged);
+    expect(TranslationViewStore.getViewItems()).toBe(merged);
     expect(AppState.translations.filtered).toEqual(merged);
   });
 
@@ -216,7 +215,7 @@ describe("翻译条目操作", () => {
     const items = [{ id: "x" }, { id: "y" }];
     ProjectStore.setTranslationItems(items);
     expect(AppState.project.translationItems).toBe(items);
-    expect(AppState.translations.items).toBe(items);
+    expect(TranslationViewStore.getViewItems()).toBe(items);
   });
 
   it("resetTranslationView 重置分页与选中", () => {
@@ -226,7 +225,7 @@ describe("翻译条目操作", () => {
     ProjectStore.resetTranslationView();
     expect(AppState.translations.selected).toBe(-1);
     expect(AppState.translations.currentPage).toBe(1);
-    expect(AppState.translations.filtered).toEqual(AppState.translations.items);
+    expect(AppState.translations.filtered).toEqual(TranslationViewStore.getViewItems());
   });
 
   it("touchProject 更新 updatedAt", () => {

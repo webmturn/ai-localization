@@ -84,8 +84,9 @@ const __defaultTerminologyList = [
 const AppState = {
   /** @type {Project|null} */
   project: null,
+  // 翻译视图态（视图条目引用由 TranslationViewStore._viewItems 承载，
+  // 阶段 3b 已删除 items 兼容别名——渲染/持久化一律经 TranslationViewStore.getViewItems()）
   translations: {
-    items: [],
     filtered: [],
     selected: -1,
     multiSelected: [],
@@ -144,11 +145,6 @@ if (typeof window !== "undefined") {
   if (!window.AppState) {
     window.AppState = AppState;
   }
-
-  // 兼容旧代码中直接使用全局名 qualityCheckResults 的引用（指向 AppState.qualityCheckResults）。
-  // TODO(阶段3b): 全局别名待清理——先迁移全部读取方到 AppState.qualityCheckResults，
-  // 再删除此别名（见重构计划"阶段 3b 删别名"）。
-  window.qualityCheckResults = AppState.qualityCheckResults;
 }
 
 // ==================== 向后兼容层（已废弃） ====================

@@ -7,25 +7,24 @@
 //
 // translations 切片子域三分治：
 // - canonical 条目：AppState.project.translationItems（Owner: ProjectStore）；
-//   AppState.translations.items 为视图稳定引用 + 兼容别名，由本 Store 的
-//   setViewItems 统一写入（阶段 3b 删除该字段）；
+//   视图稳定引用由本 Store 的 _viewItems 承载（阶段 3b 已删除
+//   AppState.translations.items 兼容别名，渲染/持久化一律经 getViewItems()）；
 // - 视图态：上述 7 个字段（Owner: 本 Store）；
 // - 批量进度态：isInProgress / isPaused / progress / lastFailedItems /
 //   lastBatchContext 暂留 actions.js / progress.js（本阶段观察，不归本 Store）。
 //
-// 稳定视图条目引用（显式设计，为阶段 3b 删别名铺路）：
+// 稳定视图条目引用（显式设计）：
 // - 本 Store 内部持有 _viewItems，由 ProjectStore 在 loadProject /
 //   setTranslationItems / replaceFileItems 时经 setViewItems() 设置；
 // - ProjectStore.swapTranslationItems（质量检查临时换出 canonical 条目）不触碰它，
 //   因此检查期间渲染仍看到全量列表——此前依赖"预期的别名断裂"，现为显式设计；
-// - 渲染一律经 getViewItems() 读取；过渡期 setViewItems 同时写兼容别名
-//   AppState.translations.items，行为与旧别名完全一致。
+// - 渲染与持久化一律经 getViewItems() 读取。
 //
 // 约定：业务代码禁止再直接写 translations 视图态字段，一律经由本 Store
 // （CI 静态检查 scripts/check-state-ownership.mjs 守护）。
 
 const TranslationViewStore = {
-  // 稳定的视图条目引用（独立于 translations.items 别名；阶段 3b 随别名删除而独立存在）
+  // 稳定的视图条目引用（唯一的视图条目数据源；swap 窗口期间仍为全量列表）
   _viewItems: [],
 
   // ──────────────── getters（读取一律走这里） ────────────────
@@ -74,8 +73,6 @@ const TranslationViewStore = {
 
   /**
    * 设置视图条目的稳定引用（ProjectStore 载入/替换条目时调用）。
-   * 过渡期同时写兼容别名 AppState.translations.items（阶段 3b 删除），
-   * 两处保持同一引用，行为与旧别名一致。
    *
    * @param {Array} items - 条目数组（保持原引用，不复制）
    * @returns {Array} 写入后的条目数组
@@ -83,7 +80,6 @@ const TranslationViewStore = {
   setViewItems(items) {
     const list = Array.isArray(items) ? items : [];
     this._viewItems = list;
-    AppState.translations.items = list;
     return list;
   },
 
@@ -178,7 +174,7 @@ const TranslationViewStore = {
   },
 
   /**
-   * 全清空（ProjectStore.clearProject 用）：稳定引用与兼容别名、
+   * 全清空（ProjectStore.clearProject 用）：稳定引用、
    * filtered / selected / multiSelected / currentPage / searchQuery /
    * selectedFile 全部复位。相比旧 clearProject 额外清理遗留的
    * multiSelected / selectedFile（项目已不存在，陈旧选中无意义）。
@@ -186,7 +182,6 @@ const TranslationViewStore = {
    */
   clearView() {
     this._viewItems = [];
-    AppState.translations.items = [];
     AppState.translations.filtered = [];
     AppState.translations.selected = -1;
     AppState.translations.multiSelected = [];

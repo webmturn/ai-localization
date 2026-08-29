@@ -612,8 +612,12 @@ var AIEngineBase = {
     var conversationEnabled = !!(settings.aiConversationEnabled ?? settings.deepseekConversationEnabled);
     var conversationScope = settings.aiConversationScope || settings.deepseekConversationScope || "project";
 
+    // 上下文条目：视图稳定引用优先，canonical 兜底（与旧 translations.items 读取序一致）
     var allItems = contextAwareEnabled
-      ? (Array.isArray(AppState?.translations?.items) ? AppState.translations.items
+      ? (typeof TranslationViewStore !== "undefined" &&
+        Array.isArray(TranslationViewStore.getViewItems()) &&
+        TranslationViewStore.getViewItems().length > 0
+        ? TranslationViewStore.getViewItems()
         : Array.isArray(AppState?.project?.translationItems) ? AppState.project.translationItems
           : [])
       : [];

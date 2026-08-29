@@ -212,9 +212,10 @@ function selectCurrentPageTranslationItems() {
     ? AppState.translations.filtered
     : [];
   if (filtered.length === 0) {
-    filtered = Array.isArray(AppState?.translations?.items)
-      ? AppState.translations.items
-      : all;
+    filtered =
+      typeof TranslationViewStore !== "undefined"
+        ? TranslationViewStore.getViewItems()
+        : all;
   }
   if (filtered.length === 0) return;
 
@@ -317,7 +318,7 @@ function updateTranslationItem(index, targetText) {
       if (typeof invalidateSearchCache === "function") invalidateSearchCache();
     }
 
-    // translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步
+    // 视图条目引用与 project.translationItems 由 ProjectStore 维持同步，无需重同步
 
     // 更新计数器
     updateCounters();

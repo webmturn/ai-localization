@@ -10,7 +10,7 @@ async function createNewProject() {
   }
 
   // 检查是否有未保存的项目
-  if (AppState.project && AppState.translations.items.length > 0) {
+  if (AppState.project && TranslationViewStore.getViewItems().length > 0) {
     const ok = await showConfirmDialog({
       title: "新建项目",
       message: "当前项目尚未保存，是否继续创建新项目？未保存的数据将丢失。",
@@ -101,7 +101,7 @@ function openProject() {
         }
 
         // 检查是否有未保存的项目
-        if (AppState.project && AppState.translations.items.length > 0) {
+        if (AppState.project && TranslationViewStore.getViewItems().length > 0) {
           const ok = await showConfirmDialog({
             title: "打开项目",
             message: "当前项目尚未保存，是否继续打开新项目？未保存的数据将丢失。",
@@ -168,7 +168,7 @@ async function saveProject() {
     return;
   }
 
-  // 更新项目数据（translationItems 与 translations.items 由 ProjectStore 维持同引用，无需重同步）
+  // 更新项目数据（视图条目引用与 project.translationItems 由 ProjectStore 维持同步，无需重同步）
   ProjectStore.touchProject();
   // 术语快照由 TerminologyStore 在每次变更时经 ProjectStore 同步；此处兜底对齐
   ProjectStore.setTerminologyList(TerminologyStore.getList());
@@ -191,7 +191,8 @@ async function saveProject() {
     sourceLanguage: AppState.project.sourceLanguage,
     targetLanguage: AppState.project.targetLanguage,
     fileFormat: AppState.project.fileFormat || "mixed",
-    translationItems: AppState.translations.items,
+    // 持久化读视图稳定引用（质量检查 swap 窗口期间仍为全量，与旧别名行为一致）
+    translationItems: TranslationViewStore.getViewItems(),
     terminologyList: TerminologyStore.getList(),
     promptTemplate: AppState.project.promptTemplate,
     fileMetadata: safeFileMetadata,

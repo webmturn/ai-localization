@@ -70,13 +70,13 @@ const GUARDED_PATTERNS = [
     "AppState.fileMetadata[key] 赋值",
     "core/project-store.js",
   ],
-  // AppState.translations.items = ...（视图稳定引用 + 兼容别名；阶段 2 起由
-  // TranslationViewStore.setViewItems 统一写入，阶段 3b 删除。直写会静默断裂
-  // 与 project.translationItems 的同引用，导致 saveProject 持久化旧条目）
+  // AppState.translations.items = ...（阶段 3b 已删除该兼容别名——
+  // 视图条目唯一数据源是 TranslationViewStore.getViewItems()，任何人不得
+  // 再写入/复活该字段。Owner 置为占位路径，永不豁免）
   [
     /AppState\.translations\.items\s*=(?!=)/,
-    "AppState.translations.items 赋值",
-    "core/translation-view-store.js",
+    "AppState.translations.items 赋值（字段已删除，视图条目经 TranslationViewStore.getViewItems()）",
+    "(字段已删除：无 Owner)",
   ],
   // delete AppState.fileMetadata[key]
   [
@@ -214,10 +214,11 @@ if (violations.length > 0) {
       "  - terminology 切片 → TerminologyStore\n" +
       "    （loadTerminology / mergeTerms / addTerm / updateTerm / removeTerm /\n" +
       "     clearTerminology / setPage / applyFilter / resetFilter 等）\n" +
-      "  - translations 视图态字段（含 items 别名）→ TranslationViewStore\n" +
+      "  - translations 视图态字段 → TranslationViewStore\n" +
       "    （setViewItems / setFilter / setSelection / setMultiSelection /\n" +
       "     setPage / setSearchQuery / setItemsPerPage / setSelectedFile /\n" +
-      "     resetView / clearView 等）"
+      "     resetView / clearView 等）；视图条目读取一律 getViewItems()\n" +
+      "    （AppState.translations.items 别名已在阶段 3b 删除，禁止复活）"
   );
   process.exit(1);
 }

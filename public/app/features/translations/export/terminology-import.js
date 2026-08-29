@@ -151,10 +151,8 @@ async function importTerminology() {
 
             const payload = {
               ...AppState.project,
-              translationItems:
-                AppState.project.translationItems ||
-                AppState.translations.items ||
-                [],
+              // canonical 条目经 ProjectStore getter（消灭别名兜底读）
+              translationItems: ProjectStore.getTranslationItems(),
               terminologyList: TerminologyStore.getList(),
               fileMetadata: safeFileMetadata,
             };

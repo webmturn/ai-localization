@@ -57,10 +57,10 @@ export function setupGlobals() {
     set: () => {},
   };
 
-  // AppState
+  // AppState（translations 不含 items——阶段 3b 已删除该兼容别名）
   globalThis.AppState = globalThis.AppState || {
     project: null,
-    translations: { items: [] },
+    translations: {},
     terminology: { entries: [] },
     ui: {},
   };

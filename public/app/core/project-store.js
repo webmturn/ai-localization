@@ -8,8 +8,8 @@
 //
 // 约定：
 // - canonical 数据：翻译条目以 AppState.project.translationItems 为准；
-//   AppState.translations.items 为视图稳定引用 + 兼容别名，由
-//   TranslationViewStore.setViewItems 统一写入（阶段 3b 删除该字段）。
+//   视图稳定引用由 TranslationViewStore.setViewItems / getViewItems 维护
+//   （阶段 3b 已删除 AppState.translations.items 兼容别名）。
 // - fileMetadata 以 AppState.fileMetadata 为准；
 //   AppState.project.fileMetadata 为指向同一对象的派生引用（由 Store 维护）。
 // - 业务代码禁止再直接写 AppState.project / AppState.fileMetadata，
@@ -190,8 +190,19 @@ const ProjectStore = {
   },
 
   /**
+   * 读取 canonical 翻译条目（持久化/导出/导入合并等场景）。
+   * 注意：质量检查 swapTranslationItems 窗口期间返回临时换入的数组；
+   * 渲染/交互场景应读 TranslationViewStore.getViewItems()（swap 期间仍为全量）。
+   *
+   * @returns {Array} AppState.project.translationItems（无项目时空数组）
+   */
+  getTranslationItems() {
+    return (AppState.project && AppState.project.translationItems) || [];
+  },
+
+  /**
    * 整体替换翻译条目（导入合并、质量检查临时替换/恢复等场景）。
-   * canonical 写入 project.translationItems，视图稳定引用 + 兼容别名经
+   * canonical 写入 project.translationItems，视图稳定引用经
    * TranslationViewStore.setViewItems 同步。
    *
    * @param {Array} items - 新的完整条目数组
@@ -207,9 +218,9 @@ const ProjectStore = {
   /**
    * 临时换出 canonical 条目数组（质量检查按文件范围限定检查的场景）。
    * 仅替换 project.translationItems，不触碰视图稳定引用
-   * （TranslationViewStore.getViewItems 仍指向全量列表，渲染不受影响——
-   * 显式设计，见 translation-view-store.js 头部说明）；检查期间的别名断裂
-   * 是预期且临时的，调用方结束后必须用本方法传回原数组恢复。
+   * （TranslationViewStore.getViewItems 仍指向全量列表，渲染与持久化不受
+   * 影响——显式设计，见 translation-view-store.js 头部说明）；
+   * 调用方结束后必须用本方法传回原数组恢复。
    *
    * @param {Array} items - 临时使用的条目数组
    * @returns {Array|null} 原条目数组（供恢复）

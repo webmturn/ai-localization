@@ -9,7 +9,8 @@
  *   - quality 切片（checkScope / checkConcurrency）显式声明
  *   - ui.autoScrollEnabled 显式声明
  *   - qualityCheckResults 含 scope / fileName 字段
- *   - window.qualityCheckResults 别名登记（阶段 3b 待清理）
+ *   - 阶段 3b：translations.items 兼容别名与 window.qualityCheckResults
+ *     全局别名均已删除
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { loadSource } from "./setup.mjs";
@@ -59,8 +60,15 @@ describe("AppState 切片显式声明（阶段 0）", () => {
     expect(qr.fileName).toBeNull();
   });
 
-  it("window.qualityCheckResults 别名指向 AppState.qualityCheckResults（阶段 3b 待清理）", () => {
-    expect(window.qualityCheckResults).toBe(AppState.qualityCheckResults);
+  it("window.qualityCheckResults 全局别名已删除（阶段 3b）", () => {
+    // 读取方一律经 AppState.qualityCheckResults
+    expect(
+      typeof window === "undefined" || !("qualityCheckResults" in window)
+    ).toBe(true);
+  });
+
+  it("translations.items 兼容别名已删除（阶段 3b，视图条目经 TranslationViewStore）", () => {
+    expect("items" in AppState.translations).toBe(false);
   });
 
   it("不存在幽灵 settings 切片（bootstrap 不再动态创建）", () => {

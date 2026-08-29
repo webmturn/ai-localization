@@ -39,11 +39,12 @@ async function __runQualityCheckImpl() {
     return;
   }
 
+  // 全量条目：视图稳定引用优先（swap 窗口期间仍为全量），canonical 兜底
   const allItems =
-    (Array.isArray(AppState.translations?.items) &&
-      AppState.translations.items) ||
-    (Array.isArray(AppState.project.translationItems) &&
-      AppState.project.translationItems) ||
+    (typeof TranslationViewStore !== "undefined" &&
+      TranslationViewStore.getViewItems()) ||
+    (typeof ProjectStore !== "undefined" &&
+      ProjectStore.getTranslationItems()) ||
     [];
 
   let checkScope = AppState?.quality?.checkScope;
@@ -62,7 +63,11 @@ async function __runQualityCheckImpl() {
   let items = allItems;
   let scopeFileName = null;
   if (checkScope === "file") {
-    const selectedFile = AppState?.translations?.selectedFile;
+    // 选中文件经 TranslationViewStore getter（视图态唯一 Owner）
+    const selectedFile =
+      (typeof TranslationViewStore !== "undefined" &&
+        TranslationViewStore.getSelectedFile()) ||
+      null;
     if (!selectedFile) {
       showNotification(
         "warning",
@@ -79,6 +84,14 @@ async function __runQualityCheckImpl() {
     showNotification("warning", "无数据", "请先加载项目或添加翻译项");
     return;
   }
+
+  // 术语上下文快照：检查开始时一次性注入下游检查函数
+  // （features/quality 不直读 TerminologyStore / AppState.terminology）
+  const termContext =
+    (typeof TerminologyStore !== "undefined" &&
+      Array.isArray(TerminologyStore.getList()) &&
+      TerminologyStore.getList()) ||
+    [];
 
   __qualityIsChecking = true;
   __qualityCheckCache.clear();
@@ -141,7 +154,10 @@ async function __runQualityCheckImpl() {
       const end = Math.min(start + batchSize, items.length);
       const batch = items.slice(start, end);
 
-      const batchResults = await __processBatchImpl(batch, { concurrency });
+      const batchResults = await __processBatchImpl(batch, {
+        concurrency,
+        terms: termContext,
+      });
 
       qr.translatedCount += batchResults.translatedCount;
       qr.issues.push(...batchResults.issues);
@@ -235,6 +251,9 @@ async function __processBatchImpl(items) {
     Math.min(50, Math.floor(Number(options?.concurrency) || 8))
   );
 
+  // 术语上下文由 run() 注入（快照）；缺省时为空列表（跳过术语检查）
+  const terms = Array.isArray(options?.terms) ? options.terms : [];
+
   const batchResults = {
     translatedCount: 0,
     issues: [],
@@ -243,7 +262,7 @@ async function __processBatchImpl(items) {
 
   const results = await __mapWithConcurrencyImpl(
     items,
-    (item) => __checkTranslationItemCachedImpl(item),
+    (item) => __checkTranslationItemCachedImpl(item, terms),
     concurrency
   );
 

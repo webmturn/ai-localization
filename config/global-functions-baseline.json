@@ -466,9 +466,6 @@
     "ProjectStore": [
       "core/project-store.js"
     ],
-    "qualityCheckResults": [
-      "core/state.js"
-    ],
     "quickHealthCheck": [
       "dev-tools/error-system-test.js"
     ],
@@ -632,6 +629,9 @@
     ],
     "TranslationValidators": [
       "utils/validators-v2.js"
+    ],
+    "TranslationViewStore": [
+      "core/translation-view-store.js"
     ],
     "TypeAssert": [
       "types/core-types.js"

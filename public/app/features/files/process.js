@@ -132,8 +132,10 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
     (loggers.app || console).debug("processFiles sample cleanup:", e);
   }
 
+  // canonical 条目经 ProjectStore getter（导入合并在全量基础上进行）
   const existingItems =
-    AppState.project?.translationItems || AppState.translations.items || [];
+    (typeof ProjectStore !== "undefined" && ProjectStore.getTranslationItems()) ||
+    [];
   const keptItems = existingItems.filter((it) => {
     const fn = it?.metadata?.file;
     if (!fn) return true;

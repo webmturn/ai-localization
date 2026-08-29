@@ -21,14 +21,14 @@ function __getQualityCheckOptions() {
   }
 }
 
-async function __checkTranslationItemCachedImpl(item) {
+async function __checkTranslationItemCachedImpl(item, terms) {
   const cacheKey = `${item.id}-${item.sourceText}-${item.targetText}`;
 
   if (__qualityCheckCache.has(cacheKey)) {
     return __qualityCheckCache.get(cacheKey);
   }
 
-  const result = await __checkTranslationItemOptimizedImpl(item);
+  const result = await __checkTranslationItemOptimizedImpl(item, terms);
 
   if (__qualityCheckCache.size < 1000) {
     __qualityCheckCache.set(cacheKey, result);
@@ -37,7 +37,7 @@ async function __checkTranslationItemCachedImpl(item) {
   return result;
 }
 
-async function __checkTranslationItemOptimizedImpl(item) {
+async function __checkTranslationItemOptimizedImpl(item, terms) {
   const result = {
     isTranslated: false,
     issues: [],
@@ -79,12 +79,10 @@ async function __checkTranslationItemOptimizedImpl(item) {
     }
   }
 
-  // 术语上下文读自 TerminologyStore getter（阶段 4 将改为 run() 入参注入）
-  const __termList =
-    typeof TerminologyStore !== "undefined" && TerminologyStore
-      ? TerminologyStore.getList()
-      : [];
-  if (opts.checkTerminology && __termList && __termList.length > 0) {
+  // 术语上下文由 run() 入参注入（检查开始时的快照）；
+  // 本模块不直读 TerminologyStore / AppState.terminology（依赖注入，可测）
+  const __termList = Array.isArray(terms) ? terms : [];
+  if (opts.checkTerminology && __termList.length > 0) {
     const termsToCheck = __termList.slice(0, 100);
     const sourceLower = item.sourceText.toLowerCase();
     const targetLower = item.targetText.toLowerCase();

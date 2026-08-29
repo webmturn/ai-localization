@@ -162,10 +162,8 @@ class AutoSaveManager {
 
       const payload = {
         ...AppState.project,
-        translationItems:
-          AppState.translations.items ||
-          AppState.project.translationItems ||
-          [],
+        // 持久化读视图稳定引用（swap 窗口期间仍为全量，与旧别名行为一致）
+        translationItems: TranslationViewStore.getViewItems(),
         // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
         terminologyList: TerminologyStore.getList(),
         fileMetadata: safeFileMetadata,
@@ -203,10 +201,8 @@ class AutoSaveManager {
 
           const slimPayload = {
             ...AppState.project,
-            translationItems:
-              AppState.translations.items ||
-              AppState.project.translationItems ||
-              [],
+            // 持久化读视图稳定引用（swap 窗口期间仍为全量，与旧别名行为一致）
+            translationItems: TranslationViewStore.getViewItems(),
             // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
             terminologyList: TerminologyStore.getList(),
             fileMetadata: slimFileMetadata,

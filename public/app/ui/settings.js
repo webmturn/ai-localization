@@ -390,7 +390,7 @@ function applySettings(settings) {
     TranslationViewStore.setItemsPerPage(parseInt(settings.itemsPerPage));
     TranslationViewStore.setPage(1); // 重置到第一页
     // 刷新翻译列表
-    if (AppState.translations.items.length > 0) {
+    if (TranslationViewStore.getViewItems().length > 0) {
       updateTranslationLists();
     }
   }
@@ -398,7 +398,7 @@ function applySettings(settings) {
   if (settings.sourceSelectionIndicatorEnabled !== undefined) {
     AppState.ui.sourceSelectionIndicatorEnabled =
       !!settings.sourceSelectionIndicatorEnabled;
-    if (AppState.translations.items.length > 0) {
+    if (TranslationViewStore.getViewItems().length > 0) {
       updateTranslationLists();
     }
   }
@@ -406,7 +406,7 @@ function applySettings(settings) {
   if (settings.sourceSelectionIndicatorUnselectedStyle) {
     AppState.ui.sourceSelectionIndicatorUnselectedStyle =
       settings.sourceSelectionIndicatorUnselectedStyle;
-    if (AppState.translations.items.length > 0) {
+    if (TranslationViewStore.getViewItems().length > 0) {
       updateTranslationLists();
     }
   }

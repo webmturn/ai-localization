@@ -1,9 +1,9 @@
 async function exportTranslation() {
+  // 导出范围 = 视图稳定引用（与旧 translations.items 同源）
+  const viewItems = TranslationViewStore.getViewItems();
+
   // 检查是否有翻译项
-  if (
-    !AppState.translations.items ||
-    AppState.translations.items.length === 0
-  ) {
+  if (!viewItems || viewItems.length === 0) {
     showNotification(
       "warning",
       "无翻译项",
@@ -21,12 +21,12 @@ async function exportTranslation() {
     "exportIncludeOriginal"
   ).checked;
 
-  (loggers.app || console).debug("导出前总翻译项数量:", AppState.translations.items.length);
+  (loggers.app || console).debug("导出前总翻译项数量:", viewItems.length);
   (loggers.app || console).debug("仅导出已翻译项选项:", onlyTranslated);
   (loggers.app || console).debug("包含原文选项:", includeOriginal);
 
   // 过滤翻译项
-  let itemsToExport = [...AppState.translations.items];
+  let itemsToExport = [...viewItems];
 
   // 如果选择了“仅导出已翻译项”，则过滤掉未翻译的项
   if (onlyTranslated) {

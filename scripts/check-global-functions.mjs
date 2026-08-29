@@ -11,11 +11,18 @@
  * 治理策略与第二阶段一致：先冻结存量、阻断新增，再渐进迁移到
  * 命名空间（App.impl）/ DI 容器。本脚本负责"阻断新增"：
  *
- *   - 扫描 public/app 下所有 `window.<name> =` 顶层挂载；
+ *   - 扫描 public/app 下所有 `window.<name> =` 顶层挂载（含 ||=、??= 等
+ *     复合赋值形式）；
  *   - 与基线 config/global-functions-baseline.json 对比；
  *   - 出现基线外的新挂载 → 报错并非零码退出（供 CI 拦截）；
  *   - 基线内挂载被移除 → 提示收敛（好事，建议 --update 收缩基线）；
  *   - 同一名字被多个文件挂载 → 报告重复（覆盖冲突隐患）。
+ *
+ * 已知局限：括号记法（`window['name'] = ...`）不经过本检查。现有三处
+ * 动态挂载属基础设施白名单，新增动态挂载需在评审时人工把关：
+ *   - core/bootstrap.js          （window['AppState']）
+ *   - core/architecture/module-manager.js（按导出名挂载）
+ *   - core/architecture/architecture-debug.js（调试工具注入）
  *
  * 用法：
  *   node scripts/check-global-functions.mjs           # 检查（新增即失败）
@@ -30,9 +37,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const APP_DIR = join(ROOT, "public", "app");
 const BASELINE_FILE = join(ROOT, "config", "global-functions-baseline.json");
 
-// 顶层挂载：`window.<name> =`（排除 == / ===；`window.App.impl.x =` 这类
-// 命名空间内部写入不算顶层全局，不参与冻结）
-const MOUNT_RE = /^\s*window\.([A-Za-z_$][\w$]*)\s*=(?!=)/;
+// 顶层挂载：`window.<name> =` 及复合赋值形式（||=、&&=、??=、+=、%= 等）。
+// 排除 == / ===（`(?!=)` 负向前瞻）；`window.App.impl.x =` 这类命名空间
+// 内部写入不算顶层全局，不参与冻结。
+const MOUNT_RE =
+  /^\s*window\.([A-Za-z_$][\w$]*)\s*(?:\|\||&&|\?\?|\*\*|<<|>>>|>>|[+\-*/%&|^])?=(?!=)/;
 
 /** 递归收集 .js 源文件（跳过 lib/ 第三方库） */
 function collectJsFiles(dir, out = []) {
@@ -88,8 +97,7 @@ if (UPDATE_MODE) {
     JSON.stringify(
       {
         _comment:
-          "全局函数冻结基线：window.<name> 顶层挂载清单（自动生成，勿手改）。新增挂载会被 CI 拦截；迁移移除后请运行 node scripts/check-global-functions.mjs --update 收缩基线。",
-        generatedAt: new Date().toISOString(),
+          "全局函数冻结基线：window.<name> 顶层挂载清单（自动生成，勿手改）。新增挂载会被 CI 拦截；迁移移除后请运行 node scripts/check-global-functions.mjs --update 收缩基线。变更时间以 git 历史为准。",
         mounts: current,
       },
       null,

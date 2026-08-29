@@ -1,6 +1,5 @@
 {
-  "_comment": "全局函数冻结基线：window.<name> 顶层挂载清单（自动生成，勿手改）。新增挂载会被 CI 拦截；迁移移除后请运行 node scripts/check-global-functions.mjs --update 收缩基线。",
-  "generatedAt": "2026-08-28T16:52:38.109Z",
+  "_comment": "全局函数冻结基线：window.<name> 顶层挂载清单（自动生成，勿手改）。新增挂载会被 CI 拦截；迁移移除后请运行 node scripts/check-global-functions.mjs --update 收缩基线。变更时间以 git 历史为准。",
   "mounts": {
     "__appBootstrap": [
       "core/bootstrap.js"

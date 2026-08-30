@@ -77,54 +77,10 @@ function __exportQualityReportPdfImpl() {
   const generatedAt = new Date();
   const opts = typeof __getQualityCheckOptions === "function" ? __getQualityCheckOptions() : {};
 
-  function clampScore(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.min(100, Math.round(n)));
-  }
-
   function buildScores() {
-    const issues = Array.isArray(results?.issues) ? results.issues : [];
-    const emptyIssues = issues.filter((i) => i && i.type === "empty").length;
-    const termIssues = issues.filter((i) => i && i.type === "terminology").length;
-    const formatIssues = issues.filter((i) => i && i.type === "format").length;
-    const lengthIssues = issues.filter((i) => i && i.type === "length").length;
-    const varIssues = issues.filter((i) => i && i.type === "variable").length;
-    const punctuationIssues = issues.filter((i) => i && i.type === "punctuation").length;
-    const numbersIssues = issues.filter((i) => i && i.type === "numbers").length;
-    const totalChecked = Number(results?.translatedCount || 0);
-
-    const accuracyScore = clampScore(
-      totalChecked > 0 ? (1 - emptyIssues / totalChecked) * 100 : 100
-    );
-    const termScore = clampScore(
-      totalChecked > 0 ? (1 - termIssues / totalChecked) * 100 : 100
-    );
-    const formatScore = clampScore(
-      totalChecked > 0 ? (1 - formatIssues / totalChecked) * 100 : 100
-    );
-    const lengthScore = clampScore(
-      totalChecked > 0 ? (1 - lengthIssues / totalChecked) * 100 : 100
-    );
-    const varScore = clampScore(
-      totalChecked > 0 ? (1 - varIssues / totalChecked) * 100 : 100
-    );
-    const punctuationScore = clampScore(
-      totalChecked > 0 ? (1 - punctuationIssues / totalChecked) * 100 : 100
-    );
-    const numbersScore = clampScore(
-      totalChecked > 0 ? (1 - numbersIssues / totalChecked) * 100 : 100
-    );
-
-    return {
-      accuracyScore,
-      termScore,
-      formatScore,
-      lengthScore,
-      varScore,
-      punctuationScore,
-      numbersScore,
-    };
+    // 维度分数统一由 scoring.js 的 __computeDimensionScoresImpl 计算
+    // （此前本文件与 charts.js 各持一份同逻辑拷贝，已合并）
+    return __computeDimensionScoresImpl();
   }
 
   function getOnScreenChartDataUrl(id) {
@@ -204,6 +160,8 @@ function __exportQualityReportPdfImpl() {
     varScore,
     punctuationScore,
     numbersScore,
+    totalItems,
+    translatedItems,
   } = scores;
 
   const radarDef = [
@@ -214,7 +172,11 @@ function __exportQualityReportPdfImpl() {
     { label: "变量", data: varScore, enabled: opts.checkPlaceholders },
     { label: "标点", data: punctuationScore, enabled: opts.checkPunctuation },
     { label: "数字", data: numbersScore, enabled: opts.checkNumbers },
-  ].filter(function (d) { return d.enabled; });
+  ].filter(function (d) {
+    // 与雷达图一致：分母为 0 的维度不适用，不导出
+    if (d.label === "准确性") return totalItems > 0;
+    return translatedItems > 0;
+  });
   const radarLabels = radarDef.map(function (d) { return d.label; });
   const radarData = radarDef.map(function (d) { return d.data; });
 
@@ -222,7 +184,10 @@ function __exportQualityReportPdfImpl() {
     { label: "术语一致性", data: termScore, enabled: opts.checkTerminology },
     { label: "格式一致性", data: formatScore, enabled: opts.checkPlaceholders },
     { label: "变量一致性", data: varScore, enabled: opts.checkPlaceholders },
-  ].filter(function (d) { return d.enabled; });
+  ].filter(function (d) {
+    // 三个维度均基于已翻译条目，无可检查条目时一并剔除
+    return d.enabled && translatedItems > 0;
+  });
   const consistencyLabels = consistencyDef.map(function (d) { return d.label; });
   const consistencyData = consistencyDef.map(function (d) { return d.data; });
 

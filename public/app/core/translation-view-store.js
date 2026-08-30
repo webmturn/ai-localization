@@ -16,20 +16,20 @@
 // 稳定视图条目引用（显式设计）：
 // - 本 Store 内部持有 _viewItems，由 ProjectStore 在 loadProject /
 //   setTranslationItems / replaceFileItems 时经 setViewItems() 设置；
-// - ProjectStore.swapTranslationItems（质量检查临时换出 canonical 条目）不触碰它，
-//   因此检查期间渲染仍看到全量列表——此前依赖"预期的别名断裂"，现为显式设计；
+// - 质量检查不再临时换出 canonical（swapTranslationItems 已删除：
+//   检查链路经入参注入，无需改动 canonical，避免索引错位窗口）；
 // - 渲染与持久化一律经 getViewItems() 读取。
 //
 // 约定：业务代码禁止再直接写 translations 视图态字段，一律经由本 Store
 // （CI 静态检查 scripts/check-state-ownership.mjs 守护）。
 
 const TranslationViewStore = {
-  // 稳定的视图条目引用（唯一的视图条目数据源；swap 窗口期间仍为全量列表）
+  // 稳定的视图条目引用（唯一的视图条目数据源）
   _viewItems: [],
 
   // ──────────────── getters（读取一律走这里） ────────────────
 
-  /** @returns {Array} 视图条目（稳定引用，质量检查 swap 期间不被换出） */
+  /** @returns {Array} 视图条目（稳定引用） */
   getViewItems() {
     return this._viewItems;
   },

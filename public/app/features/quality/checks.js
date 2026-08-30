@@ -175,6 +175,16 @@ function __extractChineseNumberValuesImpl(text) {
   return values;
 }
 
+// 术语词边界匹配：拉丁字母/数字术语要求前后无 [a-z0-9_] 连续字符，
+// 排除子串误命中（如 "king" 命中术语 "in"、"_count_" 命中术语 "count"）；
+// 纯 CJK/标点术语无单词边界概念，退化为子串包含。
+function __isTermMatchImpl(text, termLower) {
+  if (!text || !termLower) return false;
+  if (!/[a-z0-9]/i.test(termLower)) return text.includes(termLower);
+  const escaped = termLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9_])${escaped}(?![a-z0-9_])`, "i").test(text);
+}
+
 async function __checkTranslationItemOptimizedImpl(item, terms) {
   const result = {
     isTranslated: false,
@@ -224,21 +234,32 @@ async function __checkTranslationItemOptimizedImpl(item, terms) {
     const sourceLower = item.sourceText.toLowerCase();
     const targetLower = item.targetText.toLowerCase();
     for (const term of __termList) {
-      const termSourceLower = term.source.toLowerCase();
-      const termTargetLower = term.target.toLowerCase();
-      if (sourceLower.includes(termSourceLower)) {
-        result.termMatches++;
-        if (!targetLower.includes(termTargetLower)) {
-          result.issues.push({
-            itemId: item.id,
-            sourceText: item.sourceText,
-            targetText: item.targetText,
-            type: "terminology",
-            typeName: "术语不一致",
-            severity: "medium",
-            description: `应使用术语“${term.target}”替代“${term.source}”`,
-          });
-        }
+      const termSourceLower = (term.source || "").toLowerCase();
+      const termTargetLower = (term.target || "").toLowerCase();
+      // 空 source 术语无法界定命中，跳过（旧实现 includes("") 恒真导致误计数）；
+      // 空 target 术语无法校验译文是否正确使用——计命中会虚增一致性百分比
+      // （Bug 修复：曾按"已正确使用"处理），不计命中、不产 issue，静默跳过
+      if (!termSourceLower || !termTargetLower) continue;
+      // 先子串快速排除，再做词边界精确判定（边界匹配蕴含子串命中）
+      if (
+        !sourceLower.includes(termSourceLower) ||
+        !__isTermMatchImpl(sourceLower, termSourceLower)
+      ) {
+        continue;
+      }
+      result.termMatches++;
+      // 译文侧同样用词边界判定，避免子串恰好包含
+      // （如 "rapid" 含 "api"）被误判为已使用
+      if (!__isTermMatchImpl(targetLower, termTargetLower)) {
+        result.issues.push({
+          itemId: item.id,
+          sourceText: item.sourceText,
+          targetText: item.targetText,
+          type: "terminology",
+          typeName: "术语不一致",
+          severity: "medium",
+          description: `应使用术语“${term.target}”替代“${term.source}”`,
+        });
       }
     }
   }
@@ -378,6 +399,7 @@ function __escapeRegexImpl(text) {
   App.impl = App.impl || {};
   App.impl.checkTranslationItemCached = __checkTranslationItemCachedImpl;
   App.impl.checkTranslationItemOptimized = __checkTranslationItemOptimizedImpl;
+  App.impl.isTermMatch = __isTermMatchImpl;
   App.impl.extractPlaceholderTokens = __extractPlaceholderTokensImpl;
   App.impl.normalizeNumberToken = __normalizeNumberTokenImpl;
   App.impl.extractNumbers = __extractNumbersImpl;

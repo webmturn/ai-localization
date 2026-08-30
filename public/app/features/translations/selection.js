@@ -40,6 +40,70 @@ function animateScrollTo(container, target) {
   __scrollAnim.raf = requestAnimationFrame(step);
 }
 
+// ==================== 最小揭示滚动（全局共享） ====================
+// 三处调用方统一复用（此前 selection.js / render.js / quality/ui.js 各持一份
+// 同算法拷贝，已合并）：
+// - mode "selection"：键盘导航选中项——条目完全可见就不滚（保守），
+//   边距取一行条目高度（≤120px）
+// - mode 缺省（"jump"）：搜索/质量报告等跳转定位——舒适区判定
+//   （margin 区域内也滚到舒适位），边距取 min(80, 容器高度 15%)
+// 偏移用 getBoundingClientRect 几何换算——offsetParent 链在
+// position:static 的滚动容器下会跳过容器本身（已实测），不可靠。
+function smartScrollToComfortZone(el, mode) {
+  if (!el) return;
+
+  const container =
+    DOMCache.get("translationScrollWrapper") ||
+    el.closest(".translation-scroll-wrapper");
+  // 降级路径（无容器/无高度）：scrollIntoView 兜底（罕见）
+  if (!container || !container.clientHeight) {
+    el.scrollIntoView({ block: "nearest" });
+    return;
+  }
+
+  const containerHeight = container.clientHeight;
+  const itemHeight = el.offsetHeight || 0;
+  const current = container.scrollTop;
+  const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
+
+  // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const offset = elRect.top - containerRect.top + container.scrollTop;
+
+  let margin;
+  if (mode === "selection") {
+    // 完全可见就不滚动，避免连续键盘导航抖动
+    if (offset >= current && offset + itemHeight <= current + containerHeight) {
+      return;
+    }
+    margin = Math.min(120, itemHeight || 96);
+  } else {
+    margin = Math.min(80, containerHeight * 0.15);
+  }
+
+  const itemTop = offset;
+  const itemBottom = offset + itemHeight;
+  const visibleTop = current + margin;
+  const visibleBottom = current + containerHeight - margin;
+
+  let target = current;
+  if (itemBottom > visibleBottom) {
+    // 条目在视口下方：向上滚到刚好露出，下方多留边距
+    target = itemBottom - containerHeight + margin;
+  } else if (itemTop < visibleTop) {
+    // 条目在视口上方：向下滚到刚好露出，上方多留边距
+    target = itemTop - margin;
+  } else {
+    return;
+  }
+
+  target = Math.max(0, Math.min(maxScroll, target));
+  if (Math.abs(target - current) < 2) return;
+
+  animateScrollTo(container, target);
+}
+
 function updateSelectionStyles() {
   const options = arguments.length > 0 && arguments[0] ? arguments[0] : {};
   // 默认「不滚动」，只有显式传入 shouldScroll: true（例如键盘导航）时才滚动
@@ -48,53 +112,7 @@ function updateSelectionStyles() {
 
   // 最小揭示滚动：仅当条目越界时滚动到刚好可见（留约一行上下文），
   // 已完全可见则不动。避免"每次选中都跳到视口中央"的大幅跳动。
-  // 偏移用 getBoundingClientRect 几何换算——offsetParent 链在
-  // position:static 的滚动容器下会跳过容器本身，永远找不到父级（已实测），
-  // 导致此前所有滚动都落入 scrollIntoView 兜底（瞬跳 + 居中）。
-  const smartScrollToComfortZone = (el) => {
-    if (!el) return;
-
-    const container =
-      DOMCache.get("translationScrollWrapper") ||
-      el.closest(".translation-scroll-wrapper");
-    // 降级路径（无容器/无高度）：scrollIntoView 兜底（罕见）
-    if (!container || !container.clientHeight) {
-      el.scrollIntoView({ block: "nearest" });
-      return;
-    }
-
-    // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
-    const containerRect = container.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const offset = elRect.top - containerRect.top + container.scrollTop;
-
-    const containerHeight = container.clientHeight;
-    const itemHeight = el.offsetHeight || 0;
-    const current = container.scrollTop;
-    const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-
-    // 如果当前整行已经完全可见，就不滚动，避免抖动
-    if (offset >= current && offset + itemHeight <= current + containerHeight) {
-      return;
-    }
-
-    // 最小滚动量 + 一行上下文边距（约一个条目高度，封顶 120px）
-    const margin = Math.min(120, itemHeight || 96);
-    let target;
-    if (offset + itemHeight > current + containerHeight) {
-      // 条目在视口下方：向上滚到刚好露出，下方多留一行
-      target = offset + itemHeight - containerHeight + margin;
-    } else {
-      // 条目在视口上方：向下滚到刚好露出，上方多留一行
-      target = offset - margin;
-    }
-
-    // 夹紧到可滚动范围
-    target = Math.max(0, Math.min(maxScroll, target));
-
-    if (Math.abs(target - current) < 2) return;
-    animateScrollTo(container, target);
-  };
+  // 算法体已提升为全局 smartScrollToComfortZone（本文件上方）。
 
   const isMobile = isMobileViewport();
   const primaryIndex = AppState.translations.selected;
@@ -211,7 +229,7 @@ function updateSelectionStyles() {
     // 选择变更不会改变内容高度，跳过 syncTranslationHeights 避免高度重置导致屏闪
     requestAnimationFrame(() => {
       if (!scrollTargetEl.isConnected) return;
-      smartScrollToComfortZone(scrollTargetEl);
+      smartScrollToComfortZone(scrollTargetEl, "selection");
     });
     return;
   }

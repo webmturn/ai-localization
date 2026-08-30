@@ -191,8 +191,7 @@ const ProjectStore = {
 
   /**
    * 读取 canonical 翻译条目（持久化/导出/导入合并等场景）。
-   * 注意：质量检查 swapTranslationItems 窗口期间返回临时换入的数组；
-   * 渲染/交互场景应读 TranslationViewStore.getViewItems()（swap 期间仍为全量）。
+   * 渲染/交互场景应读 TranslationViewStore.getViewItems()。
    *
    * @returns {Array} AppState.project.translationItems（无项目时空数组）
    */
@@ -201,7 +200,7 @@ const ProjectStore = {
   },
 
   /**
-   * 整体替换翻译条目（导入合并、质量检查临时替换/恢复等场景）。
+   * 整体替换翻译条目（导入合并等场景）。
    * canonical 写入 project.translationItems，视图稳定引用经
    * TranslationViewStore.setViewItems 同步。
    *
@@ -213,22 +212,6 @@ const ProjectStore = {
     if (AppState.project) AppState.project.translationItems = list;
     TranslationViewStore.setViewItems(list);
     return list;
-  },
-
-  /**
-   * 临时换出 canonical 条目数组（质量检查按文件范围限定检查的场景）。
-   * 仅替换 project.translationItems，不触碰视图稳定引用
-   * （TranslationViewStore.getViewItems 仍指向全量列表，渲染与持久化不受
-   * 影响——显式设计，见 translation-view-store.js 头部说明）；
-   * 调用方结束后必须用本方法传回原数组恢复。
-   *
-   * @param {Array} items - 临时使用的条目数组
-   * @returns {Array|null} 原条目数组（供恢复）
-   */
-  swapTranslationItems(items) {
-    const prev = AppState.project ? AppState.project.translationItems : null;
-    if (AppState.project) AppState.project.translationItems = items || [];
-    return prev;
   },
 
   /**

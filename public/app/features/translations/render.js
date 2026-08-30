@@ -1006,57 +1006,8 @@ function handleSearchEnter() {
 // 滚动到指定的翻译项
 async function scrollToItem(index) {
   try {
-    // 与 selection.js 的 smartScrollToComfortZone 同算法；滚动执行统一走
-    // 全局 animateScrollTo（rAF 自绘动画，不受 prefers-reduced-motion 影响）
-    // 偏移用 getBoundingClientRect 几何换算（offsetParent 链在 static 容器下不可靠）
-    const smartScrollToComfortZone = (el) => {
-      if (!el) return;
-      const container =
-        DOMCache.get("translationScrollWrapper") ||
-        el.closest(".translation-scroll-wrapper");
-      if (!container) {
-        el.scrollIntoView({ block: "nearest" });
-        return;
-      }
-
-      const containerHeight = container.clientHeight || 0;
-      if (!containerHeight) {
-        el.scrollIntoView({ block: "nearest" });
-        return;
-      }
-
-      // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
-      const containerRect = container.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const offsetTop = elRect.top - containerRect.top + container.scrollTop;
-
-      const itemHeight = el.offsetHeight || 0;
-      const current = container.scrollTop;
-      const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-      const margin = Math.min(80, containerHeight * 0.15);
-
-      const itemTop = offsetTop;
-      const itemBottom = offsetTop + itemHeight;
-
-      const visibleTop = current + margin;
-      const visibleBottom = current + containerHeight - margin;
-
-      let target = current;
-
-      if (itemBottom > visibleBottom) {
-        target = itemBottom - containerHeight + margin;
-      } else if (itemTop < visibleTop) {
-        target = itemTop - margin;
-      } else {
-        return;
-      }
-
-      target = Math.max(0, Math.min(maxScroll, target));
-      if (Math.abs(target - current) < 2) return;
-
-      animateScrollTo(container, target);
-    };
-
+    // 滚动统一走全局 smartScrollToComfortZone（selection.js 定义，
+    // 此前本文件持有一份同算法拷贝，已合并）
     const tryScroll = () => {
       // 移动端：滚动合并列表
       if (isMobileViewport()) {

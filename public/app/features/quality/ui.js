@@ -110,10 +110,22 @@ function __updateQualityReportUIImpl() {
   if (elMedium) elMedium.textContent = mediumIssues;
   if (elLow) elLow.textContent = lowIssues;
 
-  const termConsistency = results.termMatches > 0 ? 100 : 0;
+  // 术语一致性 = 命中术语中译文也正确使用的比例（termMatches 是源文术语
+  // 出现次数，术语不一致 issue 数即其中译文未正确使用的次数）。
+  // 无术语命中（含术语检查关闭）时不适用，显示 "—" 而非误导性的 0%/100%。
+  const termIssues = results.issues.filter((i) => i.type === "terminology").length;
+  const termConsistency =
+    results.termMatches > 0
+      ? Math.max(
+          0,
+          Math.round(((results.termMatches - termIssues) / results.termMatches) * 100)
+        )
+      : null;
   const elTermConsistency = DOMCache.get("termConsistency");
   const elTermMatches = DOMCache.get("termMatches");
-  if (elTermConsistency) elTermConsistency.textContent = `${termConsistency}%`;
+  if (elTermConsistency)
+    elTermConsistency.textContent =
+      termConsistency === null ? "—" : `${termConsistency}%`;
   if (elTermMatches) elTermMatches.textContent = results.termMatches;
 
   // 术语截断提示：术语库超过检查上限时告知用户有术语未参与检查
@@ -349,35 +361,37 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
 }
 
 async function __focusTranslationItemImpl(itemId) {
-  closeModal("qualityReportModal");
-
   const allItems = AppState.project?.translationItems || [];
   const normalizedItemId = itemId;
-  const isNumericIndex =
-    typeof normalizedItemId === "number" ||
-    (typeof normalizedItemId === "string" && /^\d+$/.test(normalizedItemId));
 
-  const parsedIndex = isNumericIndex ? Number(normalizedItemId) : -1;
-  const index =
-    isNumericIndex && parsedIndex >= 0 && parsedIndex < allItems.length
-      ? parsedIndex
-      : allItems.findIndex(
-          (item) =>
-            item?.id === normalizedItemId ||
-            String(item?.id) === String(normalizedItemId)
-        );
+  // id 优先定位：与翻译条目的 id 语义严格一致。纯数字 id 不再直接
+  // 当作数组索引（旧逻辑会把 id "1" 定位到索引 1 即第 2 项，永久错位）；
+  // 仅当按 id 找不到且形如非负数字时才回退当索引（兼容索引式 id 的旧数据）
+  let index = allItems.findIndex(
+    (item) =>
+      item?.id === normalizedItemId ||
+      String(item?.id) === String(normalizedItemId)
+  );
+  if (index === -1 && /^\d+$/.test(String(normalizedItemId))) {
+    const parsedIndex = Number(normalizedItemId);
+    if (parsedIndex >= 0 && parsedIndex < allItems.length) {
+      index = parsedIndex;
+    }
+  }
 
   if (index === -1) {
     (loggers.app || console).error("未找到翻译项:", itemId);
+    showNotification("warning", "未找到条目", "该翻译项可能已被修改或删除");
     return;
   }
+
+  // 找到目标条目后才关闭报告模态框（找不到时保留报告视图，仅 toast 提示）
+  closeModal("qualityReportModal");
 
   if (typeof isDevelopment !== "undefined" && isDevelopment) {
     try {
       (loggers.app || console).info("[quality:view] focus", {
         itemId,
-        normalizedItemId,
-        isNumericIndex,
         index,
         currentPage: AppState.translations.currentPage,
         itemsPerPage: AppState.translations.itemsPerPage,
@@ -467,56 +481,8 @@ async function __focusTranslationItemImpl(itemId) {
   const selectorByIndex = `.responsive-translation-item[data-index="${index}"]`;
 
   const isMobile = isMobileViewport();
-  // 与 selection.js 同算法；滚动执行统一走全局 animateScrollTo
-  // （rAF 自绘动画，不受 prefers-reduced-motion 影响）
-  // 偏移用 getBoundingClientRect 几何换算（offsetParent 链在 static 容器下不可靠）
-  const smartScrollToComfortZone = (el) => {
-    if (!el) return;
-    const container =
-      DOMCache.get("translationScrollWrapper") ||
-      el.closest(".translation-scroll-wrapper");
-    if (!container) {
-      el.scrollIntoView({ block: "nearest" });
-      return;
-    }
-
-    const containerHeight = container.clientHeight || 0;
-    if (!containerHeight) {
-      el.scrollIntoView({ block: "nearest" });
-      return;
-    }
-
-    // 几何法计算 el 在容器内容坐标系中的位置（与定位层级无关）
-    const containerRect = container.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const offsetTop = elRect.top - containerRect.top + container.scrollTop;
-
-    const itemHeight = el.offsetHeight || 0;
-    const current = container.scrollTop;
-    const maxScroll = Math.max(0, container.scrollHeight - containerHeight);
-    const margin = Math.min(80, containerHeight * 0.15);
-
-    const itemTop = offsetTop;
-    const itemBottom = offsetTop + itemHeight;
-
-    const visibleTop = current + margin;
-    const visibleBottom = current + containerHeight - margin;
-
-    let target = current;
-
-    if (itemBottom > visibleBottom) {
-      target = itemBottom - containerHeight + margin;
-    } else if (itemTop < visibleTop) {
-      target = itemTop - margin;
-    } else {
-      return;
-    }
-
-    target = Math.max(0, Math.min(maxScroll, target));
-    if (Math.abs(target - current) < 2) return;
-
-    animateScrollTo(container, target);
-  };
+  // 滚动统一走全局 smartScrollToComfortZone（selection.js 定义，
+  // 此前本文件持有一份同算法拷贝，已合并）
   if (isMobile) {
     const mobileCombinedList = DOMCache.get("mobileCombinedList");
     const mobileItem = mobileCombinedList
@@ -552,6 +518,12 @@ async function __focusTranslationItemImpl(itemId) {
     AppState.translations.currentPage,
     "目标页:",
     targetPage
+  );
+  // 定位失败时给出用户可见反馈，避免点击"查看"后无声无息
+  showNotification(
+    "warning",
+    "定位失败",
+    "未能在当前列表中找到该条目，请检查文件选择或筛选条件"
   );
 }
 

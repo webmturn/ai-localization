@@ -39,7 +39,7 @@ ProjectStore.clearProject();
 ProjectStore.getTranslationItems();               // 读取 canonical 条目
 ProjectStore.setTranslationItems(items);          // 整体替换
 ProjectStore.replaceFileItems(fileName, newItems); // 替换指定文件条目（源文件编辑器）
-ProjectStore.swapTranslationItems(items);         // 临时换出（质量检查范围限定），传回原数组恢复
+// swapTranslationItems 已移除：质量检查经入参注入，不再换出 canonical
 
 // 文件元数据
 ProjectStore.setFileMetadata(fileName, meta);

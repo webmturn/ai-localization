@@ -225,3 +225,104 @@ describe("数字检查（修复字面匹配误报）", () => {
     expect(numberIssues(result).length).toBe(1);
   });
 });
+
+describe("术语检查（词边界修复子串误命中）", () => {
+  const terms = [{ source: "in", target: "在" }];
+
+  it("单词内的子串不命中（king 不含术语 in）", async () => {
+    const result = await checkItem(
+      makeItem("The king is happy", "国王很开心"),
+      terms
+    );
+    expect(result.termMatches).toBe(0);
+    expect(
+      result.issues.filter((i) => i.type === "terminology")
+    ).toEqual([]);
+  });
+
+  it("独立单词命中（in the castle）", async () => {
+    const result = await checkItem(
+      makeItem("The king in the castle", "城堡里的国王"),
+      terms
+    );
+    expect(result.termMatches).toBe(1);
+  });
+
+  it("下划线包裹视为标识符不命中（_in_）", async () => {
+    const result = await checkItem(
+      makeItem("variable _in_ scope", "变量 _in_ 作用域"),
+      terms
+    );
+    expect(result.termMatches).toBe(0);
+  });
+
+  it("纯 CJK 术语退化为子串匹配", async () => {
+    const cjkTerms = [{ source: "本地化", target: "localization" }];
+    const result = await checkItem(
+      makeItem("本地化工具", "localization tool"),
+      cjkTerms
+    );
+    expect(result.termMatches).toBe(1);
+    expect(
+      result.issues.filter((i) => i.type === "terminology").length
+    ).toBe(0);
+  });
+
+  it("译文含正确术语不报 issue", async () => {
+    const apiTerms = [
+      { source: "API", target: "应用程序接口" },
+    ];
+    const result = await checkItem(
+      makeItem("Call the API", "调用应用程序接口"),
+      apiTerms
+    );
+    expect(result.termMatches).toBe(1);
+    expect(
+      result.issues.filter((i) => i.type === "terminology")
+    ).toEqual([]);
+  });
+
+  it("译文未用正确术语报 issue", async () => {
+    const apiTerms = [
+      { source: "API", target: "应用程序接口" },
+    ];
+    const result = await checkItem(
+      makeItem("Call the API", "调用接口"),
+      apiTerms
+    );
+    expect(result.termMatches).toBe(1);
+    const issues = result.issues.filter((i) => i.type === "terminology");
+    expect(issues.length).toBe(1);
+    expect(issues[0].description).toContain("应用程序接口");
+  });
+
+  it("译文侧子串包含不算已使用（rapid 不含 api 术语）", async () => {
+    const apiTerms = [{ source: "API", target: "api" }];
+    const result = await checkItem(
+      makeItem("Use the API", "use the rapid endpoint"),
+      apiTerms
+    );
+    expect(result.termMatches).toBe(1);
+    const issues = result.issues.filter((i) => i.type === "terminology");
+    expect(issues.length).toBe(1);
+  });
+
+  it("空 source 术语跳过（不误计数）", async () => {
+    const result = await checkItem(
+      makeItem("任意文本", "任意译文"),
+      [{ source: "", target: "某术语" }]
+    );
+    expect(result.termMatches).toBe(0);
+  });
+
+  it("空 target 术语跳过（不计命中、不产 issue，不虚增一致性）", async () => {
+    const result = await checkItem(
+      makeItem("Call the API", "调用接口"),
+      [{ source: "API", target: "" }]
+    );
+    expect(result.termMatches).toBe(0);
+    expect(
+      result.issues.filter((i) => i.type === "terminology")
+    ).toEqual([]);
+  });
+});

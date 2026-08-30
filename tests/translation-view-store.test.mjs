@@ -67,21 +67,14 @@ describe("setViewItems / getViewItems（稳定引用）", () => {
   });
 });
 
-describe("swap 不触碰稳定引用（质量检查场景）", () => {
-  it("swapTranslationItems 期间 getViewItems 仍指向全量列表", () => {
+describe("swapTranslationItems 已移除（质量检查不再换出 canonical）", () => {
+  it("ProjectStore 不再暴露 swapTranslationItems", () => {
+    expect(typeof ProjectStore.swapTranslationItems).toBe("undefined");
+  });
+
+  it("视图稳定引用始终与 canonical 同源（无换出窗口）", () => {
     const full = [item(1, "a.json"), item(2, "b.json")];
     ProjectStore.loadProject({ id: "p2", translationItems: full });
-
-    const subset = [full[1]];
-    const prev = ProjectStore.swapTranslationItems(subset);
-
-    // canonical 被换出
-    expect(AppState.project.translationItems).toBe(subset);
-    // 稳定视图引用不受影响（渲染/持久化仍看全量）
-    expect(TranslationViewStore.getViewItems()).toBe(full);
-
-    // 恢复后一致
-    ProjectStore.swapTranslationItems(prev);
     expect(AppState.project.translationItems).toBe(full);
     expect(TranslationViewStore.getViewItems()).toBe(full);
   });

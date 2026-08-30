@@ -178,16 +178,11 @@ async function __runQualityCheckImpl() {
   __qualityIsChecking = true;
   __qualityCheckCache.clear();
 
-  const originalProjectItems = AppState?.project?.translationItems;
+  // 历史上的 swapTranslationItems 临时换出已移除：阶段 4 起检查链路
+  // （批处理/术语上下文）全部经入参注入，无需改动 canonical；
+  // 换出窗口曾使 translations.selected/multiSelected 索引与 canonical
+  // 错位（清除译文/查找替换写错条目），收益为零、纯风险。
 
-  try {
-    if (AppState?.project && Array.isArray(originalProjectItems)) {
-      // 经 ProjectStore 临时换出条目（仅换 canonical，不动视图；结束后恢复）
-      ProjectStore.swapTranslationItems(items);
-    }
-  } catch (e) {
-    (loggers.app || console).debug("qualityCheck restoreItems:", e);
-  }
   const progressBar = DOMCache.get("checkProgressBar");
   const progressPercent = DOMCache.get("checkProgressPercent");
   const progressStatus = DOMCache.get("checkProgressStatus");
@@ -280,15 +275,6 @@ async function __runQualityCheckImpl() {
     );
     if (progressContainer) progressContainer.classList.add("hidden");
   } finally {
-    try {
-      if (AppState?.project && Array.isArray(originalProjectItems)) {
-        // 经 ProjectStore 恢复原条目（仅换 canonical，与换出时对称）
-        ProjectStore.swapTranslationItems(originalProjectItems);
-      }
-    } catch (e) {
-      (loggers.app || console).debug("qualityCheck finalRestore:", e);
-    }
-
     __qualityIsChecking = false;
 
     if (runBtn) {

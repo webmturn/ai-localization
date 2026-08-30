@@ -173,61 +173,9 @@ const EngineRegistry = {
   },
 
   /**
-   * 注册用户自定义引擎
-   * @param {Object} userConfig
-   * @param {string} userConfig.id - 自定义 ID（若无则自动生成）
-   * @param {string} userConfig.name - 显示名称
-   * @param {string} userConfig.apiUrl - API 端点
-   * @param {string} [userConfig.model] - 默认模型
-   * @param {string} [userConfig.authType="bearer"] - 认证方式: "bearer" | "x-api-key"
-   * @param {boolean} [userConfig.supportsJsonMode=true]
-   * @param {number} [userConfig.rateLimitPerSecond=3]
-   * @returns {Object} 注册后的完整配置
-   */
-  registerCustom: function (userConfig) {
-    var id = userConfig.id || ("custom-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8));
-    id = String(id).trim().toLowerCase();
-    if (id.indexOf("custom-") !== 0) id = "custom-" + id;
-    var authType = userConfig.authType || "bearer";
-    var maxTokens = Number(userConfig.maxTokens) || 4096;
-    var extraBodyParams = Object.assign(
-      {},
-      userConfig.extraBodyParams || {},
-      { max_tokens: maxTokens }
-    );
-    var config = {
-      id: id,
-      name: userConfig.name || id,
-      category: "ai",
-      apiUrl: userConfig.apiUrl || "",
-      apiKeyField: "customApiKey_" + id,
-      apiKeyValidationType: userConfig.requiresApiKey === false ? "none" : "generic",
-      defaultModel: userConfig.model || "",
-      model: userConfig.model || "",
-      maxTokens: maxTokens,
-      authType: authType,
-      authHeaderBuilder: function (key) {
-        if (authType === "x-api-key") {
-          return { "x-api-key": key };
-        }
-        return { "Authorization": "Bearer " + key };
-      },
-      supportsJsonMode: userConfig.supportsJsonMode !== false,
-      supportsBatch: userConfig.supportsBatch !== false,
-      extraBodyParams: extraBodyParams,
-      extraBatchBodyParams: extraBodyParams,
-      rateLimitPerSecond: userConfig.rateLimitPerSecond || 3,
-      availableModels: userConfig.model ? [userConfig.model] : [],
-      isCustom: true,
-      // OpenAI 兼容端点温度范围 0-2；可用 userConfig.temperatureRange 覆盖（如 0-1）
-      temperatureRange: userConfig.temperatureRange || { min: 0, max: 2 },
-    };
-    this.register(config);
-    return config;
-  },
-
-  /**
-   * 移除自定义引擎
+   * 移除自定义引擎（由 CustomEngineManager.unregisterCustomEngine 调用；
+   * 自定义引擎的注册/持久化/恢复统一由 providers/custom-engine.js 负责，
+   * 注册表只提供通用 register 与此处的移除）
    * @param {string} engineId
    * @returns {boolean}
    */
@@ -241,31 +189,6 @@ const EngineRegistry = {
   },
 
   /**
-   * 获取所有自定义引擎的配置（用于持久化）
-   * @returns {Object[]}
-   */
-  getCustomEngines: function () {
-    var result = [];
-    this._engines.forEach(function (config) {
-      if (config.isCustom) {
-        result.push({
-          id: config.id,
-          name: config.name,
-          apiUrl: config.apiUrl,
-          model: config.defaultModel,
-          authType: config.authType || "bearer",
-          requiresApiKey: config.apiKeyValidationType !== "none",
-          supportsJsonMode: config.supportsJsonMode,
-          supportsBatch: config.supportsBatch,
-          rateLimitPerSecond: config.rateLimitPerSecond,
-          maxTokens: config.maxTokens,
-        });
-      }
-    });
-    return result;
-  },
-
-  /**
    * 获取默认引擎 ID（首个 AI 引擎，若无则首个任意引擎）
    * @returns {string}
    */
@@ -274,20 +197,5 @@ const EngineRegistry = {
     if (aiEngines.length > 0) return aiEngines[0].id;
     var all = this.getAllEngines();
     return all.length > 0 ? all[0].id : "deepseek";
-  },
-
-  /**
-   * 从持久化数据恢复自定义引擎
-   * @param {Object[]} customEngines
-   */
-  restoreCustomEngines: function (customEngines) {
-    if (!Array.isArray(customEngines)) return;
-    for (var i = 0; i < customEngines.length; i++) {
-      try {
-        this.registerCustom(customEngines[i]);
-      } catch (e) {
-        (loggers.translation || console).warn("EngineRegistry: 恢复自定义引擎失败:", e);
-      }
-    }
   },
 };

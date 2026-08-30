@@ -389,27 +389,27 @@ var CustomEngineUI = (function () {
     }
 
     try {
-      // 用表单中的 API Key（若填写）或已保存的 Key
+      // 用表单中的 API Key（若填写）；否则读已保存的 Key（经服务层解密，UI 不接触密文）
       var apiKeyInput = document.getElementById("ceFieldApiKey");
       var apiKey = (apiKeyInput && apiKeyInput.value.trim()) || "";
-      if (!apiKey) {
+      var requiresKeyEl = document.getElementById("ceFieldRequiresKey");
+      var requiresKey = !!(requiresKeyEl && requiresKeyEl.checked);
+      if (!apiKey && requiresKey && _editingId) {
         try {
-          var existingSettings = (typeof SettingsCache !== "undefined" && SettingsCache.get) ? SettingsCache.get() : {};
-          var savedKey = existingSettings && existingSettings["customApiKey_custom-" + _normalizeCustomEngineId(_editingId || "x").replace(/^custom-/, "")];
-          if (savedKey) apiKey = savedKey;
+          apiKey = await ModelFetcher.readDecryptedApiKey({
+            apiKeyField: "customApiKey_" + _normalizeCustomEngineId(_editingId),
+          }) || "";
         } catch (e) {}
       }
 
-      // 临时构造配置请求模型列表
+      // 临时构造配置：引擎尚未注册，走 ModelFetcher 参数化核心拉取（超时/错误格式化/头构建复用服务层实现）
       var tempConfig = {
         apiUrl: urlInput.value.trim(),
         isCustom: true,
-        apiKeyField: "customApiKey_tmp",
-        apiKeyValidationType: apiKey ? "generic" : "none",
+        apiKeyValidationType: requiresKey ? "generic" : "none",
         customHeaders: {},
       };
-      var endpoint = { url: modelsUrl };
-      var result = await _fetchWithEndpoint(endpoint, tempConfig, apiKey);
+      var result = await ModelFetcher.fetchModelsForConfig(tempConfig, apiKey);
 
       if (result && result.ok && result.models && result.models.length > 0) {
         // 填充 datalist
@@ -449,45 +449,6 @@ var CustomEngineUI = (function () {
         var icon2 = btn.querySelector("i");
         if (icon2) icon2.className = "fa-solid fa-rotate";
       }
-    }
-  }
-
-  /**
-   * 使用给定端点发起模型列表请求（独立于 ModelFetcher.fetchModels 的轻量实现，
-   * 便于在引擎尚未注册时（表单编辑阶段）直接调用）
-   */
-  async function _fetchWithEndpoint(endpoint, config, apiKey) {
-    try {
-      var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
-      var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
-      var headers = { "Content-Type": "application/json" };
-      if (apiKey) headers["Authorization"] = "Bearer " + apiKey;
-
-      var fetchFn = (typeof window !== "undefined" && window.fetch)
-        ? window.fetch.bind(window)
-        : (typeof globalThis !== "undefined" && globalThis.fetch ? globalThis.fetch.bind(globalThis) : null);
-      if (!fetchFn) return { ok: false, error: "当前环境不支持网络请求" };
-
-      var resp = await fetchFn(endpoint.url, {
-        method: "GET",
-        headers: headers,
-        signal: controller ? controller.signal : undefined,
-      });
-      if (timer) clearTimeout(timer);
-
-      if (!resp.ok) {
-        var text = "";
-        try { text = await resp.text(); } catch (e) {}
-        return { ok: false, error: "HTTP " + resp.status + (text ? " " + text.slice(0, 100) : "") };
-      }
-      var data = await resp.json();
-      var models = ModelFetcher.parseModelsResponse(data);
-      if (models.length === 0) return { ok: false, error: "响应中没有模型数据" };
-      models = models.filter(function (m) { return ModelFetcher.defaultModelFilter(m); });
-      return { ok: true, models: models };
-    } catch (e) {
-      var msg = e && e.name === "AbortError" ? "请求超时（15 秒）" : ((e && e.message) || String(e));
-      return { ok: false, error: msg };
     }
   }
 

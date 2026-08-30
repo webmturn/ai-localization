@@ -277,10 +277,17 @@ function _aiMakeCancelError(partialOutputs) {
  * 解析使用的模型，避免 settings.model 跨引擎污染
  * - 内置引擎不再声明静态模型列表（模型由 ModelFetcher 动态获取），直接采用 settings.model，
  *   为空时回退 defaultModel；用户选择的动态模型始终被接受
- * - 自定义引擎若声明 availableModels（用户显式配置的模型），仍校验并回退 defaultModel
+ * - 自定义引擎同理：动态拉取列表为唯一数据源，直接采用 settings.model
+ *   （isCustom 跳过白名单——availableModels 仅含表单配置的单个模型，
+ *   校验会拦截用户动态选择的模型，导致换模型静默失效）
+ * - 其余程序化注册且声明 availableModels 的引擎仍校验并回退 defaultModel
  */
 function _aiResolveModel(settings, config) {
   var requested = settings && settings.model ? String(settings.model) : "";
+  // 自定义引擎：动态模型列表（ModelFetcher 缓存）为唯一数据源，不做白名单校验
+  if (config && config.isCustom) {
+    return requested || (config && config.defaultModel) || "";
+  }
   var available = Array.isArray(config && config.availableModels)
     ? config.availableModels
     : null;

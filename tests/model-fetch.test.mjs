@@ -235,3 +235,69 @@ describe("ModelFetcher.fetchModels", () => {
     delete globalThis.EngineRegistry;
   });
 });
+
+describe("ModelFetcher.fetchModelsForConfig", () => {
+  it("表单预取场景：临时 config（isCustom + apiUrl）自动推导 /models 端点拉取", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "llama3" }, { id: "qwen2.5" }] }),
+    });
+
+    const tempConfig = {
+      apiUrl: "http://localhost:11434/v1/chat/completions",
+      isCustom: true,
+      apiKeyValidationType: "none",
+      customHeaders: {},
+    };
+    const result = await ModelFetcher.fetchModelsForConfig(tempConfig, "");
+    expect(result.ok).toBe(true);
+    expect(result.models.map((m) => m.id)).toEqual(["llama3", "qwen2.5"]);
+    // 请求打到从 apiUrl 推导出的 /models 端点
+    expect(globalThis.fetch.mock.calls[0][0]).toBe("http://localhost:11434/v1/models");
+  });
+
+  it("不写缓存（缓存按 engineId 组织，写缓存职责归 fetchModels）", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "m1" }] }),
+    });
+    await ModelFetcher.fetchModelsForConfig({
+      apiUrl: "http://localhost:11434/v1",
+      isCustom: true,
+      apiKeyValidationType: "none",
+    }, "");
+    expect(localStorage.getItem(ModelFetcher._CACHE_PREFIX + "custom-x")).toBeNull();
+  });
+
+  it("需要 Key 但未提供时提示先配置（无 name 时兜底『该引擎』）", async () => {
+    const result = await ModelFetcher.fetchModelsForConfig({
+      apiUrl: "http://x.dev/v1",
+      isCustom: true,
+      apiKeyValidationType: "generic",
+    }, "");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("请先配置");
+    expect(result.error).toContain("该引擎");
+  });
+
+  it("config 缺失直接报错", async () => {
+    const result = await ModelFetcher.fetchModelsForConfig(null);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("引擎配置缺失");
+  });
+
+  it("customHeaders 注入请求头（本地代理私有 token 场景）", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "m1" }] }),
+    });
+    await ModelFetcher.fetchModelsForConfig({
+      apiUrl: "http://localhost:9000/v1",
+      isCustom: true,
+      apiKeyValidationType: "none",
+      customHeaders: { "X-Proxy-Token": "t1" },
+    }, "");
+    const headers = globalThis.fetch.mock.calls[0][1].headers;
+    expect(headers["X-Proxy-Token"]).toBe("t1");
+  });
+});

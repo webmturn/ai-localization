@@ -41,3 +41,33 @@ describe("_aiClampTemperature", () => {
     expect(_aiClampTemperature({ temperatureRange: { min: 0, max: 1 } }, 0.9)).toBe(0.9);
   });
 });
+
+describe("_aiResolveModel", () => {
+  it("自定义引擎跳过白名单：动态选择的模型（不在 availableModels）直接采用", () => {
+    const cfg = {
+      id: "custom-ollama",
+      isCustom: true,
+      defaultModel: "llama3",
+      // availableModels 仅含表单配置的单个模型
+      availableModels: ["llama3"],
+    };
+    expect(_aiResolveModel({ model: "qwen2.5" }, cfg)).toBe("qwen2.5");
+  });
+
+  it("自定义引擎未选模型时回退 defaultModel", () => {
+    const cfg = { id: "custom-ollama", isCustom: true, defaultModel: "llama3", availableModels: ["llama3"] };
+    expect(_aiResolveModel({}, cfg)).toBe("llama3");
+    expect(_aiResolveModel({ model: "" }, cfg)).toBe("llama3");
+  });
+
+  it("程序化引擎（非自定义）白名单外仍回退 defaultModel", () => {
+    const cfg = { id: "prog", defaultModel: "m1", availableModels: ["m1", "m2"] };
+    expect(_aiResolveModel({ model: "m3" }, cfg)).toBe("m1");
+    expect(_aiResolveModel({ model: "m2" }, cfg)).toBe("m2");
+  });
+
+  it("无 availableModels 时直接采用 settings.model，为空回退 defaultModel", () => {
+    expect(_aiResolveModel({ model: "any-model" }, { id: "openai", defaultModel: "gpt-4o" })).toBe("any-model");
+    expect(_aiResolveModel({}, { id: "openai", defaultModel: "gpt-4o" })).toBe("gpt-4o");
+  });
+});

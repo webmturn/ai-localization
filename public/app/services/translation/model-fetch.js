@@ -146,41 +146,43 @@ var ModelFetcher = (function () {
     return headers;
   }
 
-  /**
-   * 从 API 拉取某引擎的模型列表
-   * @param {string} engineId - 引擎 ID
-   * @param {string|null} [apiKey] - API Key（可省略，自动从设置读取）
-   * @returns {Promise<{ok: boolean, models?: Array, error?: string}>}
-   */
-  async function fetchModels(engineId, apiKey) {
-    var config = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
-    if (!config) return { ok: false, error: "未知的翻译引擎: " + engineId };
-
-    var endpoint = _resolveEndpoint(config);
-    if (!endpoint || !endpoint.url) {
-      return { ok: false, error: config.name + " 不支持远程获取模型列表" };
-    }
-
-    // 读取 API Key（未显式传入时从设置读取）
-    var key = apiKey;
-    if (key === undefined || key === null) {
-      key = _readApiKey(config);
-    }
-    // 自动解密加密的 Key（加密后的 Base64 通常远长于原始 Key，50 为安全阈值）
+  // 确保 API Key 为明文：密文（含 IV 的 Base64）通常远长于原始 Key，50 为安全阈值
+  async function _ensureDecryptedKey(key) {
     if (key && typeof key === "string" && key.length > 50) {
       try {
         if (typeof securityUtils !== "undefined" && securityUtils.decrypt) {
           var decrypted = await securityUtils.decrypt(key);
-          if (decrypted) key = decrypted;
+          if (decrypted) return decrypted;
         }
       } catch (e) {
         (loggers.translation || console).debug("ModelFetcher decrypt apiKey:", e);
       }
     }
+    return key;
+  }
 
+  /**
+   * 使用给定引擎配置拉取模型列表（核心实现，无须注册到 EngineRegistry）
+   * 供两路调用：
+   * - fetchModels(engineId)：已注册引擎（负责读 key/解密/写缓存）
+   * - 自定义引擎表单预取（引擎尚未注册，由调用方构造临时 config 并传入明文 key）
+   * 不写缓存：缓存按 engineId 组织，写缓存职责归 fetchModels
+   * @param {Object} config - 引擎配置（含 modelsEndpoint，或 isCustom + apiUrl 自动推导）
+   * @param {string} [apiKey] - 已解密的 API Key
+   * @returns {Promise<{ok: boolean, models?: Array, error?: string, status?: number}>}
+   */
+  async function fetchModelsForConfig(config, apiKey) {
+    if (!config) return { ok: false, error: "引擎配置缺失" };
+
+    var endpoint = _resolveEndpoint(config);
+    if (!endpoint || !endpoint.url) {
+      return { ok: false, error: (config.name || "该引擎") + " 不支持远程获取模型列表" };
+    }
+
+    var key = apiKey === undefined || apiKey === null ? "" : apiKey;
     var noKeyNeeded = config.apiKeyValidationType === "none" || config.apiKeyValidationType === "no-auth";
     if (!noKeyNeeded && !key) {
-      return { ok: false, error: "请先在设置中配置 " + config.name + " 的 API Key" };
+      return { ok: false, error: "请先配置 " + (config.name || "该引擎") + " 的 API Key" };
     }
 
     try {
@@ -212,7 +214,7 @@ var ModelFetcher = (function () {
         } catch (e) { detail = errText.slice(0, 120); }
         return {
           ok: false,
-          error: config.name + " 模型列表获取失败 (HTTP " + resp.status + ")" + (detail ? ": " + detail : ""),
+          error: (config.name || "该引擎") + " 模型列表获取失败 (HTTP " + resp.status + ")" + (detail ? ": " + detail : ""),
           status: resp.status,
         };
       }
@@ -220,7 +222,7 @@ var ModelFetcher = (function () {
       var data = await resp.json();
       var models = parseModelsResponse(data);
       if (models.length === 0) {
-        return { ok: false, error: config.name + " 返回的模型列表为空" };
+        return { ok: false, error: (config.name || "该引擎") + " 返回的模型列表为空" };
       }
 
       // 过滤
@@ -237,18 +239,43 @@ var ModelFetcher = (function () {
         return true;
       });
 
-      _writeCache(engineId, models);
       return { ok: true, models: models };
     } catch (e) {
       var msg = e && e.name === "AbortError"
         ? "请求超时（" + Math.round(REQUEST_TIMEOUT / 1000) + " 秒）"
         : (e && e.message) || String(e);
-      return { ok: false, error: config.name + " 模型列表获取失败: " + msg };
+      return { ok: false, error: (config.name || "该引擎") + " 模型列表获取失败: " + msg };
     }
   }
 
   /**
-   * 从 SettingsCache 读取引擎 API Key（加密的自动解密）
+   * 从 API 拉取已注册引擎的模型列表（包装入口）
+   * 职责：读取并解密 API Key → 调用 fetchModelsForConfig → 写入 engineId 维度缓存
+   * @param {string} engineId - 引擎 ID
+   * @param {string|null} [apiKey] - API Key（可省略，自动从设置读取；密文自动解密）
+   * @returns {Promise<{ok: boolean, models?: Array, error?: string, status?: number}>}
+   */
+  async function fetchModels(engineId, apiKey) {
+    var config = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
+    if (!config) return { ok: false, error: "未知的翻译引擎: " + engineId };
+
+    var key = apiKey;
+    if (key === undefined || key === null) {
+      key = await readDecryptedApiKey(config);
+    }
+    // readDecryptedApiKey 的 SettingsCache 回退路径可能返回密文，统一确保明文
+    key = await _ensureDecryptedKey(key);
+
+    var result = await fetchModelsForConfig(config, key);
+    if (result && result.ok) {
+      _writeCache(engineId, result.models);
+    }
+    return result;
+  }
+
+  /**
+   * 从 SettingsCache 同步读取引擎 API Key
+   * 注意：密文场景原样返回（含 IV 的 Base64），解密由 _ensureDecryptedKey / readDecryptedApiKey 负责
    */
   function _readApiKey(config) {
     try {
@@ -298,6 +325,7 @@ var ModelFetcher = (function () {
 
   return {
     fetchModels: fetchModels,
+    fetchModelsForConfig: fetchModelsForConfig,
     getCachedModels: getCachedModels,
     clearCache: clearCache,
     readDecryptedApiKey: readDecryptedApiKey,

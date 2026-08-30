@@ -110,6 +110,11 @@
     if (typeof EngineRegistry !== "undefined" && typeof EngineRegistry.removeCustom === "function") {
       EngineRegistry.removeCustom(engineId);
     }
+    // 清理该引擎的模型列表缓存（缓存 key 仅按 engineId，
+    // 避免删除后重建同名引擎——即使换了 URL——命中旧缓存）
+    if (typeof ModelFetcher !== "undefined" && typeof ModelFetcher.clearCache === "function") {
+      try { ModelFetcher.clearCache(engineId); } catch (e) {}
+    }
     // 从存储中移除
     var engines = loadCustomEngines();
     engines = engines.filter(function (e) { return normalizeCustomEngineId(e.id) !== engineId; });

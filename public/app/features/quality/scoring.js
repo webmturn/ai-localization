@@ -16,11 +16,11 @@ function __calculateOverallScoreImpl() {
   const lowIssues = issues.filter((i) => i.severity === "low").length;
 
   const qualityPenalty = highIssues * 3 + mediumIssues * 1.5 + lowIssues * 0.5;
-  const qualityScore = Math.max(0, 40 - qualityPenalty);
+  // 惩罚先抵扣质量分（40），溢出部分继续侵蚀翻译率分（60），
+  // 避免"全部翻译但问题极多"仍停留在 60 分下限的错觉
+  score += 40 - qualityPenalty;
 
-  score += qualityScore;
-
-  qr.overallScore = Math.min(100, Math.round(score));
+  qr.overallScore = Math.min(100, Math.max(0, Math.round(score)));
 }
 
 (function () {

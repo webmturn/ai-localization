@@ -40,6 +40,7 @@
  * @property {number} totalCount - 总数量
  * @property {Array} issues - 问题列表
  * @property {number} termMatches - 术语匹配数
+ * @property {number} termsTruncatedCount - 因性能上限未参与检查的术语数（0 = 无截断）
  * @property {string|null} lastCheckTime - 最后检查时间
  * @property {"project"|"file"|null} scope - 最近一次检查范围
  * @property {string|null} fileName - 最近一次检查的文件名（scope 为 file 时）
@@ -133,6 +134,7 @@ const AppState = {
     totalCount: 0,
     issues: [],
     termMatches: 0,
+    termsTruncatedCount: 0,
     lastCheckTime: null,
     scope: null,
     fileName: null,

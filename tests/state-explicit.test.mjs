@@ -52,12 +52,14 @@ describe("AppState 切片显式声明（阶段 0）", () => {
     expect(AppState.ui.autoScrollEnabled).toBe(true);
   });
 
-  it("qualityCheckResults 含 scope / fileName 显式字段", () => {
+  it("qualityCheckResults 含 scope / fileName / termsTruncatedCount 显式字段", () => {
     const qr = AppState.qualityCheckResults;
     expect("scope" in qr).toBe(true);
     expect("fileName" in qr).toBe(true);
     expect(qr.scope).toBeNull();
     expect(qr.fileName).toBeNull();
+    expect("termsTruncatedCount" in qr).toBe(true);
+    expect(qr.termsTruncatedCount).toBe(0);
   });
 
   it("window.qualityCheckResults 全局别名已删除（阶段 3b）", () => {

@@ -116,6 +116,19 @@ function __updateQualityReportUIImpl() {
   if (elTermConsistency) elTermConsistency.textContent = `${termConsistency}%`;
   if (elTermMatches) elTermMatches.textContent = results.termMatches;
 
+  // 术语截断提示：术语库超过检查上限时告知用户有术语未参与检查
+  const elTermsTruncated = DOMCache.get("termsTruncatedHint");
+  if (elTermsTruncated) {
+    const truncated = results.termsTruncatedCount || 0;
+    if (truncated > 0) {
+      elTermsTruncated.textContent = `术语库超出检查上限，已跳过 ${truncated} 条术语`;
+      elTermsTruncated.classList.remove("hidden");
+    } else {
+      elTermsTruncated.textContent = "";
+      elTermsTruncated.classList.add("hidden");
+    }
+  }
+
   if (results.lastCheckTime) {
     const timeStr = results.lastCheckTime.toLocaleString("zh-CN");
     const elLastCheck = DOMCache.get("lastCheckTime");

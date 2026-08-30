@@ -1,5 +1,80 @@
 let __qualityIsChecking = false;
 
+function __bigramSimilarityImpl(a, b) {
+  // 字符二元组 Dice 相似度（0~1），用于判断两条原文是否相近
+  if (a === b) return 1;
+  if (!a || !b || a.length < 2 || b.length < 2) return 0;
+  const makeBigrams = (s) => {
+    const map = new Map();
+    for (let i = 0; i < s.length - 1; i++) {
+      const gram = s.slice(i, i + 2);
+      map.set(gram, (map.get(gram) || 0) + 1);
+    }
+    return map;
+  };
+  const mapA = makeBigrams(a);
+  const mapB = makeBigrams(b);
+  let intersection = 0;
+  for (const [gram, countA] of mapA) {
+    const countB = mapB.get(gram);
+    if (countB) intersection += Math.min(countA, countB);
+  }
+  return (2 * intersection) / (a.length - 1 + b.length - 1);
+}
+
+// 原文相似度阈值：低于此值视为"不同原文共享译文"（合法，如 OK/Yes/Sure → 确定）
+const __DUPLICATE_SOURCE_SIMILARITY_THRESHOLD = 0.4;
+
+function __detectDuplicateIssuesImpl(items) {
+  // 重复译文检测：按目标文本分组后，仅当组内存在原文相近的条目时才报告
+  // （疑似复制粘贴/漏译）；原文差异大的共享译文不报，避免误报。
+  const issues = [];
+  const targetToItems = new Map();
+  (Array.isArray(items) ? items : []).forEach((it) => {
+    const t = (it.targetText || "").trim();
+    if (!t) return;
+    let list = targetToItems.get(t);
+    if (!list) {
+      list = [];
+      targetToItems.set(t, list);
+    }
+    list.push({
+      itemId: it.id,
+      sourceText: it.sourceText || "",
+      targetText: it.targetText || "",
+    });
+  });
+  targetToItems.forEach((list) => {
+    if (list.length <= 1) return;
+    const suspicious = new Set();
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        if (
+          __bigramSimilarityImpl(list[i].sourceText, list[j].sourceText) >=
+          __DUPLICATE_SOURCE_SIMILARITY_THRESHOLD
+        ) {
+          suspicious.add(i);
+          suspicious.add(j);
+        }
+      }
+    }
+    if (suspicious.size === 0) return;
+    suspicious.forEach((idx) => {
+      const { itemId, sourceText, targetText } = list[idx];
+      issues.push({
+        itemId,
+        sourceText,
+        targetText,
+        type: "duplicate",
+        typeName: "重复译文",
+        severity: "medium",
+        description: `与另外 ${suspicious.size - 1} 条译文完全相同且原文相近，可能为漏译或复制`,
+      });
+    });
+  });
+  return issues;
+}
+
 async function __mapWithConcurrencyImpl(items, mapper, concurrency) {
   const list = Array.isArray(items) ? items : [];
   const n = Math.max(1, Math.floor(Number(concurrency) || 1));
@@ -86,12 +161,19 @@ async function __runQualityCheckImpl() {
   }
 
   // 术语上下文快照：检查开始时一次性注入下游检查函数
-  // （features/quality 不直读 TerminologyStore / AppState.terminology）
-  const termContext =
+  // （features/quality 不直读 TerminologyStore / AppState.terminology）。
+  // 性能上限：最多取前 100 条术语参与逐项检查，超出部分记录截断数供 UI 提示。
+  const __TERM_CHECK_LIMIT = 100;
+  const termListAll =
     (typeof TerminologyStore !== "undefined" &&
       Array.isArray(TerminologyStore.getList()) &&
       TerminologyStore.getList()) ||
     [];
+  const termContext = termListAll.slice(0, __TERM_CHECK_LIMIT);
+  const termsTruncatedCount = Math.max(
+    0,
+    termListAll.length - termContext.length
+  );
 
   __qualityIsChecking = true;
   __qualityCheckCache.clear();
@@ -127,6 +209,7 @@ async function __runQualityCheckImpl() {
   qr.totalCount = items.length;
   qr.issues = [];
   qr.termMatches = 0;
+  qr.termsTruncatedCount = termsTruncatedCount;
   qr.lastCheckTime = new Date();
   qr.scope = checkScope;
   qr.fileName = scopeFileName;
@@ -172,31 +255,8 @@ async function __runQualityCheckImpl() {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
-    const targetToItems = new Map();
-    items.forEach((it) => {
-      const t = (it.targetText || "").trim();
-      if (!t) return;
-      let list = targetToItems.get(t);
-      if (!list) {
-        list = [];
-        targetToItems.set(t, list);
-      }
-      list.push({ itemId: it.id, sourceText: it.sourceText || "", targetText: it.targetText || "" });
-    });
-    targetToItems.forEach((list) => {
-      if (list.length <= 1) return;
-      list.forEach(({ itemId, sourceText, targetText }) => {
-        qr.issues.push({
-          itemId,
-          sourceText,
-          targetText,
-          type: "duplicate",
-          typeName: "重复译文",
-          severity: "medium",
-          description: `与另外 ${list.length - 1} 条译文完全相同，可能为漏译或复制`,
-        });
-      });
-    });
+    // 重复译文检测（按目标文本分组 + 原文相似度门槛，避免合法共享译文误报）
+    qr.issues.push(...__detectDuplicateIssuesImpl(items));
 
     __calculateOverallScoreImpl();
 
@@ -280,4 +340,6 @@ async function __processBatchImpl(items) {
   App.impl = App.impl || {};
   App.impl.runQualityCheck = __runQualityCheckImpl;
   App.impl.processBatch = __processBatchImpl;
+  App.impl.detectDuplicateIssues = __detectDuplicateIssuesImpl;
+  App.impl.bigramSimilarity = __bigramSimilarityImpl;
 })();

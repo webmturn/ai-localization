@@ -217,14 +217,13 @@ async function __checkTranslationItemOptimizedImpl(item, terms) {
     }
   }
 
-  // 术语上下文由 run() 入参注入（检查开始时的快照）；
+  // 术语上下文由 run() 入参注入（检查开始时的快照，截断在注入侧完成）；
   // 本模块不直读 TerminologyStore / AppState.terminology（依赖注入，可测）
   const __termList = Array.isArray(terms) ? terms : [];
   if (opts.checkTerminology && __termList.length > 0) {
-    const termsToCheck = __termList.slice(0, 100);
     const sourceLower = item.sourceText.toLowerCase();
     const targetLower = item.targetText.toLowerCase();
-    for (const term of termsToCheck) {
+    for (const term of __termList) {
       const termSourceLower = term.source.toLowerCase();
       const termTargetLower = term.target.toLowerCase();
       if (sourceLower.includes(termSourceLower)) {

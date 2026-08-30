@@ -59,6 +59,122 @@ function __extractPlaceholderTokensImpl(text) {
   return tokens;
 }
 
+function __normalizeNumberTokenImpl(token) {
+  // 数字 token 规范化为统一形态以便按值比较：
+  // - 千分位分隔（1,000 / 1.000 / 1,000.50）→ 1000 / 1000.50
+  // - 欧式小数逗号（1,5）→ 1.5
+  // - 前导零（01）→ 1
+  // - 多点版本号（2.0.1）无法判定语义，保持原样
+  const stripZeros = (s) => s.replace(/^0+(?=\d)/, "") || "0";
+  let t = String(token).replace(/\s+/g, "");
+  const hasComma = t.indexOf(",") !== -1;
+  const hasDot = t.indexOf(".") !== -1;
+  if (!hasComma && !hasDot) return stripZeros(t);
+  if (hasComma && hasDot) {
+    // 同时含逗号与点：靠后者为小数点，其余为千分位
+    const lastComma = t.lastIndexOf(",");
+    const lastDot = t.lastIndexOf(".");
+    const sepIndex = lastComma > lastDot ? lastComma : lastDot;
+    return (
+      stripZeros(t.slice(0, sepIndex).replace(/[.,]/g, "")) +
+      "." +
+      t.slice(sepIndex + 1)
+    );
+  }
+  const sep = hasComma ? "," : ".";
+  const parts = t.split(sep);
+  if (parts.length > 2) {
+    // 多段分隔：每段 3 位视为千分位，否则按版本号等原样保留
+    if (parts.slice(1).every((p) => p.length === 3)) {
+      return stripZeros(parts.join(""));
+    }
+    return t;
+  }
+  const intPart = parts[0];
+  const decPart = parts[1];
+  if (decPart.length === 3) return stripZeros(intPart + decPart); // 1,000 式千分位
+  return stripZeros(intPart) + "." + decPart;
+}
+
+function __extractNumbersImpl(text) {
+  // 提取数字 token（含规范化值）。先剔除占位符/格式符，
+  // 避免匹配到 %2$d、{count2} 等内部的数字。
+  const numbers = [];
+  if (!text) return numbers;
+  const stripped = String(text).replace(
+    /\{\{[^{}]+\}\}|%\d+\$[sdf]|\{[^{}]+\}|%[sd]/g,
+    " "
+  );
+  const tokens = stripped.match(/\d+(?:[.,]\d+)*/g) || [];
+  for (const token of tokens) {
+    numbers.push({
+      original: token,
+      canonical: __normalizeNumberTokenImpl(token),
+    });
+  }
+  return numbers;
+}
+
+function __parseChineseNumberImpl(str) {
+  // 解析中文数字段（支持 十/百/千/万/亿 与 两/〇）
+  const digits = {
+    零: 0,
+    〇: 0,
+    一: 1,
+    二: 2,
+    两: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+  };
+  const units = { 十: 10, 百: 100, 千: 1000 };
+  const parseSection = (section) => {
+    let total = 0;
+    let current = 0;
+    for (const ch of section) {
+      if (ch in digits) {
+        current = digits[ch];
+      } else if (ch in units) {
+        if (current === 0) current = 1; // 十五 → 1*10+5
+        total += current * units[ch];
+        current = 0;
+      }
+    }
+    return total + current;
+  };
+  let total = 0;
+  let rest = str;
+  const yiParts = rest.split("亿");
+  if (yiParts.length === 2) {
+    total += parseSection(yiParts[0]) * 100000000;
+    rest = yiParts[1];
+  }
+  const wanParts = rest.split("万");
+  if (wanParts.length === 2) {
+    total += parseSection(wanParts[0]) * 10000;
+    rest = wanParts[1];
+  }
+  return total + parseSection(rest);
+}
+
+function __extractChineseNumberValuesImpl(text) {
+  // 提取译文中以中文数字表达的数值（第五关 → 5、三条 → 3），
+  // 仅用作数字检查的消误报兜底池；0 值段忽略。
+  const values = [];
+  if (!text) return values;
+  const pattern = /[零〇一二两三四五六七八九十百千万亿]+/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const value = __parseChineseNumberImpl(match[0]);
+    if (value > 0) values.push(value);
+  }
+  return values;
+}
+
 async function __checkTranslationItemOptimizedImpl(item, terms) {
   const result = {
     isTranslated: false,
@@ -210,21 +326,44 @@ async function __checkTranslationItemOptimizedImpl(item, terms) {
   }
 
   if (opts.checkNumbers) {
-    const sourceDigits = (item.sourceText || "").match(/\d+(?:\.\d+)?/g) || [];
-    const targetStr = item.targetText || "";
-    for (const num of sourceDigits) {
-      if (targetStr.indexOf(num) === -1) {
-        result.issues.push({
-          itemId: item.id,
-          sourceText: item.sourceText,
-          targetText: item.targetText,
-          type: "numbers",
-          typeName: "数字不一致",
-          severity: "medium",
-          description: `原文中的数字“${num}”在译文中未保留`,
-        });
-        break;
+    // 数字按规范化值做多重集比较（而非字面子串匹配）：
+    // 消除日期本地化（2024-01-01 → 2024年1月1日）、欧式小数逗号（1.5 → 1,5）、
+    // 千分位差异（1,000 → 1.000）等误报；中文数字表达（第五关）经兜底池消除。
+    const sourceNumbers = __extractNumbersImpl(item.sourceText);
+    const targetNumbers = __extractNumbersImpl(item.targetText);
+    const pool = targetNumbers.slice();
+    const missing = [];
+    for (const num of sourceNumbers) {
+      const idx = pool.findIndex((t) => t.canonical === num.canonical);
+      if (idx === -1) {
+        missing.push(num);
+      } else {
+        pool.splice(idx, 1);
       }
+    }
+    // 中文数字兜底：译文中以中文数字表达的同值数字视为已保留（仅消误报）
+    if (missing.length > 0) {
+      const cnValues = __extractChineseNumberValuesImpl(item.targetText);
+      for (let i = missing.length - 1; i >= 0; i--) {
+        const idx = cnValues.indexOf(Number(missing[i].canonical));
+        if (idx !== -1) {
+          cnValues.splice(idx, 1);
+          missing.splice(i, 1);
+        }
+      }
+    }
+    if (missing.length > 0) {
+      result.issues.push({
+        itemId: item.id,
+        sourceText: item.sourceText,
+        targetText: item.targetText,
+        type: "numbers",
+        typeName: "数字不一致",
+        severity: "medium",
+        description: `原文中的数字 ${missing
+          .map((n) => `“${n.original}”`)
+          .join("、")} 在译文中未保留`,
+      });
     }
   }
 
@@ -241,5 +380,9 @@ function __escapeRegexImpl(text) {
   App.impl.checkTranslationItemCached = __checkTranslationItemCachedImpl;
   App.impl.checkTranslationItemOptimized = __checkTranslationItemOptimizedImpl;
   App.impl.extractPlaceholderTokens = __extractPlaceholderTokensImpl;
+  App.impl.normalizeNumberToken = __normalizeNumberTokenImpl;
+  App.impl.extractNumbers = __extractNumbersImpl;
+  App.impl.parseChineseNumber = __parseChineseNumberImpl;
+  App.impl.extractChineseNumberValues = __extractChineseNumberValuesImpl;
   App.impl.escapeRegex = __escapeRegexImpl;
 })();

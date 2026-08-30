@@ -216,12 +216,23 @@ function initEngineModelSync() {
   }
 
   // 同步所有类别下拉和引擎下拉
-  function syncToolbarCategory(category, selectedEngine) {
+  // skipNotify：初始化场景（页面加载恢复上次引擎）不弹切换反馈
+  function syncToolbarCategory(category, selectedEngine, skipNotify) {
+    // 记录联动前的引擎（类别切换会程序化重建 options 并重选，
+    // 不触发 change 事件，需在此补发 toast，否则残留旧引擎提示）
+    var prevEngine = engineSelect.value;
     rebuildEngineSelectByCategory(engineSelect, category, selectedEngine);
     rebuildEngineSelectByCategory(sidebarEngineSelect, category, selectedEngine);
     if (toolbarCategoryFilter) toolbarCategoryFilter.value = category;
     if (sidebarCategoryFilter) sidebarCategoryFilter.value = category;
     updateEngineUI(engineSelect.value);
+    // 类别联动导致实际引擎变化时补发切换反馈（与直接操作引擎下拉的行为一致）
+    if (!skipNotify && engineSelect.value !== prevEngine) {
+      var cfg = EngineRegistry.get(engineSelect.value);
+      if (cfg && typeof showNotification === "function") {
+        showNotification("info", "翻译引擎已切换", cfg.name + (cfg.defaultModel ? " · " + cfg.defaultModel : ""), { duration: 2000 });
+      }
+    }
   }
 
   // 更新UI显示的函数
@@ -719,10 +730,10 @@ function initEngineModelSync() {
     savedSettings.defaultEngine = initialEngine;
     SettingsCache.save(savedSettings);
   }
-  // 根据初始引擎类别重建工具栏和侧边栏引擎下拉
+  // 根据初始引擎类别重建工具栏和侧边栏引擎下拉（初始化恢复，不弹切换反馈）
   var initialConfig = EngineRegistry.get(initialEngine);
   var initialCategory = (initialConfig && initialConfig.category) || "ai";
-  syncToolbarCategory(initialCategory, initialEngine);
+  syncToolbarCategory(initialCategory, initialEngine, true);
 
   // 加载保存的温度并同步到侧栏滑块与设置面板滑块（AI 引擎支持 0–2）
   if (temperatureInput && temperatureValue) {

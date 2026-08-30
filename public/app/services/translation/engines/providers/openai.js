@@ -13,10 +13,11 @@ EngineRegistry.register({
     return { "Authorization": "Bearer " + key };
   },
   supportsJsonMode: true,
-  jsonModeUnsupportedModels: [/^o[13](?:[-_]|$)/i],
+  // o 系推理模型（o1/o3/o4…）：[1-9] 覆盖后续数字代际，避免 o4-mini 等漏配导致 400
+  jsonModeUnsupportedModels: [/^o[1-9](?:[-_]|$)/i],
   modelCapabilities: [
     {
-      match: /^o[13](?:[-_]|$)/i,
+      match: /^o[1-9](?:[-_]|$)/i,
       supportsJsonMode: false,
       isReasoningModel: true,
       disablesTemperature: true,
@@ -41,12 +42,12 @@ EngineRegistry.register({
     url: "https://api.openai.com/v1/models",
   },
 
-  // OpenAI 推理模型（o1/o3 系列）请求体差异适配：
+  // OpenAI 推理模型（o 系）请求体差异适配：
   _transformRequestBody: function (body) {
     if (!body || !body.model) return body;
     var capability = typeof EngineRegistry !== "undefined" && typeof EngineRegistry.getModelCapability === "function"
       ? EngineRegistry.getModelCapability("openai", body.model)
-      : { isReasoningModel: /^o[13](?:[-_]|$)/i.test(body.model) };
+      : { isReasoningModel: /^o[1-9](?:[-_]|$)/i.test(body.model) };
     var isReasoningModel = !!capability.isReasoningModel;
     if (!isReasoningModel) return body;
 

@@ -5,22 +5,20 @@ EngineRegistry.register({
   id: "google",
   name: "Google Translate",
   category: "traditional",
+  // 传统引擎唯一 URL 源：_buildRequest 复用此值（原先两处字面量重复，改一处不生效）
   apiUrl: "https://translation.googleapis.com/language/translate/v2",
   apiKeyField: "googleApiKey",
   apiKeyValidationType: "google",
   defaultModel: "",
-  authHeaderBuilder: function (key) {
-    return { "X-Goog-Api-Key": key };
-  },
   supportsJsonMode: false,
   supportsBatch: false,
   extraBodyParams: {},
   rateLimitPerSecond: 10,
 
-  // 传统引擎专用：构建请求
+  // 传统引擎专用：构建请求（authHeaderBuilder 对传统引擎无效，headers 在此构建）
   _buildRequest: function (cleanText, sourceLang, targetLang, apiKey, settings) {
     return {
-      url: "https://translation.googleapis.com/language/translate/v2",
+      url: this.apiUrl,
       method: "POST",
       headers: {
         "Content-Type": "application/json",

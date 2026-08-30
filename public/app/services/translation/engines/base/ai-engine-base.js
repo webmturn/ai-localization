@@ -168,6 +168,8 @@ function _aiIsTruncatedBatchResponse(respData) {
   var choice = respData?.choices?.[0];
   var finishReason = choice?.finish_reason || choice?.finishReason;
   if (finishReason && /^(length|max_tokens|MAX_TOKENS)$/i.test(String(finishReason))) return true;
+  // Claude 原生 Messages API：截断信号为顶层 stop_reason（与 content 数组同级）
+  if (respData?.stop_reason && /^(max_tokens|length)$/i.test(String(respData.stop_reason))) return true;
   var candidates = respData?.candidates;
   if (Array.isArray(candidates)) {
     for (var i = 0; i < candidates.length; i++) {

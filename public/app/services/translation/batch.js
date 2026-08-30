@@ -302,7 +302,8 @@ TranslationService.prototype.translateBatch = async function (
   // ========== 逐项处理（支持并发） ==========
   const rawLimit = parseInt(__batchSettings?.concurrentLimit);
   // 并发数不超过引擎速率限制（rateLimitPerSecond < 1 时强制串行）
-  const engineRps = engineConfig?.rateLimitPerSecond || 3;
+  // 限速数据统一经 _ensureRateLimitEntry（EngineRegistry 唯一源，运行时注册引擎同样生效）
+  const engineRps = (this._ensureRateLimitEntry(normalizedEngine) || {}).maxPerSecond || 3;
   const maxByEngine = engineRps < 1 ? 1 : Math.ceil(engineRps);
   const userLimit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10, rawLimit)) : 1;
   const concurrentLimit = Math.min(userLimit, maxByEngine);

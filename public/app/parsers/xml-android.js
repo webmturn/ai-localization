@@ -85,7 +85,12 @@ function parseAndroidStrings(content, fileName) {
           issues: [],
           metadata: {
             file: fileName,
-            resourceId: `${arrayName}[${j}]`,
+            // 用 name:index 形式而非 name[index]：数组名本身可能含方括号，
+            // 且 <item> 没有可用作定位的属性，导出时必须靠下标精确寻址。
+            // 同时保留 arrayIndex 供导出端直接使用。
+            resourceId: `${arrayName}:${j}`,
+            arrayName: arrayName,
+            arrayIndex: j,
             position: `line-${i + 1}-${j + 1}`,
           },
         });

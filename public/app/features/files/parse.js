@@ -141,6 +141,16 @@ async function __parseFileAsyncImpl(file, options) {
     // 根据文件类型解析内容：XML 系扩展名走结构探测，其余经注册表扩展名直配
     let items = [];
 
+    // 标记「XML 本身损坏」这类错误：必须向上抛出，绝不能再退化成纯文本解析。
+    // 否则畸形 XML 会被逐行当成文本条目导入（垃圾数据），而界面还提示导入成功。
+    class MalformedXmlError extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "MalformedXmlError";
+        this.code = "MALFORMED_XML";
+      }
+    }
+
     try {
       // XML 系格式：结构探测优先；结构未命中按扩展名提示；校验失败/0 条目均回退通用XML
       const parseXmlByDetectedFormat = () => {
@@ -155,7 +165,9 @@ async function __parseFileAsyncImpl(file, options) {
         // 结构探测（parsererror 直接抛错，走文件级错误路径）
         const detection = detectXmlFormat(normalizedContent);
         if (detection.type === "invalid") {
-          throw new Error(`XML解析失败: ${detection.reason || "无效XML"}`);
+          throw new MalformedXmlError(
+            `XML解析失败: ${detection.reason || "无效XML"}`
+          );
         }
 
         let chosen =
@@ -223,6 +235,30 @@ async function __parseFileAsyncImpl(file, options) {
         items = parseTextFile(normalizedContent, file.name);
       }
     } catch (parseError) {
+      // 畸形 XML 必须直接失败：退化为纯文本会产生垃圾条目并谎报成功
+      if (parseError instanceof MalformedXmlError || parseError?.code === "MALFORMED_XML") {
+        (loggers.app || console).error("XML 文件损坏，已中止导入:", parseError);
+        throw parseError;
+      }
+      // XML 系文件的内容若本身不是良构 XML（各解析器都会报 "XML解析错误/parsererror"），
+      // 同样不能退化为纯文本。
+      if (xmlFamilyExtensions.includes(fileExtension)) {
+        let looksMalformed = false;
+        try {
+          const doc = new DOMParser().parseFromString(normalizedContent, "application/xml");
+          looksMalformed = !!doc.querySelector("parsererror");
+        } catch (e) {
+          looksMalformed = false;
+        }
+        if (looksMalformed) {
+          const err = new MalformedXmlError(
+            `XML解析失败: 文件不是良构 XML（${file.name}）`
+          );
+          (loggers.app || console).error("XML 文件损坏，已中止导入:", parseError);
+          throw err;
+        }
+      }
+      // 其它解析器错误仍按原策略回退纯文本（例如扩展名与内容不符的普通文本文件）
       (loggers.app || console).error(`特定解析器失败，使用备用方法:`, parseError);
       items = parseTextFile(normalizedContent, file.name);
     }

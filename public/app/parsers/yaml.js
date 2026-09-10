@@ -167,6 +167,13 @@ async function exportYAML(items, options = {}) {
     throw new Error('js-yaml 不可用，无法导出 YAML');
   }
 
+  // 入参保护：非数组输入此前会在 for...of 处抛裸 TypeError
+  // （"items is not iterable"），调用方拿到的是无上下文的错误。
+  if (items === null || items === undefined) items = [];
+  if (!Array.isArray(items)) {
+    throw new Error('YAML 导出需要传入数组，实际收到 ' + typeof items);
+  }
+
   // 按路径分组
   const processed = new Map();
   for (const item of items) {
@@ -177,32 +184,67 @@ async function exportYAML(items, options = {}) {
     processed.set(path, value);
   }
 
-  // 构建嵌套结构（支持数组路径 [i]）
-  const result = {};
+  // 没有任何条目带路径信息时，直接报错而不是导出空对象 {}。
+  // 这些条目来自 PO / XLIFF / Android / RESX / iOS / CSV 等格式（它们的 metadata 里
+  // 只有 key/resourceId，没有 YAML/JSON 那样的点分路径），
+  // 之前的实现会静默 dump({})，用户拿到的是一个空文件却提示导出成功。
+  if (processed.size === 0 && Array.isArray(items) && items.length > 0) {
+    throw new Error(
+      "YAML 导出需要 items 带有 metadata.path（仅 JSON/YAML 来源具备）；" +
+        "当前 " + items.length + " 个条目均无路径信息，请改用与源文件匹配的导出格式"
+    );
+  }
+
+  // 构建嵌套结构（支持数组路径 [i]；路径以 $ 为根，需跳过根符号）
+  // 根级数组（如 $[0]、$[0].name）需要容器本身是数组，因此先探测再决定 result 形态。
+  const hasRootArray = [...processed.keys()].some((p) => /^\$\[\d+\]/.test(String(p)));
+  const result = hasRootArray ? [] : {};
+  const isIndexPart = (p) => /^\[?\d+\]?$/.test(String(p == null ? '' : p).trim());
+
   for (const [path, value] of processed) {
-    const parts = path.split('.');
+    // 与 parsers/json.js 保持一致：路径形如 $.app.title、$.menu[0].label、$[0].name。
+    // 旧实现不跳过 "$"，会把全部内容错误地嵌套在一个名为 "$" 的顶层键下。
+    // 注意只剥掉「单独的 $」，不能剥掉 "$[0]" 里的 $（否则根级数组会丢段）。
+    const parts = String(path)
+      .split('.')
+      .filter((p) => p !== '')
+      .map((p) => (p === '$' ? '' : p.startsWith('$[') ? p.slice(1) : p))
+      .filter((p) => p !== '');
+    if (parts.length === 0) continue;
     let current = result;
+
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const arrMatch = part.match(/^(.*)\[(\d+)\]$/);
+      const isLast = i === parts.length - 1;
+
       if (arrMatch) {
         const key = arrMatch[1];
         const idx = parseInt(arrMatch[2], 10);
-        if (!current[key] || !Array.isArray(current[key])) {
-          current[key] = [];
-        }
-        if (i === parts.length - 1) {
-          current[key][idx] = value;
+
+        if (key === '') {
+          // 根级数组：容器本身就是数组
+          if (isLast) {
+            current[idx] = value;
+          } else {
+            if (!current[idx]) current[idx] = isIndexPart(parts[i + 1]) ? [] : {};
+            current = current[idx];
+          }
         } else {
-          if (!current[key][idx]) current[key][idx] = {};
-          current = current[key][idx];
+          if (!Array.isArray(current[key])) current[key] = [];
+          if (isLast) {
+            current[key][idx] = value;
+          } else {
+            if (!current[key][idx]) current[key][idx] = isIndexPart(parts[i + 1]) ? [] : {};
+            current = current[key][idx];
+          }
         }
       } else {
-        if (i === parts.length - 1) {
+        if (isLast) {
           current[part] = value;
         } else {
           if (!current[part] || typeof current[part] !== 'object') {
-            current[part] = {};
+            current[part] = isIndexPart(parts[i + 1]) ? [] : {};
           }
           current = current[part];
         }

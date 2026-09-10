@@ -239,44 +239,184 @@ function generateAndroidStringsXMLFromItems(items, includeOriginal) {
 }
 
 // 生成Android strings.xml格式
+// 覆盖三类资源，均按 metadata.resourceId 精确定位：
+//   <string name="x">        → resourceId = "x"
+//   <string-array name="a">  → resourceId = "a:0" / "a:1" …（并带 arrayName/arrayIndex）
+//   <plurals name="p">       → resourceId = "p[one]" / "p[other]" …
+// 数组用 "name:index" 是因为 <item> 没有可用于定位的属性，必须靠下标寻址；
+// 旧数据可能仍是 "a[0]" 形式，故下面保留该回退分支。
+// 值使用「反序列化 → 作为子节点插入」的方式写回，从而保留 <b>、<xliff:g> 等内联标记
+// （解析器存进 sourceText 的正是序列化形式；此前用 [^<]* 匹配，含内联标记的字符串
+//  一律匹配不到，数组/复数条目更是完全不处理）。
 function generateAndroidStringsXML(items, originalContent) {
   (loggers.app || console).debug("处理Android strings.xml, 翻译项数量:", items.length);
   let result = originalContent;
   let replacedCount = 0;
 
-  items.forEach((item) => {
-    if (item.targetText && item.targetText.trim() !== "") {
-      // 获取原始的resourceId（name属性值）
-      const resourceId = item.metadata?.resourceId;
-      if (!resourceId) {
-        (loggers.app || console).warn(`跳过无resourceId的项: ${item.id}`);
-        return;
-      }
-
-      // 转义特殊字符
-      const escapedId = resourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-      // 匹配 <string name="id">原文</string> 格式
-      const regex = new RegExp(
-        `(<string[^>]*name="${escapedId}"[^>]*>)([^<]*)(</string>)`,
-        "g"
+  // 把序列化片段还原成可插入的节点（失败则退回纯文本，保证不注入未转义内容）
+  function parseFragment(doc, text) {
+    try {
+      const wrapped = doc.parseFromString(
+        '<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">' +
+          String(text) +
+          "</resources>",
+        "application/xml"
       );
+      if (!wrapped || wrapped.querySelector("parsererror")) return null;
+      return wrapped.documentElement;
+    } catch (e) {
+      return null;
+    }
+  }
 
-      const before = result;
-      result = result.replace(regex, (match, opening, content, closing) => {
-        (loggers.app || console).debug(
-          `✓ 替换Android资源: name="${resourceId}" -> "${item.targetText.substring(
-            0,
-            30
-          )}..."`
-        );
-        replacedCount++;
-        return `${opening}${escapeXml(item.targetText)}${closing}`;
-      });
+  function resourceRegex(escapedId) {
+    return new RegExp(
+      "(<string[^>]*\\bname=\"" + escapedId + "\"[^>]*>)([\\s\\S]*?)(</string>)",
+      "g"
+    );
+  }
 
-      if (result === before) {
-        (loggers.app || console).warn(`✗ 未找到匹配: name="${resourceId}"`);
+  // 把值安全地写入 XML：可能含内联标记（解析器存的是序列化片段）。
+  //  - 纯文本 → XML 转义（此前直接拼接原值，含 < & 的译文会破坏文档结构）
+  //  - 含标记 → 逐个文本节点转义，标签原样保留
+  function safeAndroidValue(doc, text) {
+    const raw = String(text == null ? "" : text);
+    const frag = parseFragment(doc, raw);
+    if (frag && frag.childNodes && frag.childNodes.length > 0) {
+      // 值是合法 XML 片段：逐文本节点转义，保留元素结构
+      const nodes = Array.prototype.slice.call(frag.childNodes);
+      let out = "";
+      for (const node of nodes) {
+        if (node.nodeType === 3) {
+          out += escapeXml(node.nodeValue);
+        } else if (node.nodeType === 1) {
+          out += node.outerHTML !== undefined
+            ? node.outerHTML
+            : new XMLSerializer().serializeToString(node);
+        }
       }
+      return { value: out, hasMarkup: true };
+    }
+    // 纯文本（或不是合法 XML）：整体转义
+    return { value: escapeXml(raw), hasMarkup: false };
+  }
+
+  function replaceSelfClosingOrPaired(tagName, name, kind, indexValue, newValue) {
+    const re = new RegExp(
+      "<(" + tagName + ")(?=[\\s>])([^>]*\\bname=\"" + name + "\"[^>]*)>" +
+        "([\\s\\S]*?)</" + tagName + ">",
+      "g"
+    );
+    const doc = new DOMParser();
+    const safe = safeAndroidValue(doc, newValue);
+
+    result = result.replace(re, function (match, tag, attrs, inner) {
+      if (kind === "arrayIndex") {
+        // <item> 无定位属性 → 按下标寻址，仅替换第 N 个 item
+        const itemRe = /(<item\b[^>]*>)([\s\S]*?)(<\/item>)/g;
+        let seen = -1;
+        let hit = false;
+        const newInner = inner.replace(itemRe, function (im, io, _ic, icl) {
+          seen++;
+          if (seen !== indexValue) return im;
+          hit = true;
+          replacedCount++;
+          return io + safe.value + icl;
+        });
+        if (!hit) return match;
+        return "<" + tag + attrs + ">" + newInner + "</" + tag + ">";
+      }
+
+      // plurals：按 quantity 寻址
+      const itemRe = new RegExp(
+        "(<item\\b[^>]*?quantity=\"" + indexValue + "\"[^>]*>)([\\s\\S]*?)(</item>)"
+      );
+      if (!itemRe.test(inner)) return match;
+      const newInner = inner.replace(itemRe, function (im, io, _ic, icl) {
+        replacedCount++;
+        return io + safe.value + icl;
+      });
+      return "<" + tag + attrs + ">" + newInner + "</" + tag + ">";
+    });
+  }
+
+  items.forEach((item) => {
+    if (!item.targetText || item.targetText.trim() === "") return;
+    const resourceId = item.metadata?.resourceId;
+    if (!resourceId) {
+      (loggers.app || console).warn(`跳过无resourceId的项: ${item.id}`);
+      return;
+    }
+
+    const newValue = item.targetText;
+    const before = result;
+    const escName = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // 0) 字符串数组：解析器已提供 arrayName/arrayIndex 时直接寻址
+    const meta = item.metadata || {};
+    if (meta.arrayName != null && meta.arrayIndex != null) {
+      replaceSelfClosingOrPaired(
+        "string-array", escName(String(meta.arrayName)), "arrayIndex",
+        parseInt(meta.arrayIndex, 10), newValue
+      );
+      if (result === before) {
+        (loggers.app || console).warn(`✗ 未找到匹配: resourceId="${resourceId}"`);
+      }
+      return;
+    }
+    // 1) 兼容旧数据：string-array 用 name[index] 表示。
+    // 必须先于下面的 "name:index" 判断，否则复数资源（resourceId 形如 "p[one]"）
+    // 在名称含冒号时会被误判为数组。
+    let m = resourceId.match(/^(.+?)\[(\d+)\]$/);
+    if (m) {
+      replaceSelfClosingOrPaired(
+        "string-array", escName(m[1]), "arrayIndex", parseInt(m[2], 10), newValue
+      );
+      if (result === before) {
+        (loggers.app || console).warn(`✗ 未找到匹配: resourceId="${resourceId}"`);
+      }
+      return;
+    }
+
+    // 1.5) 字符串数组（解析器当前输出）：name:index。
+    // 限定名称不含冒号/方括号，避免与其它形态混淆。
+    m = resourceId.match(/^([A-Za-z_][\w.]*):(\d+)$/);
+    if (m) {
+      replaceSelfClosingOrPaired(
+        "string-array", escName(m[1]), "arrayIndex", parseInt(m[2], 10), newValue
+      );
+      if (result === before) {
+        (loggers.app || console).warn(`✗ 未找到匹配: resourceId="${resourceId}"`);
+      }
+      return;
+    }
+
+    // 2) plurals：name[quantity]（quantity 为 one/two/few/many/other 等词）
+    m = resourceId.match(/^(.+?)\[([A-Za-z_]+)\]$/);
+    if (m) {
+      replaceSelfClosingOrPaired("plurals", escName(m[1]), "quantity", m[2], newValue);
+      if (result === before) {
+        (loggers.app || console).warn(`✗ 未找到匹配: resourceId="${resourceId}"`);
+      }
+      return;
+    }
+
+    // 3) 普通 <string name="x">
+    const escapedId = resourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const doc = new DOMParser();
+    const safe = safeAndroidValue(doc, newValue);
+    result = result.replace(resourceRegex(escapedId), function (_match, opening, _content, closing) {
+      replacedCount++;
+      // 含内联标记时必须声明 formatted="false"，否则 Android 会剥离标记
+      let open = opening;
+      if (safe.hasMarkup && !/\bformatted=/.test(open)) {
+        open = open.replace(/^<string/, '<string formatted="false"');
+      }
+      return open + safe.value + closing;
+    });
+
+    if (result === before) {
+      (loggers.app || console).warn(`✗ 未找到匹配: name="${resourceId}"`);
     }
   });
 
@@ -375,56 +515,193 @@ function generateXLIFF(items, includeOriginal) {
   return generateNewXLIFF(items);
 }
 
+// 把译文写入 XLIFF <target>：
+//  - 若译文是合法 XML 片段（含 <g>、<x/> 等内联标记）→ 插入真实节点，保留内联结构
+//  - 否则按纯文本写入（由序列化器负责转义，避免二次转义）
+function __setXliffTargetContent(xmlDoc, target, value) {
+  const text = value == null ? "" : String(value);
+  // 先清空
+  while (target.firstChild) target.removeChild(target.firstChild);
+
+  if (text.indexOf("<") !== -1) {
+    try {
+      const ns = xmlDoc.documentElement.namespaceURI || null;
+      const wrapped = new DOMParser().parseFromString(
+        '<root xmlns="' + (ns || "") + '">' + text + "</root>",
+        "application/xml"
+      );
+      if (wrapped && !wrapped.querySelector("parsererror")) {
+        const nodes = Array.prototype.slice.call(wrapped.documentElement.childNodes);
+        nodes.forEach(function (n) {
+          target.appendChild(xmlDoc.importNode(n, true));
+        });
+        return;
+      }
+    } catch (e) {
+      // 落到纯文本分支
+    }
+  }
+  target.textContent = text;
+}
+
 // 更新原始 XLIFF 内容
 function updateXLIFFContent(items, originalContent) {
   try {
+    // 命名空间感知的查询：querySelectorAll("trans-unit") 在带默认命名空间的
+    // XLIFF 文档（1.2 的 urn:oasis:names:tc:xliff:document:1.2、2.0 的同族命名空间）
+    // 上匹配不到任何元素，导致导出整体变成空操作。统一改用 getElementsByTagNameNS("*", ...)。
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(originalContent, "application/xml");
 
-    // 查找所有 trans-unit 元素
-    const transUnits = xmlDoc.querySelectorAll("trans-unit");
+    const nsAll = (root, tag) => {
+      const list = root.getElementsByTagNameNS("*", tag);
+      return list ? Array.prototype.slice.call(list) : [];
+    };
 
-    transUnits.forEach((transUnit) => {
-      const source = transUnit.querySelector("source");
-      if (!source) return;
+    const serializer = new XMLSerializer();
 
-      const sourceText = source.textContent?.trim();
+    // 与 parsers/xliff.js 的 serializeChildren 保持一致：
+    // 导出侧必须用「序列化后的子节点」去比对，因为解析器存进 sourceText 的正是这个形式
+    // （含实体、<g> 等内联标记）。此前用 source.textContent（已解码、已剥标签）比对，
+    // 导致任何带实体或内联标记的源文永远匹配不上，译文静默丢失。
+    function serializeChildren(element) {
+      if (!element) return "";
+      let out = "";
+      const nodes = element.childNodes || [];
+      for (let i = 0; i < nodes.length; i++) {
+        out += serializer.serializeToString(nodes[i]);
+      }
+      out = out.replace(/\sxmlns(?:="[^"]*"|:[\w-]+="[^"]*")/g, "");
+      return (out || element.textContent || "").trim();
+    }
 
-      // 查找匹配的翻译项
-      const item = items.find((item) => item.sourceText?.trim() === sourceText);
+    const normalize = (s) => (s == null ? "" : String(s).replace(/\s+/g, " ").trim());
 
-      if (item && item.targetText) {
-        // 更新或创建 target 元素
-        let target = transUnit.querySelector("target");
-        if (!target) {
-          target = xmlDoc.createElement("target");
-          source.parentNode.insertBefore(target, source.nextSibling);
+    // 收集待更新的 (source, target) 对，兼容 XLIFF 1.2 <trans-unit> 与 2.0 <unit>/<segment>
+    const pairs = [];
+    const pushPair = (unitEl, sourceEl, targetEl) => {
+      if (!sourceEl) return;
+      pairs.push({
+        unitId: unitEl ? unitEl.getAttribute("id") : null,
+        sourceEl,
+        targetEl,
+        serialized: serializeChildren(sourceEl),
+        textContent: normalize(sourceEl.textContent),
+      });
+    };
+
+    const transUnits = nsAll(xmlDoc, "trans-unit");
+    if (transUnits.length > 0) {
+      transUnits.forEach((tu) => {
+        pushPair(tu, nsAll(tu, "source")[0], nsAll(tu, "target")[0]);
+      });
+    } else {
+      nsAll(xmlDoc, "unit").forEach((unit) => {
+        const segments = nsAll(unit, "segment");
+        if (segments.length > 0) {
+          segments.forEach((seg) => {
+            pushPair(unit, nsAll(seg, "source")[0], nsAll(seg, "target")[0]);
+          });
+        } else {
+          pushPair(unit, nsAll(unit, "source")[0], nsAll(unit, "target")[0]);
         }
+      });
+    }
 
-        target.textContent = item.targetText;
+    if (pairs.length === 0) return generateNewXLIFF(items);
 
-        // 设置状态
-        if (
-          item.status === "translated" ||
-          item.status === "edited" ||
-          item.status === "approved"
-        ) {
-          target.setAttribute("state", "translated");
+    const translated = items.filter(
+      (it) => it && it.targetText && String(it.targetText).trim()
+    );
+
+    // 按 unitId 建索引（XLIFF 1.2 每个 trans-unit 唯一；2.0 同 unit 的多个 segment 用队列顺序消费）。
+    // 有了 id 定位，重复源文（"Open"/"Cancel"/"OK"）才不会全部写成同一条译文。
+    const byUnitId = new Map();
+    translated.forEach((it) => {
+      const id = it?.metadata?.unitId;
+      if (id == null) return;
+      const key = String(id);
+      if (!byUnitId.has(key)) byUnitId.set(key, []);
+      byUnitId.get(key).push(it);
+    });
+
+    const used = new Set();
+    const takenByUnitId = new Map();
+
+    pairs.forEach((pair) => {
+      let item = null;
+
+      if (pair.unitId != null && byUnitId.has(String(pair.unitId))) {
+        const queue = byUnitId.get(String(pair.unitId));
+        const usedCount = takenByUnitId.get(String(pair.unitId)) || 0;
+        if (usedCount < queue.length) {
+          item = queue[usedCount];
+          takenByUnitId.set(String(pair.unitId), usedCount + 1);
         }
+      }
 
-        if (item.status === "approved") {
-          transUnit.setAttribute("approved", "yes");
-        }
+      if (!item) {
+        // 文本回退：优先按序列化形式精确匹配，再按规范化文本匹配。
+        // find + used 集合：避免重复源文全部命中同一条（旧实现的另一个缺陷）。
+        item =
+          translated.find(
+            (it) => !used.has(it) && serializeChildrenFromString(it.sourceText) === pair.serialized
+          ) ||
+          translated.find(
+            (it) => !used.has(it) && normalize(it.sourceText) === pair.textContent
+          ) ||
+          null;
+      }
+
+      if (!item) return;
+      used.add(item);
+
+      // 更新或创建 target 元素
+      let target = pair.targetEl;
+      if (!target) {
+        target = xmlDoc.createElementNS(
+          pair.sourceEl.namespaceURI || xmlDoc.documentElement.namespaceURI,
+          "target"
+        );
+        pair.sourceEl.parentNode.insertBefore(target, pair.sourceEl.nextSibling);
+      }
+      // 写入译文：targetText 可能是「含内联标记的序列化片段」（解析器存的就是这个形式，
+      // 例如 '请点击 <g id="1">这里</g>'）。
+      // 直接赋 textContent 会把标记转义成字面量 &lt;g&gt;，破坏 XLIFF 内联结构；
+      // 因此先尝试按 XML 片段解析，成功则替换为真实节点，失败再退回纯文本。
+      __setXliffTargetContent(xmlDoc, target, item.targetText);
+
+      // 设置状态
+      if (
+        item.status === "translated" ||
+        item.status === "edited" ||
+        item.status === "approved"
+      ) {
+        target.setAttribute("state", "translated");
+      }
+
+      if (item.status === "approved") {
+        const unitEl = pair.sourceEl.closest
+          ? pair.sourceEl.closest("trans-unit, unit")
+          : null;
+        if (unitEl) unitEl.setAttribute("approved", "yes");
       }
     });
 
     // 序列化回字符串
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(xmlDoc);
+    const outSerializer = new XMLSerializer();
+    return outSerializer.serializeToString(xmlDoc);
   } catch (error) {
     (loggers.app || console).error("更新XLIFF失败:", error);
     return generateNewXLIFF(items);
   }
+}
+
+// 把已存进 item.sourceText 的「序列化片段」做同样的规范化处理，
+// 使其可与文档内重新序列化出来的结果直接比较。
+function serializeChildrenFromString(text) {
+  if (text == null) return "";
+  return String(text).replace(/\sxmlns(?:="[^"]*"|:[\w-]+="[^"]*")/g, "").trim();
 }
 
 // 生成新的 XLIFF

@@ -76,18 +76,27 @@ function exportTerminology() {
 }
 
 // 生成术语库CSV
+// 表头使用英文键名（source/target/partOfSpeech/definition），与
+// terminology-import.js 的解析逻辑对应 —— 此前输出中文表头（"源术语,目标术语,词性"），
+// 导入端按 term.source / term.target 取值，导致自己导出的 CSV 无法再导入。
 function generateTerminologyCSV(terms, includeDefinition, includeMetadata) {
-  let csv = "源术语,目标术语,词性";
-  if (includeDefinition) csv += ",定义";
-  if (includeMetadata) csv += ",创建时间";
+  let csv = "source,target,partOfSpeech";
+  if (includeDefinition) csv += ",definition";
+  if (includeMetadata) csv += ",createdAt";
   csv += "\n";
 
   terms.forEach((term) => {
-    let row = `"${escapeCsv(term.source)}","${escapeCsv(
-      term.target
-    )}","${escapeCsv(getPartOfSpeechText(term.partOfSpeech))}"`;
-    if (includeDefinition) row += `,"${escapeCsv(term.definition || "")}"`;
-    if (includeMetadata) row += `,"${new Date().toISOString()}"`;
+    // CSV 字段一律加引号并对内部引号翻倍（RFC 4180）
+    const cell = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    let row = [
+      cell(term.source),
+      cell(term.target),
+      // 导出原始 key（如 noun/verb），而非本地化显示名，
+      // 否则再导入时词性会丢失（导入端只认 key）
+      cell(term.partOfSpeech || "other"),
+    ].join(",");
+    if (includeDefinition) row += "," + cell(term.definition || "");
+    if (includeMetadata) row += "," + cell(term.createdAt || new Date().toISOString());
     csv += row + "\n";
   });
 

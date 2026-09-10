@@ -243,3 +243,58 @@ describe("端到端分发冒烟（__parseFileAsyncImpl → 注册表 → 解析�
     expect(warning[1].message).toContain("RESX结构校验失败");
   });
 });
+
+// 回归：畸形 XML 曾经因为「解析器异常 → 回退纯文本」而变成垃圾条目，
+// 界面还提示导入成功。现在必须直接报错。
+describe("畸形 XML 不再退化为纯文本（回归）", () => {
+  let notifications;
+
+  beforeAll(() => {
+    loadSource("public/app/features/files/read.js");
+    notifications = [];
+    globalThis.showNotification = (type, title, message) => {
+      notifications.push({ type, title, message });
+    };
+    globalThis.securityUtils = { validateXMLContent: () => true };
+  });
+
+  const parseFile = (content, name, type) =>
+    App.impl.parseFileAsync(new File([content], name, { type: type || "text/plain" }), {
+      silent: true,
+      skipPersist: true,
+    });
+
+  it("损坏的 .xlf 返回失败而不是垃圾条目", async () => {
+    const result = await parseFile("<xliff><file><body><unclosed>", "broken.xlf", "application/xml");
+    expect(result.success).toBe(false);
+    // 失败时返回单个「文件解析错误」占位项，真实原因在 context
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].issues).toContain("FILE_PARSE_ERROR");
+    expect(result.items[0].context).toMatch(/XML/i);
+  });
+
+  it("损坏的 .xml 返回失败", async () => {
+    const result = await parseFile("<resources><string name=\"a\">x", "broken.xml", "application/xml");
+    expect(result.success).toBe(false);
+  });
+
+  it("损坏的 .resx 返回失败", async () => {
+    const result = await parseFile("<root><data name=\"a\"><value>x", "broken.resx", "application/xml");
+    expect(result.success).toBe(false);
+  });
+
+  it("正常的 XML 仍能成功解析（未误伤）", async () => {
+    const result = await parseFile(
+      '<resources><string name="greeting">Hello</string></resources>',
+      "ok.xml",
+      "application/xml"
+    );
+    expect(result.success).toBe(true);
+    expect(result.items.length).toBe(1);
+  });
+
+  it("非 XML 扩展名的普通文本仍走文本兜底（未误伤）", async () => {
+    const result = await parseFile("<not><valid", "t.xyz");
+    expect(result.success).toBe(true);
+  });
+});

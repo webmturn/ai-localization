@@ -43,6 +43,17 @@ function parseQtTs(content, fileName) {
       if (!sourceText) continue;
 
       const targetText = extractQtText(transEl);
+
+      // 复数形态数量：供导出端判断能否安全地按行拆分回各 <numerusform>。
+      // 源语言与目标语言的复数形态数常常不同（如 en 2 种 vs ru 3 种），
+      // 数量不一致时导出必须保守处理，否则会把同一段文本写进每个形态、破坏原有译文。
+      const countNumerusForms = (el) => {
+        if (!el) return 0;
+        const forms = el.getElementsByTagName("numerusform");
+        return forms ? forms.length : 0;
+      };
+      const sourceNumerusCount = countNumerusForms(sourceEl);
+      const targetNumerusCount = countNumerusForms(transEl);
       const transType = transEl?.getAttribute?.("type") || "";
       const isTranslated = !!(targetText && targetText.trim().length > 0);
 
@@ -71,6 +82,8 @@ function parseQtTs(content, fileName) {
           locationFilename: locFilename,
           locationLine: locLine,
           position: `context-${c + 1}-message-${m + 1}`,
+          sourceNumerusCount: sourceNumerusCount,
+          targetNumerusCount: targetNumerusCount,
         },
       });
     }

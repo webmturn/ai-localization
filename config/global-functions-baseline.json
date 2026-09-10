@@ -67,9 +67,6 @@
     "BatchProgressStore": [
       "core/batch-progress-store.js"
     ],
-    "BatchResumeManager": [
-      "services/translation/batch-resume.js"
-    ],
     "benchmarkArchPerformance": [
       "core/architecture/architecture-integration-helpers.js"
     ],
@@ -593,9 +590,6 @@
     ],
     "TranslationBusinessLogic": [
       "services/translation/business-logic.js"
-    ],
-    "TranslationDiff": [
-      "services/translation/translation-diff.js"
     ],
     "TranslationErrorHandler": [
       "features/translations/error-handler.js"

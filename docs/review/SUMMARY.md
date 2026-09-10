@@ -352,6 +352,44 @@ Set the width and height.      →  Set the w标识th and height.
 - `ui-controller-binding.test.mjs`（4）：控制器不重复绑定、file-panels 为唯一绑定方、
   状态更新仍用正确 id
 
+### 第八批：撤销一条被夸大的缺陷结论（重要更正）
+
+对 `parse.js` 做交互级对照（完整解析栈 + jsdom，HEAD vs 当前）后，
+**我此前"畸形 XML 被静默降级为纯文本"的结论被证伪**，此处更正。
+
+证据：给 `parseTextFile` 打桩计数，对 5 种畸形输入（`.xml`/`.xlf`/`.resx`/`.ts`/未声明命名空间前缀）
+各跑 HEAD 与当前版本：
+
+```
+bad.xml   HEAD: textFallback=0  FAIL "XML解析失败: unclosed tag: string"
+          CUR : textFallback=0  FAIL 同上
+bad.xlf   HEAD: textFallback=0  FAIL "unclosed tag: unclosed"
+          CUR : textFallback=0  FAIL 同上
+ns.xml    HEAD: textFallback=0  FAIL "unbound namespace prefix"
+          CUR : textFallback=0  FAIL 同上
+```
+
+**`textFallback=0`：退化路径从未被走到**，两版行为完全一致。
+
+原因：`detectXmlFormat()` 对任何 `parsererror` 直接返回 `invalid`，而
+`parseXmlByDetectedFormat` 在该分支 `throw` —— 这个 throw 从**外层 try 直接冒出**，
+根本不进入我修改的那个 `catch`。另外两条设想路径也已逐一排除：
+
+| 设想中的可达路径 | 实测结果 |
+|---|---|
+| `detectXmlFormat` 返回 `invalid` | catch 之前即抛出，两版一致 |
+| 格式已识别但解析器抛错（命名空间前缀） | 仍由 `detectXmlFormat` 判为 invalid，两版一致 |
+| `validateXMLContent` 拒绝**良构** XML | 该检查在 try **之外**，抛出即冒泡，两版一致 |
+
+**结论**：`parse.js` 新增的 `MalformedXmlError` 与 catch 分支**当前没有任何净行为效果**，
+是我自己加的防御性代码。它无害（fail-closed、错误信息更清晰），
+但**不是"修复了一个真实缺陷"**。CHANGELOG 中该条已从「修复」改为「防御性加固」。
+
+> 这是本次审查中我第 5 次纠正自己。这次与前几次性质不同：
+> 前几次是"读代码下结论"或"对照没跑起来"，这次是**把"理论上可能"当成了"实际发生"** ——
+> 原结论纯由代码阅读得出（看到 catch 里回退文本就断定会发生），
+> 未像其他项那样先做经验性复现。**未复现的结论不应被写成已完成的修复。**
+
 ### 测试结果（最终）
 
 - 测试套件：**32 个文件 / 504 个用例全部通过**

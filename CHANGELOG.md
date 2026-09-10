@@ -35,8 +35,12 @@
   无 `metadata.path` 的条目静默产出空 `{}`；非数组入参抛裸 `TypeError`。
 - **术语库 CSV 无法再导入** (terminology-export.js) — 导出用中文表头，导入端按 `term.source` 取值，
   自家文件无法回环。现改为英文键名并按 RFC 4180 加引号。
-- **畸形 XML 被当成普通文本导入** (parse.js) — 解析异常被 catch 后回退纯文本，产生垃圾条目却提示成功。
-  现直接失败并给出原因。
+- **畸形 XML 导入路径加固（防御性，经复核并非缺陷修复）** (parse.js) — 新增
+  `MalformedXmlError`，使 XML 系文件的解析失败不再可能退化为纯文本导入。
+  但交互级对照显示：`detectXmlFormat` 已对任何 `parsererror` 返回 invalid 并抛出，
+  退化路径**实测从未被走到**（给 `parseTextFile` 打桩计数，5 种畸形输入下
+  `textFallback=0`，HEAD 与当前行为完全一致）。故此项保留为 fail-closed 加固，
+  不改变现有行为。原先「畸形 XML 被当成普通文本导入」的描述已被证伪。
 - **批量路径未做任何结果校验** (batch.js/helpers.js) — 模型返回对象/`null`/空串/占位符损坏时
   一律按位置写入 `targetText` 并标记已翻译。现统一校验后记为失败项。
 - **占位符保护在批量路径失效** (ai-engine-base.js) — 发送给模型的是原始 `%s`/`{0}`，

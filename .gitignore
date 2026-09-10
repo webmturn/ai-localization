@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json 必须提交：CI 使用 `npm ci`，该命令强制要求 lockfile 存在，
+# 且 lockfile 是依赖可复现安装的唯一保障（勿将其加入忽略列表）。
+
+# Local npm cache (used when the default cache path is unavailable)
+.npm-cache/
 
 # Build outputs
 styles.css

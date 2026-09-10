@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * JS 打包脚本 — 将 app.js 中定义的 106+ 个脚本合并为单个 app.bundle.js
+ * JS 打包脚本 — 将 app.js 中列出的全部脚本合并为单个 app.bundle.js
+ *
+ * 完整性契约：app.js 中列出的每个脚本都必须存在。任一脚本缺失即视为构建失败，
+ * 直接退出且不写出产物 —— 避免产出"体积正常但功能残缺"的 bundle 覆盖掉完好版本。
  *
  * 用法: node scripts/build-bundle.js
  *
@@ -134,6 +137,18 @@ async function build() {
     parts.push(``);
   }
 
+  // 完整性闸门：任一脚本缺失都不允许产出 bundle。
+  // 此前的实现只打印一行警告后继续写出，会生成功能残缺的 bundle 静默覆盖完好产物。
+  if (missing.length > 0) {
+    throw new Error(
+      `app.js 列出的 ${scriptPaths.length} 个脚本中有 ${missing.length} 个缺失，` +
+        `已中止构建且未写出 ${path.relative(process.cwd(), OUTPUT)}。\n` +
+        `  缺失文件:\n` +
+        missing.map((p) => `    - public/${p}`).join("\n") +
+        `\n  若为误删，可用 git 恢复: git checkout HEAD -- public/app public/lib`
+    );
+  }
+
   // 生产模式错误监控（仅在未被脚本列表包含时追加）
   const errorProdPath = "app/core/errors/error-production.js";
   if (!scriptPaths.includes(errorProdPath)) {
@@ -172,7 +187,16 @@ async function build() {
   // ========== 生产压缩（terser） ==========
   // 未压缩 bundle 约 1.1MB：压缩后体积/解析/内存均显著下降。
   // 失败时回退未压缩版本（不阻塞构建）。
-  let finalBundle = bundle;
+  // 内嵌模块清单：压缩会丢弃逐模块分隔注释，因此把实际参与打包的模块路径作为
+  // 文件头保留下来，形成可被 CI 校验的完整性凭据
+  // （仅校验文件存在与体积下限无法发现"部分源文件缺失"这类残缺）。
+  const manifest =
+    "/*! @bundle-modules (" +
+    scriptPaths.length +
+    ")\n" +
+    scriptPaths.map((p) => ` * ${p}`).join("\n") +
+    "\n */";
+  let body = bundle;
   let minifiedInfo = "";
   if (terserMinify) {
     try {
@@ -184,12 +208,10 @@ async function build() {
           drop_console: false, // 保留 console（应用日志/调试依赖）
         },
         mangle: true,
-        format: { comments: false },
+        format: { comments: /@bundle-modules/ },
       });
       if (minified && minified.code) {
-        finalBundle =
-          "// app.bundle.js — 自动生成（terser 压缩），请勿手动编辑\n" +
-          minified.code;
+        body = minified.code;
         minifiedInfo = " (terser)";
       }
     } catch (e) {
@@ -199,6 +221,9 @@ async function build() {
     console.warn("⚠️ terser 未安装，使用未压缩版本（npm i -D terser 可启用压缩）");
   }
 
+  const finalBundle =
+    "// app.bundle.js — 自动生成，请勿手动编辑\n" + manifest + "\n" + body;
+
   fs.writeFileSync(OUTPUT, finalBundle, "utf-8");
 
   const bundleSize = (finalBundle.length / 1024).toFixed(1);
@@ -207,9 +232,6 @@ async function build() {
   console.log(`✅ 打包完成: app.bundle.js${minifiedInfo}`);
   console.log(`   源文件: ${scriptPaths.length} 个, ${sourceSize} KB`);
   console.log(`   Bundle: ${bundleSize} KB`);
-  if (missing.length > 0) {
-    console.log(`   ⚠️ 缺失 ${missing.length} 个文件: ${missing.join(", ")}`);
-  }
   console.log(`\n💡 使用方法:`);
   console.log(`   在 index.html 中将 <script src="app.js"> 替换为 <script src="app.bundle.js">`);
 }

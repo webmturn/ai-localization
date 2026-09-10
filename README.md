@@ -3,7 +3,7 @@
 一个功能强大的本地化翻译工具，支持多种文件格式的翻译和管理。
 
 **仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-**当前版本**：v1.3.3 | [更新日志](CHANGELOG.md) | [桌面测试版下载](https://github.com/webmturn/ai-localization/releases/tag/v1.1.0)
+**当前版本**：v1.3.3 | [更新日志](CHANGELOG.md) | [桌面测试版下载](https://github.com/webmturn/ai-localization/releases)
 
 ## ✨ 特性
 
@@ -19,12 +19,12 @@
 - 💬 多轮会话记忆（跨批次保持翻译风格一致）
 - 🎯 Priming 样本（让模型先理解文件命名风格）
 - 🔑 Key/字段名上下文（辅助 key-value 结构翻译）
-- ⏸️ 批量翻译暂停/取消/重试（断点续传）
+- ⏸️ 批量翻译暂停/取消/重试（重试失败项；进度经自动保存持久化，重开页面可继续未完成条目）
 - 🗄️ 翻译请求缓存（减少重复 API 调用）
 - 🔄 多引擎支持（DeepSeek / OpenAI / Gemini / Claude / Google 翻译）
 - ✏️ 源文件编辑器（文件树内直接编辑原始内容，静默重解析并保留既有译文）
 - 🖱️ 平滑滚动与聚焦（点击条目即聚焦译文框，rAF 动画滚动，搜索跳转支持跨页定位）
-- ⚡ JS 打包优化（123 个脚本合并为 1 个 bundle，消除串行加载延迟）
+- ⚡ JS 打包优化（多脚本合并为 1 个 bundle，消除串行加载延迟）
 - 🔔 引擎切换 Toast 通知 + 友好错误消息
 - ⏱️ 批量翻译 ETA 预估（预计剩余时间）
 
@@ -113,7 +113,7 @@ npm run watch-css
 ### 运行测试与架构守护
 
 ```bash
-npm test                # 全量单元/契约测试（295 个用例，Vitest）
+npm test                # 全量单元/契约测试（373 个用例、24 个测试文件，Vitest）
 npm run check-state     # 状态所有权静态检查（AppState 切片写入守护）
 npm run check-globals   # 全局函数冻结检查（基线化 window 挂载）
 ```

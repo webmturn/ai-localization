@@ -4,6 +4,81 @@
 
 ---
 
+## [Unreleased]
+
+> 一次功能性审查后的集中修复：修掉多处**静默数据损坏**（导出写入 0 条译文、XLIFF 含实体时译文丢失、
+> 术语替换改坏单词）、**未生效的承诺**（暂停是死代码、取消后仍继续请求、占位符校验从未启用），
+> 以及构建/CI 的完整性缺口。测试从 373 增至 504 个用例。
+
+### 修复
+- **JSON「原格式」导出写入 0 条译文** (translation-original.js) — 路径解析按 `.` 切分却未跳过根符号 `$`，
+  `json["$"]` 恒为 undefined 导致每个条目提前返回；导出的文件与输入完全相同却提示成功。
+  现支持 `$.a.b`、`$.menu[0].label`、`$[0].name` 三种形态。
+- **XLIFF 源文含实体/内联标记时译文永不写回** (translation-formats.js) — 解析器把序列化 XML 存为
+  `sourceText`，导出却用 `source.textContent` 比对，永不相等且无任何警告。
+  现改为「序列化 ↔ 序列化」比对，并按 `unitId` 定位（重复源文不再共用第一条译文）；
+  内联 `<g>` 标记改为插入真实节点而非转义成字面量；XLIFF 2.0 改用命名空间感知查询（此前整体空操作）。
+- **术语替换把更长单词改坏** (terminology.js) — 无词边界的子串替换导致 `category`→`猫egory`、
+  `width`→`w标识th`。现对**拉丁术语**施加词边界；**CJK 术语保持子串匹配**
+  （中文不写空格，施加边界会让「打开文件」里的「文件」永远命中不了）。
+- **PO 导出只转义双引号** (translation-original.js) — 译文含换行会生成非法 PO、`\t`/`\`/尾随反斜杠破坏结构；
+  msgid 含 `\n` 时永不匹配（译文被静默丢弃）。现按 PO 规则完整转义并按 `\n` 重建续行。
+- **Android 导出** (translation-formats.js) — `[^<]*` 匹配不到含内联标记的字符串；
+  `string-array`/`plurals` 条目因 resourceId 形态不符而**全部静默丢弃**；原值未转义。
+  现三类资源分别寻址、逐文本节点转义，含标记时自动补 `formatted="false"`。
+- **Qt TS 复数消息被写坏** (translation-original.js) — 解析时各 `<numerusform>` 以 `\n` 连接成单条，
+  导出却把整段文本写进每一个形态。现按解析时记录的形态数（`targetNumerusCount`）对齐拆分，
+  数量不符时保守保留原形态。
+- **iOS `.strings` 导出** (translation-original.js) — 行正则遇 `\"` 截断，含转义引号/多行值的条目永不更新；
+  尾随反斜杠会吞掉收尾引号并破坏下一条键值对。
+- **YAML 导出** (yaml.js) — 路径未跳过 `$` 根导致内容嵌套在 `"$"` 键下、根级数组丢失下标；
+  无 `metadata.path` 的条目静默产出空 `{}`；非数组入参抛裸 `TypeError`。
+- **术语库 CSV 无法再导入** (terminology-export.js) — 导出用中文表头，导入端按 `term.source` 取值，
+  自家文件无法回环。现改为英文键名并按 RFC 4180 加引号。
+- **畸形 XML 被当成普通文本导入** (parse.js) — 解析异常被 catch 后回退纯文本，产生垃圾条目却提示成功。
+  现直接失败并给出原因。
+- **批量路径未做任何结果校验** (batch.js/helpers.js) — 模型返回对象/`null`/空串/占位符损坏时
+  一律按位置写入 `targetText` 并标记已翻译。现统一校验后记为失败项。
+- **占位符保护在批量路径失效** (ai-engine-base.js) — 发送给模型的是原始 `%s`/`{0}`，
+  导致 `batch.js` 的 `restore` 实为空操作；且 `PlaceholderGuard.validate` 无任何生产调用点。
+- **PlaceholderGuard 两类误判** (placeholder-guard.js) —
+  printf 标志集含字面空格，使 `Save 50% off` 被改写成 `Save 50«0»ff`；
+  ICU 用非贪婪正则，嵌套分支只保护到第一个 `}`，模型收到结构已破坏的半截文本。
+- **暂停在 AI 批量路径是死代码** (ai-engine-base.js) — `waitWhilePaused` 定义后从未被调用，
+  点暂停后剩余 chunk 仍全部发出（用户无法止损）。
+- **取消后仍继续请求** (translate.js) — 重试循环无取消检查，取消后仍发出 4–11 次请求
+  并触发指数退避（付费引擎上等于白烧配额）。
+- **模型返回代码围栏/裸数组时整批中止** (ai-engine-base.js) — 直接 `JSON.parse` 失败会触发
+  自适应拆半重试（请求数放大 4–5 倍）后回退逐项。现宽容提取（围栏剥离 + 括号配对扫描 + 别名键）。
+- **`deriveModelsUrl` 丢弃查询串** (model-fetch.js) — 依赖 `api-version` 的 Azure 风格端点永远拉取失败。
+- **键盘守卫顺序错误** (keyboard.js) — 无条件 `preventDefault()` 在可编辑性判断**之前**执行：
+  任意输入框内 `Shift+Enter` 被取消**并触发全量翻译**，`Ctrl+A` 全选被吞且无任何动作。
+- **`ui-controller.js` 四处错误 DOM id** — 查无 `Btn` 后缀的 id 永远取不到元素，绑定静默失效。
+  注意：此处**有意不改为绑定**，因为这 4 个按钮已由 `file-panels.js` 绑定，
+  改对 id 会造成同一按钮双处理器、可能触发两次真实批量翻译。
+- **构建脚本在源文件缺失时"报成功"** (scripts/build-bundle.js) — 缺文件只打印一行警告后继续写出，
+  会用「体积正常但功能残缺」的 bundle 覆盖完好产物。现缺失即失败且不写产物。
+- **`.gitignore` 忽略 `package-lock.json` 而 CI 使用 `npm ci`** — 该组合必然失败；
+  且 lockfile 是依赖可复现的唯一保障。
+
+### 新增
+- **bundle 内嵌模块清单** (`/*! @bundle-modules */`) 与 CI 集合比对校验 —
+  原有的「文件存在 + 体积下限」检查发现不了部分源文件缺失导致的残缺 bundle。
+- **131 个净增回归用例**（373 → 504，含 10 个新测试文件；已扣除随死代码删除的 25 个），
+  覆盖上述每一项缺陷。关键路径采用两种独立方法交叉验证：
+  「与 HEAD 逐输入对照」和「jsdom 交互级对照」。
+
+### 移除
+- **死代码** `services/translation/translation-diff.js` 与 `services/translation/batch-resume.js`
+  及其测试 —— 全项目零调用点（脚本扫描确认）却进入急加载列表与 bundle。
+  README 中「断点续传」的表述已改为与实现一致的说明（重试失败项 + 自动保存持久化进度）。
+
+### 变更
+- 测试与文档中的用例数修正为实际值（原 README 称 295，实际 373 → 现 504）。
+- `docs/review/` 新增功能审查报告（汇总 + 解析导出/引擎/UI 接线三份分报告）。
+
+---
+
 ## [v1.3.3] — 2026-08-16
 
 > 批量翻译性能优化：并发分块 + 限速/Token 上限上调 + 超长文本告警 + JS bundle 压缩；AppState 状态所有权确权重构（5 阶段）+ 选中滚动/聚焦/搜索跳转体验修复

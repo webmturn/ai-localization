@@ -47,7 +47,7 @@ html/
 │   ├── auto-update-versions.ps1         # 自动更新配置入口
 │   └── check-node-install.ps1           # Node 安装检查
 │
-├── tests/                           # ⭐ 单元/契约测试（Vitest，295 个用例）
+├── tests/                           # ⭐ 单元/契约测试（Vitest，373 个用例）
 │   ├── setup.mjs                        # 测试环境（loadSource/setupGlobals 桩）
 │   ├── state-explicit.test.mjs          # AppState 显式声明契约
 │   ├── project-store.test.mjs           # ProjectStore 契约
@@ -311,7 +311,7 @@ html/
 
 ### `tests/` — 单元/契约测试
 
-- 测试框架：**Vitest**（`npm test`），共 **295 个用例 / 20 个文件**
+- 测试框架：**Vitest**（`npm test`），共 **373 个用例 / 24 个文件**
 - 环境：`tests/setup.mjs` 提供 `loadSource`（vm 加载源文件）与 `setupGlobals`（AppState/loggers 桩）
 - 契约测试覆盖：四大状态 Store（project/terminology/translation-view/batch-progress）、AppState 显式声明、动画滚动、批量并发与取消、断点续传、解析器注册表与各格式、占位符保护、TM/Diff、安全工具
 
@@ -342,7 +342,7 @@ npm run build          # 一键构建（CSS + JS Bundle）
 npm run build-css      # 构建 CSS（生产）
 npm run build-bundle   # 合并 123 个 JS 为 bundle
 npm run watch-css      # 监听 CSS 变化（开发）
-npm test               # ⭐ 运行全量测试（295 个用例）
+npm test               # ⭐ 运行全量测试（373 个用例）
 npm run check-state    # ⭐ 状态所有权静态检查（CI）
 npm run check-globals  # ⭐ 全局函数冻结检查（CI）
 npm run update-cdn     # 更新 CDN 资源

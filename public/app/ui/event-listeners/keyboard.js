@@ -132,6 +132,23 @@
     }
   }
 
+  /**
+   * 当前事件是否发生在可编辑上下文（输入框 / textarea / select / contentEditable）。
+   * 供「编辑中不应触发」的快捷键使用，避免破坏浏览器原生行为
+   * （如 Shift+Enter 换行、Ctrl+A 全选）。
+   */
+  function isEditableContext(e) {
+    const target = e && e.target;
+    if (!target) return false;
+    const tag = target.tagName;
+    return !!(
+      target.isContentEditable ||
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT"
+    );
+  }
+
   function runAction(id, e) {
     if (id === "escape") {
       const visibleModals = Array.from(
@@ -189,12 +206,18 @@
       if (typeof openModal === "function") openModal("qualityReportModal");
       return;
     }
-    if (id === "translateSelected" && typeof translateSelected === "function") {
-      translateSelected();
+    if (id === "translateSelected") {
+      // 编辑中不触发：Ctrl+Enter 在 textarea 内是换行/提交习惯用法，
+      // 误触发会立刻发起一次真实（且可能付费的）翻译请求。
+      if (isEditableContext(e)) return;
+      if (typeof translateSelected === "function") translateSelected();
       return;
     }
-    if (id === "translateAll" && typeof translateAll === "function") {
-      translateAll();
+    if (id === "translateAll") {
+      // 编辑中不触发：Shift+Enter 在输入框内是「换行」，此前会被取消默认行为
+      // 并直接触发全量翻译。
+      if (isEditableContext(e)) return;
+      if (typeof translateAll === "function") translateAll();
       return;
     }
     if (id === "cancelTranslation" && typeof cancelTranslation === "function") {
@@ -356,9 +379,20 @@
         const effective = getEffectiveShortcuts();
         const actionId = effective[keyStr];
         if (actionId) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          runAction(actionId, e);
+          // 编辑上下文中，仅允许「不侵入输入」的动作执行。
+          // 关键点：不能在动作被跳过时仍然 preventDefault —— 旧实现无条件
+          // preventDefault + stopImmediatePropagation，导致在任意输入框内
+          // Ctrl+A（全选）被吞掉却什么都不发生、Ctrl+F 抢走焦点，
+          // 而 runAction 内部的可编辑性判断又直接 return。
+          const safeWhileEditing =
+            actionId === "saveProject" ||
+            actionId === "cancelTranslation" ||
+            actionId === "escape";
+          if (!(isEditableContext(e) && !safeWhileEditing)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            runAction(actionId, e);
+          }
           return;
         }
 

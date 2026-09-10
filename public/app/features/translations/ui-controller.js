@@ -49,39 +49,23 @@ class TranslationUIController {
   
   /**
    * 绑定翻译控制相关事件
+   *
+   * ⚠️ 这 4 个按钮（translateSelectedBtn / translateAllBtn / cancelTranslationBtn /
+   * pauseTranslationBtn）**已由 `ui/event-listeners/file-panels.js` 绑定**
+   * （见该文件 `EventManager.add(translateSelectedBtn, "click", translateSelected, ...)`）。
+   *
+   * 历史情况：这里查的是无 Btn 后缀的 id（`DOMCache.get('translateSelected')` 等），
+   * 而真实元素的 id 都带 Btn 后缀，所以取不到元素、绑定静默失效 —— 这个 bug 反而
+   * 掩盖了「重复绑定」。若只把 id 改成正确值，同一个按钮就会挂上两个 click 处理器：
+   * file-panels 的 `translateSelected` 与本控制器的 `handleTranslateSelected`
+   * 都会执行，可能触发两次批量翻译（真实 API 成本）。
+   *
+   * 处理：明确让 file-panels.js 作为唯一绑定方，此处不再重复绑定，
+   * 避免"修好 id 反而引入双重触发"。状态更新走 updateTranslationControlState()。
    */
   bindTranslationControls() {
-    // 翻译选中项
-    const translateSelectedBtn = DOMCache.get('translateSelected');
-    if (translateSelectedBtn && this.eventManager) {
-      this.eventManager.add(translateSelectedBtn, 'click', () => {
-        this.handleTranslateSelected();
-      }, { tag: 'translation', label: 'translateSelected' });
-    }
-    
-    // 翻译全部
-    const translateAllBtn = DOMCache.get('translateAll');
-    if (translateAllBtn && this.eventManager) {
-      this.eventManager.add(translateAllBtn, 'click', () => {
-        this.handleTranslateAll();
-      }, { tag: 'translation', label: 'translateAll' });
-    }
-    
-    // 取消翻译
-    const cancelBtn = DOMCache.get('cancelTranslation');
-    if (cancelBtn && this.eventManager) {
-      this.eventManager.add(cancelBtn, 'click', () => {
-        this.handleCancelTranslation();
-      }, { tag: 'translation', label: 'cancelTranslation' });
-    }
-    
-    // 暂停翻译
-    const pauseBtn = DOMCache.get('pauseTranslation');
-    if (pauseBtn && this.eventManager) {
-      this.eventManager.add(pauseBtn, 'click', () => {
-        this.handlePauseTranslation();
-      }, { tag: 'translation', label: 'pauseTranslation' });
-    }
+    // 有意不绑定：按钮事件由 file-panels.js 统一负责（见上方说明）。
+    // 保留本方法以便子类/测试覆写，并保持调用点不变。
   }
   
   /**
@@ -310,11 +294,11 @@ class TranslationUIController {
       updateTranslationControlState();
     }
     
-    // 直接更新按钮状态
-    const translateBtn = DOMCache.get('translateSelected');
-    const translateAllBtn = DOMCache.get('translateAll');
-    const cancelBtn = DOMCache.get('cancelTranslation');
-    const pauseBtn = DOMCache.get('pauseTranslation');
+    // 直接更新按钮状态（id 均带 Btn 后缀，与 index.html 保持一致）
+    const translateBtn = DOMCache.get('translateSelectedBtn');
+    const translateAllBtn = DOMCache.get('translateAllBtn');
+    const cancelBtn = DOMCache.get('cancelTranslationBtn');
+    const pauseBtn = DOMCache.get('pauseTranslationBtn');
     
     if (translateBtn) translateBtn.disabled = isInProgress;
     if (translateAllBtn) translateAllBtn.disabled = isInProgress;

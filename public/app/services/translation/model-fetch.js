@@ -107,6 +107,9 @@ var ModelFetcher = (function () {
    *   https://api.example.com/v1/chat/completions → https://api.example.com/v1/models
    *   https://api.example.com/chat/completions     → https://api.example.com/models
    *   https://api.example.com/v1                   → https://api.example.com/v1/models
+   *
+   * 注意：查询串必须保留。部分服务的端点依赖查询参数（如 Azure 的 api-version），
+   * 丢掉后请求必然 400/404，表现为"从 API 获取模型"永远失败。
    */
   function deriveModelsUrl(apiUrl) {
     if (!apiUrl) return "";
@@ -115,10 +118,16 @@ var ModelFetcher = (function () {
       var path = u.pathname.replace(/\/+$/, "");
       // 去掉常见 completion 路径后缀
       path = path.replace(/\/chat\/completions$/i, "").replace(/\/completions$/i, "");
-      // 去掉 /v1beta、/v1 之外的版本段
-      var origin = u.origin;
-      if (/\/v\d+(?:[a-z]*)$/i.test(path)) return origin + path + "/models";
-      return origin + path + "/models";
+
+      // Azure 风格端点：/openai/deployments/<name> 之下不存在 /models，
+      // 推导出来的地址一定无效，直接返回空串让上层走"无法推导"分支，
+      // 而不是发出一个注定失败的请求。
+      if (/\/openai\/deployments\//i.test(path)) return "";
+
+      var derived = u.origin + path + "/models";
+      // 保留原始查询串（Azure api-version 等必需参数）
+      if (u.search) derived += u.search;
+      return derived;
     } catch (e) {
       return "";
     }

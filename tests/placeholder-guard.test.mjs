@@ -139,3 +139,131 @@ describe("PlaceholderGuard.extractAll", () => {
     expect(all).toContain("&amp;");
   });
 });
+
+// 回归：printf 模式的标志字符集里曾含有一个字面空格，
+// 导致普通百分数被误判为占位符 —— "Save 50% off" 会在送给模型之前
+// 被改写成 "Save 50«0»ff"，并且 validate() 会把正确译文判为无效。
+describe("printf 占位符误报回归（普通百分数不应被保护）", () => {
+  function extract(text) {
+    return PlaceholderGuard.extractAll(text);
+  }
+
+  it("普通百分数不被当作占位符", () => {
+    expect(extract("Save 50% off")).toEqual([]);
+    expect(extract("100% done")).toEqual([]);
+    expect(extract("50% of users")).toEqual([]);
+    expect(PlaceholderGuard.protect("Save 50% off").hasPlaceholders).toBe(false);
+  });
+
+  it("真正的 printf 占位符仍被识别", () => {
+    expect(extract("%s")).toContain("%s");
+    expect(extract("%d")).toContain("%d");
+    expect(extract("%02d")).toContain("%02d");
+    expect(extract("%1$s")).toContain("%1$s");
+    expect(extract("%-10.2f")).toContain("%-10.2f");
+    expect(extract("%@")).toContain("%@");
+    expect(extract("%%")).toContain("%%");
+  });
+
+  it("紧邻数字的 %d 仍被识别（50%d）", () => {
+    expect(extract("50%d")).toContain("%d");
+  });
+
+  it("含百分数的正确译文不再被判为占位符缺失", () => {
+    const r = PlaceholderGuard.validate("Discount 50% off", "折扣 50% 优惠");
+    expect(r.valid).toBe(true);
+  });
+});
+
+// 回归：ICU 模式原用非贪婪正则 /\{…,[\s\S]*?\}/，遇嵌套分支会停在第一个 "}"，
+// 只保护到半截，模型收到的是结构已被破坏的文本。
+describe("ICU MessageFormat 嵌套花括号（回归）", () => {
+  function protectThenRestore(text) {
+    const p = PlaceholderGuard.protect(text);
+    return { sent: p.text, restored: PlaceholderGuard.restore(p.text, p.map), map: p.map };
+  }
+
+  it("plural 整段被保护，不再只剩前一半", () => {
+    const src = "{count, plural, one{# item} other{# items}}";
+    const r = protectThenRestore(src);
+    expect(r.map).toHaveLength(1);
+    expect(r.map[0].original).toBe(src);
+    // 送给模型的内容不应残留任何 ICU 结构字符
+    expect(r.sent).not.toContain("plural");
+    expect(r.sent).not.toContain("other{");
+    expect(r.sent).not.toContain("#");
+  });
+
+  it("select 整段被保护", () => {
+    const src = "{gender, select, male{他} female{她} other{TA}}";
+    const r = protectThenRestore(src);
+    expect(r.map[0].original).toBe(src);
+    expect(r.sent).not.toContain("select");
+    expect(r.restored).toBe(src);
+  });
+
+  it("=0 精确分支形式被保护", () => {
+    const src = "{n, plural, =0{没有} other{# 个}}";
+    const r = protectThenRestore(src);
+    expect(r.map[0].original).toBe(src);
+    expect(r.restored).toBe(src);
+  });
+
+  it("ICU 与普通占位符混排时各自独立", () => {
+    const src = "Hello {name}, you have {count, plural, one{# msg} other{# msgs}}";
+    const r = protectThenRestore(src);
+    expect(r.map).toHaveLength(2);
+    expect(r.map.map((m) => m.original)).toEqual([
+      "{count, plural, one{# msg} other{# msgs}}",
+      "{name}",
+    ]);
+    expect(r.restored).toBe(src);
+  });
+
+  it("重复出现的同一 ICU 共用索引且往返正确", () => {
+    const src = "{c, plural, one{# a} other{# b}} 和 {c, plural, one{# a} other{# b}}";
+    const r = protectThenRestore(src);
+    expect(r.map).toHaveLength(1);
+    expect(r.restored).toBe(src);
+  });
+
+  it("未配平的花括号不触发 ICU 保护（不误伤）", () => {
+    const src = "{count, plural, one{# item}";
+    const r = protectThenRestore(src);
+    expect(r.restored).toBe(src);
+  });
+
+  it("普通单花括号不被当作 ICU", () => {
+    const p = PlaceholderGuard.protect("{braces}");
+    expect(p.map[0].name).not.toBe("icu");
+    expect(PlaceholderGuard.restore(p.text, p.map)).toBe("{braces}");
+  });
+
+  it("双花括号优先于 ICU 扫描", () => {
+    const src = "{{mustache}} and {0} and %s";
+    const r = protectThenRestore(src);
+    expect(r.restored).toBe(src);
+  });
+
+  it("ICU 译文被模型改写后仍能还原原文结构", () => {
+    const src = "{count, plural, one{# item} other{# items}}";
+    const p = PlaceholderGuard.protect(src);
+    // 模拟模型把标记挪位/包在译文中
+    const translated = "共 " + p.text + " 个";
+    expect(PlaceholderGuard.restore(translated, p.map))
+      .toBe("共 " + src + " 个");
+  });
+
+  it("多花括号不会吞掉多余括号（{{{a}}}）", () => {
+    const p = PlaceholderGuard.protect("{{{a}}}");
+    expect(PlaceholderGuard.restore(p.text, p.map)).toBe("{{{a}}}");
+  });
+
+  // 已知边界：标记字符 « » 出现在源文本中时，后续模式不会跨过它做匹配。
+  // 这是防止「跨过已生成标记」的必要保守行为，往返仍然正确。
+  it("源文本本身含标记字符时往返仍正确", () => {
+    const src = "值 «x» 与 {name}";
+    const p = PlaceholderGuard.protect(src);
+    expect(PlaceholderGuard.restore(p.text, p.map)).toBe(src);
+  });
+});

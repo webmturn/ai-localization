@@ -39,6 +39,17 @@ TranslationService.prototype.translate = async function (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      // 取消检查（发起请求之前）：用户取消后不再发出新请求，
+      // 否则取消仍会继续消耗付费引擎的配额。
+      if (typeof translationIsCancelled === "function" && translationIsCancelled()) {
+        if (typeof translationMakeCancelError === "function") {
+          throw translationMakeCancelError();
+        }
+        const cancelErr = new Error("用户取消");
+        cancelErr.code = "USER_CANCELLED";
+        throw cancelErr;
+      }
+
       // 速率限制
       await this.checkRateLimit(engineId);
 
@@ -64,10 +75,31 @@ TranslationService.prototype.translate = async function (
         result = this.applyTerminologyToTranslation(result);
       }
 
+      // 结果校验：拒绝非字符串/空译文/占位符损坏，视为本次尝试失败并按重试策略处理，
+      // 避免把坏结果当作成功译文写入 targetText。
+      if (typeof translationValidateResult === "function") {
+        const check = translationValidateResult(text, result);
+        if (!check.ok) {
+          const invalidErr = new Error("译文校验未通过：" + check.reason);
+          invalidErr.code = "INVALID_TRANSLATION_RESULT";
+          throw invalidErr;
+        }
+      }
+
       return result;
     } catch (error) {
       lastError = error;
       const message = error && error.message ? error.message : String(error);
+
+      // 用户取消：立即停止，不重试、不退避
+      if (
+        error?.code === "USER_CANCELLED" ||
+        (typeof translationIsUserCancelled === "function" &&
+          translationIsUserCancelled(error, true))
+      ) {
+        throw error;
+      }
+
       const status = error?.status;
       const isAuthError =
         message.includes("API密钥未配置") ||
@@ -149,6 +181,12 @@ TranslationService.prototype.translate = async function (
         await new Promise((resolve) =>
           setTimeout(resolve, baseDelay * Math.pow(2, attempt))
         );
+        // 退避等待期间用户取消：不再发起下一次尝试
+        if (typeof translationIsCancelled === "function" && translationIsCancelled()) {
+          throw typeof translationMakeCancelError === "function"
+            ? translationMakeCancelError()
+            : Object.assign(new Error("用户取消"), { code: "USER_CANCELLED" });
+        }
       }
     }
   }

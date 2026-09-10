@@ -100,6 +100,30 @@ describe("ModelFetcher.deriveModelsUrl", () => {
     expect(ModelFetcher.deriveModelsUrl(null)).toBe("");
     expect(ModelFetcher.deriveModelsUrl("not-a-url")).toBe("");
   });
+
+  // 回归：旧实现用 origin + path 重新拼接，查询串被整段丢弃，
+  // 导致依赖查询参数（如 Azure 的 api-version）的端点推导出必然失败的地址。
+  it("保留查询串（Azure 风格端点依赖 api-version）", () => {
+    expect(
+      ModelFetcher.deriveModelsUrl(
+        "https://res.openai.azure.com/openai/v1/chat/completions?api-version=2024-02-01"
+      )
+    ).toBe("https://res.openai.azure.com/openai/v1/models?api-version=2024-02-01");
+  });
+
+  it("自定义引擎带查询串时同样保留", () => {
+    expect(
+      ModelFetcher.deriveModelsUrl("https://gw.example.com/v1/chat/completions?tenant=acme&k=1")
+    ).toBe("https://gw.example.com/v1/models?tenant=acme&k=1");
+  });
+
+  it("Azure deployments 端点无法推导出 /models，返回空串而不是无效地址", () => {
+    expect(
+      ModelFetcher.deriveModelsUrl(
+        "https://res.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2024-02-01"
+      )
+    ).toBe("");
+  });
 });
 
 describe("ModelFetcher 缓存", () => {

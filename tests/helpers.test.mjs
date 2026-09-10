@@ -7,6 +7,9 @@ import { loadSource, setupGlobals } from "./setup.mjs";
 
 beforeAll(() => {
   setupGlobals();
+  // PlaceholderGuard 以 var 声明挂到全局，需先加载，
+  // 否则 translationValidateResult 的占位符校验会被静默跳过。
+  loadSource("public/app/services/translation/placeholder-guard.js");
   loadSource("public/app/services/translation/helpers.js");
 });
 
@@ -160,5 +163,100 @@ describe("translationMarkAllAsErrors", () => {
 
     expect(errors[0].code).toBe("ERR_CODE");
     expect(errors[0].provider).toBe("test");
+  });
+});
+
+// ==================== 回归：结果校验与取消判定（本次修复新增） ====================
+
+describe("translationValidateResult", () => {
+  it("正常字符串译文通过", () => {
+    expect(translationValidateResult("Hello", "你好")).toEqual({ ok: true, translated: "你好" });
+  });
+
+  it("拒绝对象译文（此前会被写成 [object Object] 并标记成功）", () => {
+    const r = translationValidateResult("Hello", { text: "你好" });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain("类型异常");
+  });
+
+  it("拒绝数组译文", () => {
+    expect(translationValidateResult("Hello", ["你好"]).ok).toBe(false);
+  });
+
+  it("拒绝 null / undefined（模型漏返回该项）", () => {
+    expect(translationValidateResult("Hello", null).ok).toBe(false);
+    expect(translationValidateResult("Hello", undefined).ok).toBe(false);
+    expect(translationValidateResult("Hello", null).reason).toContain("缺失");
+  });
+
+  it("拒绝纯空白译文", () => {
+    expect(translationValidateResult("Hello", "   ").ok).toBe(false);
+    expect(translationValidateResult("Hello", "").ok).toBe(false);
+  });
+
+  it("原文为空时允许空译文", () => {
+    expect(translationValidateResult("", "").ok).toBe(true);
+  });
+
+  it("占位符损坏时判为不通过（validate 此前从未在生产代码中被调用）", () => {
+    const r = translationValidateResult("Hello %s, %d items", "你好，一些项目");
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain("占位符");
+  });
+
+  it("占位符完整时通过", () => {
+    expect(translationValidateResult("Hello %s", "你好 %s").ok).toBe(true);
+  });
+
+  it("PlaceholderGuard.validate 抛错时不影响校验（优雅降级）", () => {
+    const saved = globalThis.PlaceholderGuard;
+    globalThis.PlaceholderGuard = {
+      validate() {
+        throw new Error("boom");
+      },
+    };
+    try {
+      expect(translationValidateResult("Hello %s", "你好").ok).toBe(true);
+    } finally {
+      globalThis.PlaceholderGuard = saved;
+    }
+  });
+});
+
+describe("translationIsCancelled / translationMakeCancelError", () => {
+  it("BatchProgressStore 缺失时视为未取消", () => {
+    const saved = globalThis.BatchProgressStore;
+    delete globalThis.BatchProgressStore;
+    try {
+      expect(translationIsCancelled()).toBe(false);
+    } finally {
+      globalThis.BatchProgressStore = saved;
+    }
+  });
+
+  it("取消协议置位后返回 true", () => {
+    const saved = globalThis.BatchProgressStore;
+    globalThis.BatchProgressStore = { isUserCancelled: () => true };
+    try {
+      expect(translationIsCancelled()).toBe(true);
+    } finally {
+      globalThis.BatchProgressStore = saved;
+    }
+  });
+
+  it("未取消时返回 false", () => {
+    const saved = globalThis.BatchProgressStore;
+    globalThis.BatchProgressStore = { isUserCancelled: () => false };
+    try {
+      expect(translationIsCancelled()).toBe(false);
+    } finally {
+      globalThis.BatchProgressStore = saved;
+    }
+  });
+
+  it("取消错误带 USER_CANCELLED 与 partialOutputs", () => {
+    const err = translationMakeCancelError(["a", "b"]);
+    expect(err.code).toBe("USER_CANCELLED");
+    expect(err.partialOutputs).toEqual(["a", "b"]);
   });
 });

@@ -60,6 +60,35 @@ function __terminologyReplaceIgnoreCase(text, source, target) {
   const lowerTarget = target.toLowerCase();
   if (!lowerText.includes(lowerSource)) return text;
 
+  // 词边界判定：避免把术语当成更长单词的一部分替换掉
+  // （例如术语 "cat" 不应命中 "category"、"no" 不应命中 "node"、"id" 不应命中 "width"）。
+  //
+  // 但边界规则**不能**用于 CJK 术语：中文/日文不写空格，词与词之间没有可判定边界。
+  // 若对 CJK 术语也要求边界，"打开文件" 里的 "文件"、"点击取消按钮" 里的 "取消"
+  // 都将无法命中 —— 那等于让中文术语库整体失效（这是必须避免的回归）。
+  // 因此：术语含 CJK 时按子串匹配（CJK 术语也不会嵌在拉丁单词内部，无副作用）；
+  //       纯拉丁/数字术语才施加词边界。
+  // 词字符 = Unicode 字母/数字/下划线（用于拉丁文术语的边界判定）
+  var WORD_CHAR;
+  try {
+    WORD_CHAR = new RegExp("[\\p{L}\\p{N}_]", "u");
+  } catch (e) {
+    WORD_CHAR = /[0-9A-Za-z_\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/;
+  }
+
+  var CJK_RE = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF66-\uFF9F\uAC00-\uD7AF]/;
+  var termHasCjk = CJK_RE.test(source);
+  var headIsWord = WORD_CHAR.test(source.charAt(0));
+  var tailIsWord = WORD_CHAR.test(source.charAt(source.length - 1));
+
+  function isReplacementSite(at) {
+    if (termHasCjk) return true;
+    if (headIsWord && at > 0 && WORD_CHAR.test(text.charAt(at - 1))) return false;
+    var end = at + source.length;
+    if (tailIsWord && end < text.length && WORD_CHAR.test(text.charAt(end))) return false;
+    return true;
+  }
+
   const parts = [];
   let idx = 0;
   let searchIdx = 0;
@@ -68,6 +97,11 @@ function __terminologyReplaceIgnoreCase(text, source, target) {
     if (found === -1) {
       parts.push(text.slice(idx));
       break;
+    }
+    if (!isReplacementSite(found)) {
+      // 不是独立词：原样保留，继续向后搜索
+      searchIdx = found + 1;
+      continue;
     }
     parts.push(text.slice(idx, found));
     const original = text.slice(found, found + source.length);

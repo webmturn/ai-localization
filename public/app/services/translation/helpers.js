@@ -120,3 +120,88 @@ function translationMarkAllAsErrors(items, errorsArray, errorMsg, extra = {}) {
     });
   }
 }
+
+/**
+ * 批量翻译是否已被用户取消。
+ * 用于在「发起请求之前」和「重试之前」尽早短路，避免取消后仍继续消耗配额。
+ * 语义与 ai-engine-base.js 内部的 _aiIsCancelled() 一致（同一取消协议）。
+ * BatchProgressStore 不存在时视为未取消（保持既有行为）。
+ * @returns {boolean}
+ */
+function translationIsCancelled() {
+  try {
+    if (typeof BatchProgressStore === "undefined" || !BatchProgressStore) return false;
+    if (typeof BatchProgressStore.isUserCancelled !== "function") return false;
+    return !!BatchProgressStore.isUserCancelled();
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 构造用户取消错误（带 partialOutputs 前缀语义，供上层保留已完成结果）
+ * @param {Array} [partialOutputs] - 已完成的输出前缀
+ * @returns {Error}
+ */
+function translationMakeCancelError(partialOutputs) {
+  const err = new Error("用户取消");
+  err.code = "USER_CANCELLED";
+  if (Array.isArray(partialOutputs)) err.partialOutputs = partialOutputs;
+  return err;
+}
+
+/**
+ * 校验单条翻译结果是否可用于写入 targetText。
+ *
+ * 拒绝以下情况，避免把「坏结果」当成成功译文落库：
+ *  - 非字符串（模型返回对象/数组，写入后会渲染成 "[object Object]"）
+ *  - null / undefined（缺失项）
+ *  - 纯空白
+ *  - 占位符丢失或损坏（PlaceholderGuard.validate 此前从未在生产代码中被调用）
+ *
+ * @param {string} sourceText - 原文
+ * @param {*} translated - 模型返回的译文
+ * @param {Object} [opts]
+ * @param {boolean} [opts.allowEmptySource=true] - 原文为空时允许译文为空
+ * @returns {{ok: boolean, reason?: string, translated?: string}}
+ */
+function translationValidateResult(sourceText, translated, opts = {}) {
+  if (typeof translated !== "string") {
+    return {
+      ok: false,
+      reason: translated === null || translated === undefined
+        ? "译文缺失（模型未返回该项）"
+        : "译文类型异常（期望字符串，实际 " + typeof translated + "）",
+    };
+  }
+
+  const src = typeof sourceText === "string" ? sourceText : String(sourceText ?? "");
+  const allowEmptySource = opts.allowEmptySource !== false;
+
+  if (allowEmptySource && !src.trim()) {
+    return { ok: true, translated };
+  }
+  if (!translated.trim()) {
+    return { ok: false, reason: "译文为空" };
+  }
+
+  // 占位符完整性：源文中的占位符必须在译文中原样保留
+  try {
+    if (typeof PlaceholderGuard !== "undefined" && PlaceholderGuard && typeof PlaceholderGuard.validate === "function") {
+      var v = PlaceholderGuard.validate(src, translated);
+      if (v && v.valid === false) {
+        return {
+          ok: false,
+          reason:
+            "占位符不匹配" +
+            (v.missing && v.missing.length ? "（缺失 " + v.missing.join(", ") + "）" : "") +
+            (v.extra && v.extra.length ? "（多出 " + v.extra.join(", ") + "）" : ""),
+        };
+      }
+    }
+  } catch (e) {
+    // 校验本身出错不应阻断翻译流程
+  }
+
+  return { ok: true, translated };
+}

@@ -106,17 +106,53 @@ TranslationService.prototype.translateBatch = async function (
         const item = items[i];
         let translated = translatedList[i];
 
-        // 占位符恢复（AI 批量路径绕过 translate.js，需在此处补偿）
+        // 占位符还原：引擎已用安全标记替换源文中的占位符，此处按本条目保存的映射还原。
+        // 兼容旧行为：若引擎未提供映射（如未受保护的路径），则按原文重新 protect 一次。
         if (typeof PlaceholderGuard !== "undefined" && translated) {
-          var _batchPh = PlaceholderGuard.protect(item.sourceText);
-          if (_batchPh.hasPlaceholders) {
-            translated = PlaceholderGuard.restore(translated, _batchPh.map);
+          var _phMap = item.__phGuardMap;
+          var _batchPh = null;
+          if (!_phMap) {
+            _batchPh = PlaceholderGuard.protect(item.sourceText);
+            if (_batchPh.hasPlaceholders) _phMap = _batchPh.map;
+          }
+          if (_phMap && _phMap.length) {
+            translated = PlaceholderGuard.restore(translated, _phMap);
           }
         }
 
         // 自动应用术语库（autoApplyTerms 设置项）
         if (typeof this.applyTerminologyToTranslation === "function") {
           translated = this.applyTerminologyToTranslation(translated);
+        }
+
+        // 结果校验：模型可能返回对象/数组/null/空串/占位符损坏的「等长」数组，
+        // 此前一律按位置写入 targetText 并标记 translated —— 会把坏结果当成成品落库，
+        // 甚至把别的条目的译文写进本条目。此处拒绝这类结果并记为该项翻译失败。
+        if (typeof translationValidateResult === "function") {
+          var _vr = translationValidateResult(item.sourceText, translated);
+          if (!_vr.ok) {
+            item.status = "pending";
+            errors.push({
+              success: false,
+              index: i,
+              error: _vr.reason || "译文无效",
+              code: "INVALID_TRANSLATION_RESULT",
+              item,
+            });
+            if (typeof addProgressLog === "function") {
+              logBuffer.push({
+                level: "warn",
+                message: `[${i + 1}/${total}] 译文无效已跳过（${_vr.reason || "未知原因"}）${
+                  getItemKey(item) ? " | key=" + getItemKey(item) : ""
+                }`,
+              });
+            }
+            completed++;
+            if (onProgress) {
+              onProgress(completed, total, "[" + completed + "/" + total + "] 译文无效已跳过");
+            }
+            continue;
+          }
         }
 
         item.targetText = translated;

@@ -276,6 +276,106 @@ function _aiMakeCancelError(partialOutputs) {
 }
 
 /**
+ * 去掉包裹整个文本的 markdown 代码围栏（```lang … ```）。
+ * 仅当围栏包住全部内容时才剥离，避免破坏译文里本来就含反引号的情况。
+ * @param {string} text
+ * @returns {string}
+ */
+function _aiStripCodeFence(text) {
+  var s = String(text == null ? "" : text).trim();
+  var m = s.match(/^```[ \t]*[A-Za-z]*[ \t]*\r?\n([\s\S]*?)\r?\n?```$/);
+  return m && m[1] != null ? m[1].trim() : s;
+}
+
+/**
+ * 从模型返回文本中提取 JSON。
+ *
+ * 真实模型经常不遵守"只返回 JSON"的约定，常见形态：
+ *   - ```json … ``` 代码围栏（最高频）
+ *   - 前后夹带解释性文字（"好的，以下是翻译结果：" …）
+ *   - 直接返回裸数组 ["a","b"] 而不是 {"translations":[...]}
+ *
+ * 此前只做 JSON.parse(content)，上述任一形态都会抛 BATCH_JSON_PARSE_FAILED，
+ * 触发自适应拆半重试（请求数放大 4–5 倍），最终整批中止并回退逐项翻译。
+ *
+ * @param {string} raw - 模型返回的原始文本
+ * @returns {{ok: true, value: *} | {ok: false, error: string}}
+ */
+function _aiExtractJson(raw) {
+  var text = String(raw == null ? "" : raw).trim();
+  if (!text) return { ok: false, error: "empty" };
+
+  // 1) 直接解析
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch (e) {}
+
+  // 2) 剥离 markdown 代码围栏（```json / ```JSON / ``` 均可，允许前后有文字）
+  var fence = text.match(/```[ \t]*[A-Za-z]*[ \t]*\r?\n([\s\S]*?)```/);
+  if (fence && fence[1]) {
+    var inner = fence[1].trim();
+    try {
+      return { ok: true, value: JSON.parse(inner) };
+    } catch (e) {}
+    // 围栏内容仍不可解析时，继续按括号配对尝试
+    text = inner;
+  }
+
+  // 3) 括号配对：取第一个 { 或 [ 到与之匹配的收尾符号
+  var startObj = text.indexOf("{");
+  var startArr = text.indexOf("[");
+  var start = -1;
+  if (startObj === -1) start = startArr;
+  else if (startArr === -1) start = startObj;
+  else start = Math.min(startObj, startArr);
+  if (start === -1) return { ok: false, error: "no-json-delimiter" };
+
+  var open = text[start];
+  var close = open === "{" ? "}" : "]";
+  var depth = 0;
+  var inStr = false;
+  var escaped = false;
+  for (var i = start; i < text.length; i++) {
+    var ch = text[i];
+    if (inStr) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') { inStr = true; continue; }
+    if (ch === open) depth++;
+    else if (ch === close) {
+      depth--;
+      if (depth === 0) {
+        var candidate = text.slice(start, i + 1);
+        try {
+          return { ok: true, value: JSON.parse(candidate) };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      }
+    }
+  }
+  return { ok: false, error: "unbalanced-json" };
+}
+
+/**
+ * 从解析出的响应对象中取出 translations 数组。
+ * 兼容 {"translations":[…]}、裸数组 […]、以及 {"items":[…]} / {"result":[…]} 等别名。
+ * @returns {Array|null}
+ */
+function _aiCoerceTranslations(parsed) {
+  if (Array.isArray(parsed)) return parsed;
+  if (!parsed || typeof parsed !== "object") return null;
+  var keys = ["translations", "translation", "items", "result", "results", "data"];
+  for (var i = 0; i < keys.length; i++) {
+    if (Array.isArray(parsed[keys[i]])) return parsed[keys[i]];
+  }
+  return null;
+}
+
+/**
  * 解析使用的模型，避免 settings.model 跨引擎污染
  * - 内置引擎不再声明静态模型列表（模型由 ModelFetcher 动态获取），直接采用 settings.model，
  *   为空时回退 defaultModel；用户选择的动态模型始终被接受
@@ -569,7 +669,9 @@ var AIEngineBase = {
         errEmpty.provider = engineId;
         throw errEmpty;
       }
-      return resultText.trim();
+      // 单条路径同样要防代码围栏：模型常把纯文本译文包在 ``` 中返回，
+      // 直接用会把围栏当成译文内容写进 targetText。
+      return _aiStripCodeFence(String(resultText).trim());
     } catch (error) {
       (loggers.translation || console).error(config.name + "翻译失败:", error);
       throw error;
@@ -739,6 +841,11 @@ var AIEngineBase = {
       var chunk = task.chunk;
 
       try {
+      // 暂停闸门：必须在「构造并发出请求之前」等待。
+      // 此前 waitWhilePaused 只被定义、从未调用，导致点暂停后剩余 chunk 仍会被全部发出，
+      // 用户无法通过暂停止损。用户取消时 waitWhilePaused 内部会抛出取消错误。
+      await waitWhilePaused();
+
       if (onLog) {
         onLog(config.name + " 批量请求（" + chunk.length + " 项，并发 " + chunkConcurrency + "）...");
       }
@@ -751,7 +858,21 @@ var AIEngineBase = {
       var reqItems = chunk.map(function (it) {
         // 超长条目告警（sanitizeForApi 会截断到 10000 字符，提前提示避免静默丢内容）
         _aiWarnOversizedItem(it);
-        var cleanText = securityUtils.sanitizeForApi(it.sourceText || "");
+        // 占位符保护：把 %s/{0}/${x} 等替换为安全标记后再发给模型，
+        // 使其不会被翻译/改写；译文回来后由 batch.js 还原。
+        // 此前批量路径发送的是原始占位符，导致 batch.js 中的 restore 实际是空操作。
+        var rawText = it.sourceText || "";
+        if (typeof PlaceholderGuard !== "undefined" && PlaceholderGuard && typeof PlaceholderGuard.protect === "function") {
+          try {
+            var ph = PlaceholderGuard.protect(rawText);
+            if (ph && ph.hasPlaceholders) it.__phGuardMap = ph.map;
+            else delete it.__phGuardMap;
+            rawText = ph && ph.hasPlaceholders ? ph.text : rawText;
+          } catch (e) {
+            delete it.__phGuardMap;
+          }
+        }
+        var cleanText = securityUtils.sanitizeForApi(rawText);
         return {
           key: useKeyContext ? translationGetItemKey(it) : "",
           source: cleanText,
@@ -925,17 +1046,17 @@ var AIEngineBase = {
         onLog(config.name + " 已返回响应，正在解析 JSON...");
       }
 
-      var parsedResp;
-      try {
-        parsedResp = JSON.parse(content);
-      } catch (parseErr) {
-        var errBatchParse = new Error(config.name + " JSON 解析失败：" + parseErr.message);
+      // 宽容提取 JSON：支持代码围栏、前后夹带说明文字、裸数组形态
+      var extracted = _aiExtractJson(content);
+      if (!extracted.ok) {
+        var errBatchParse = new Error(config.name + " JSON 解析失败：" + extracted.error);
         errBatchParse.code = "BATCH_JSON_PARSE_FAILED";
         errBatchParse.provider = engineId;
         throw errBatchParse;
       }
+      var parsedResp = extracted.value;
 
-      var translations = parsedResp?.translations;
+      var translations = _aiCoerceTranslations(parsedResp);
       if (!Array.isArray(translations) || translations.length !== chunk.length) {
         var errBatchMismatch = new Error(
           config.name + " 返回 translations 数量不匹配：期望 " + chunk.length +

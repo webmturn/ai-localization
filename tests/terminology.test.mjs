@@ -95,3 +95,83 @@ describe("applyTerminologyToTranslation 自动应用", () => {
     expect(translationService.applyTerminologyToTranslation("")).toBe("");
   });
 });
+
+// 回归：术语替换曾经是无词边界的子串替换，会把更长单词内部改坏
+// （category → 猫egory、node → 否de、width → w标识th），且 autoApplyTerms 默认开启，
+// 影响每一条译文。
+describe("applyTerminologyToTranslation 词边界（子串误伤回归）", () => {
+  beforeEach(() => {
+    globalThis.SettingsCache._s = {};
+    globalThis.AppState.terminology.list = [];
+  });
+
+  function withTerm(source, target, text) {
+    globalThis.AppState.terminology.list = [{ id: 1, source, target }];
+    return translationService.applyTerminologyToTranslation(text);
+  }
+
+  it("短术语不命中更长单词内部（cat vs category）", () => {
+    expect(withTerm("cat", "猫", "This category contains a cat."))
+      .toBe("This category contains a 猫.");
+  });
+
+  it("术语不命中其他单词内部（no vs node）", () => {
+    expect(withTerm("no", "否", "Please open the node."))
+      .toBe("Please open the node.");
+  });
+
+  it("术语不命中代码标识符内部（id vs width）", () => {
+    expect(withTerm("id", "标识", "Set the width and height."))
+      .toBe("Set the width and height.");
+  });
+
+  it("仍能命中独立词（含大小写不敏感）", () => {
+    expect(withTerm("cat", "猫", "A Cat and a cat.")).toBe("A 猫 and a 猫.");
+  });
+
+  it("紧跟标点的独立词仍能命中", () => {
+    expect(withTerm("file", "文件", "Open file, then save."))
+      .toBe("Open 文件, then save.");
+  });
+
+  it("尾部非词字符的术语（C++）仍能命中", () => {
+    expect(withTerm("C++", "C加加", "I use C++ daily"))
+      .toBe("I use C加加 daily");
+  });
+
+  it("下划线/数字属于词字符，不应把标识符内部当作命中", () => {
+    expect(withTerm("id", "标识", "user_id_value")).toBe("user_id_value");
+  });
+
+  // CJK 术语：中文/日文不写空格，词间没有可判定边界，因此按子串匹配。
+  // 这一点很关键 —— 若对 CJK 也施加边界规则，「打开文件」里的「文件」、
+  // 「点击取消按钮」里的「取消」都无法命中，等于让中文术语库整体失效。
+  it("中文术语在连续汉字串中命中（CJK 无词边界）", () => {
+    expect(withTerm("术语", "term", "这是一个术语库")).toBe("这是一个term库");
+    expect(withTerm("文件", "file", "打开文件")).toBe("打开file");
+    expect(withTerm("取消", "Cancel", "点击取消按钮")).toBe("点击Cancel按钮");
+  });
+
+  it("中文术语被标点隔开时同样命中", () => {
+    expect(withTerm("术语", "term", "术语、词条")).toBe("term、词条");
+  });
+
+  // 本次修复真正要覆盖的英文场景：拉丁术语嵌在更长单词/标识符里时，
+  // 修复前会命中内部子串（"category" 里的 "cat"、"width" 里的 "id"）。
+  it("拉丁术语不命中更长单词内部", () => {
+    expect(withTerm("cat", "猫", "This category contains a cat."))
+      .toBe("This category contains a 猫.");
+    expect(withTerm("no", "否", "Please open the node.")).toBe("Please open the node.");
+    expect(withTerm("id", "标识", "Set the width.")).toBe("Set the width.");
+    expect(withTerm("API", "接口", "MYAPI")).toBe("MYAPI");
+  });
+
+  it("拉丁术语嵌在中文语境的长标识符里也不命中", () => {
+    expect(withTerm("id", "标识", "用户userid不可见")).toBe("用户userid不可见");
+  });
+
+  it("拉丁术语被空格/中文隔开时仍能命中", () => {
+    expect(withTerm("id", "标识", "用户 id 不可见")).toBe("用户 标识 不可见");
+    expect(withTerm("API", "接口", "The API call")).toBe("The 接口 call");
+  });
+});

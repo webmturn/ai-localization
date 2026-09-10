@@ -18,7 +18,11 @@ var PlaceholderGuard = (function () {
     // Python .format(): {0}, {name}, {0:>10}
     { name: "pyFormat",     re: /\{\d+(?::[^}]*)?\}/g },
     // C-style printf: %s, %d, %02d, %1$s, %-10.2f
-    { name: "printf",       re: /%(?:\d+\$)?[-+0 #]*(?:\d+)?(?:\.\d+)?[diouxXeEfgGcspn%@]/g },
+    // 注意：必须要求「不带标志/宽度的转换符」紧跟在 % 之后，且标志集不含尾随空格。
+    // 旧写法 /%(?:\d+\$)?[-+0 #]*(?:\d+)?(?:\.\d+)?[...]/ 会把普通百分数误判为占位符：
+    // "Save 50% off" 中的 "% o" 被当成「空格标志 + o 转换符」→ 送给模型前被改写成
+    // "Save 50«0»ff"，且 validate() 会把正确译文判为无效。
+    { name: "printf",       re: /%(?:\d+\$)?[-+0#]*(?:\d+)?(?:\.\d+)?[diouxXeEfgGcspn%@]/g },
     // HTML tags: <br>, <b>, </b>, <a href="...">, <img ... />
     { name: "htmlTag",      re: /<\/?[a-zA-Z][\w-]*(?:\s+[a-zA-Z][\w-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*))?)*\s*\/?>/g },
     // XML entities: &amp; &lt; &#x20; &#160;
@@ -41,6 +45,48 @@ var PlaceholderGuard = (function () {
   var TAG_SUFFIX = "\u00bb";  // »
 
   /**
+   * 从 openIndex（指向 "{"）开始做花括号配对扫描，返回配平子串。
+   * 感知字符串字面量与转义，避免被 "{a:'}'}" 这类内容误导。
+   * @returns {{text: string, end: number}|null} end 为收尾 "}" 的下标
+   */
+  function scanBalancedBraces(text, openIndex) {
+    if (text.charAt(openIndex) !== "{") return null;
+    var depth = 0;
+    var inStr = false;
+    var quote = "";
+    var escaped = false;
+    for (var i = openIndex; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (inStr) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === quote) inStr = false;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inStr = true; quote = ch; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) return { text: text.slice(openIndex, i + 1), end: i };
+      }
+    }
+    return null; // 未配平 → 不保护，交由其它模式处理
+  }
+
+  /**
+   * 判断配平片段是否为 ICU MessageFormat（{name, plural/select/selectordinal, …}）。
+   * 必须要求顶层逗号 + 关键字，否则会把普通的单花括号当成 ICU。
+   */
+  function looksLikeIcu(inner) {
+    if (!inner || inner.charAt(0) !== "{") return false;
+    var body = inner.slice(1, -1);
+    var comma = body.indexOf(",");
+    if (comma === -1) return false;
+    var type = body.slice(comma + 1).split(",")[0].trim().toLowerCase();
+    return type === "plural" || type === "select" || type === "selectordinal";
+  }
+
+  /**
    * 保护文本中的占位符
    * @param {string} text - 原始文本
    * @returns {{ text: string, map: Array, hasPlaceholders: boolean }}
@@ -52,35 +98,55 @@ var PlaceholderGuard = (function () {
 
     var map = [];
     var used = new Set();
-    var result = text;
 
-    for (var p = 0; p < PATTERNS.length; p++) {
+    // 登记/复用占位符索引（相同原文共用一个索引）
+    function registerMatch(match, patternName) {
+      for (var i = 0; i < map.length; i++) {
+        if (map[i].original === match) {
+          used.add(i);
+          return TAG_PREFIX + i + TAG_SUFFIX;
+        }
+      }
+      var idx = map.length;
+      map.push({ original: match, name: patternName || "icu", index: idx });
+      used.add(idx);
+      return TAG_PREFIX + idx + TAG_SUFFIX;
+    }
+
+    // ICU MessageFormat 需要花括号配对扫描（PATTERNS[0] = icu）。
+    // 原实现用 /\{…,[\s\S]*?\}/ 非贪婪匹配，遇嵌套分支会停在第一个 "}"，
+    // 例如 "{count, plural, one{# item} other{# items}}" 只保护到
+    // "{count, plural, one{# item}"，模型收到的是 "«0» other{# items}}" 这种
+    // 残缺且结构已被破坏的文本。
+    var icuOut = [];
+    var i = 0;
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (ch !== "{") { icuOut.push(ch); i++; continue; }
+      var balanced = scanBalancedBraces(text, i);
+      if (balanced && looksLikeIcu(balanced.text)) {
+        icuOut.push(registerMatch(balanced.text, "icu"));
+        i = balanced.end + 1;
+        continue;
+      }
+      icuOut.push(ch);
+      i++;
+    }
+    var result = icuOut.join("");
+
+    // 其余模式：ICU 已被替换为含标记的字符串，跳过它们即可
+    for (var p = 1; p < PATTERNS.length; p++) {
       var pattern = PATTERNS[p];
-      // 重置正则 lastIndex
-      pattern.re.lastIndex = 0;
-
-      result = result.replace(pattern.re, function (match, offset) {
-        // 避免重复保护已替换的标记
-        if (match.indexOf(TAG_PREFIX) !== -1) return match;
-
-        // 相同的占位符共用一个索引
-        var key = match;
-        var idx;
-        var existing = -1;
-        for (var i = 0; i < map.length; i++) {
-          if (map[i].original === key) { existing = i; break; }
-        }
-        if (existing >= 0) {
-          idx = existing;
-        } else {
-          idx = map.length;
-          map.push({ original: match, name: pattern.name, index: idx });
-        }
-
-        var tag = TAG_PREFIX + idx + TAG_SUFFIX;
-        used.add(idx);
-        return tag;
-      });
+      // 用 IIFE 绑定当前 pattern，否则回调里引用的是循环结束后的最后一个 pattern
+      (function (pat) {
+        pat.re.lastIndex = 0;
+        result = result.replace(pat.re, function (match) {
+          // 禁止跨过已生成的标记：例如 "{{{a}}}" 中 ICU 已替换掉 "{a, …}"，
+          // 若让 doubleBrace 跨过标记去匹配，会连带吞掉多余的 '}'。
+          if (match.indexOf(TAG_PREFIX) !== -1 || match.indexOf(TAG_SUFFIX) !== -1) return match;
+          return registerMatch(match, pat.name);
+        });
+      })(pattern);
     }
 
     return {

@@ -8,7 +8,7 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -144,60 +144,100 @@ function build() {
     "utf-8"
   );
 
-  // 更新 HTML 文件
+  // 注入生产环境标识脚本。
+  //
+  // ⚠️ 旧实现在这里替换字面量 `<script src="app.js"></script>`，而 index.html 现在是通过
+  // 内联加载器加载 app.bundle.js（带 app.js 回退），该字面量早已不存在 ——
+  // 结果是 production.js 被写进了 dist，却没有任何页面引用它，window.isProduction 永远 undefined。
+  // 现改为：先兼容旧形态，否则注入到 </head> 之前（早于任何 defer 脚本执行），并校验注入结果。
   const htmlPath = path.join(OUTPUT_PATH, "public", "index.html");
-  if (fs.existsSync(htmlPath)) {
-    let html = fs.readFileSync(htmlPath, "utf-8");
-    html = html.replace(
-      '<script src="app.js"></script>',
-      '<script src="production.js"></script><script src="app.js"></script>'
-    );
-    fs.writeFileSync(htmlPath, html, "utf-8");
+  if (!fs.existsSync(htmlPath)) {
+    throw new Error(`找不到 ${htmlPath}，无法注入生产标识`);
   }
+  {
+    const TAG = '<script src="production.js"></script>';
+    let html = fs.readFileSync(htmlPath, "utf-8");
+    let injected = false;
 
-  // 构建 CSS
-  log("yellow", "🎨 构建CSS...");
-  try {
-    execSync("npm run build-css", {
-      cwd: PROJECT_ROOT,
-      stdio: "pipe",
-    });
-    // 复制构建后的 CSS 到输出目录
-    const cssSource = path.join(PROJECT_ROOT, "public", "styles.css");
-    if (fs.existsSync(cssSource)) {
-      fs.copyFileSync(
-        cssSource,
-        path.join(OUTPUT_PATH, "public", "styles.css")
+    if (html.includes('<script src="app.js"></script>')) {
+      html = html.replace(
+        '<script src="app.js"></script>',
+        `${TAG}<script src="app.js"></script>`
+      );
+      injected = true;
+    } else if (!html.includes(TAG) && html.includes("</head>")) {
+      html = html.replace("</head>", `    ${TAG}\n</head>`);
+      injected = true;
+    }
+
+    if (!injected || !html.includes(TAG)) {
+      throw new Error(
+        "无法把 production.js 注入 index.html（未找到 </head> 或旧式 app.js 标签）：" +
+          "生产包会缺少 window.isProduction 标识"
       );
     }
+    fs.writeFileSync(htmlPath, html, "utf-8");
+    log("white", "  ✔ 已注入 production.js");
+  }
+
+  // 构建 CSS（走独立脚本，不依赖 npm 可执行文件 —— 本机 npm.ps1 被执行策略禁用，
+  // 容器/CI 也可能没有 npm 的 PATH；旧实现的 execSync("npm run build-css") 会直接失败并被静默降级）
+  log("yellow", "🎨 构建CSS...");
+  try {
+    execFileSync(
+      process.execPath,
+      [path.join(PROJECT_ROOT, "scripts", "build-css.mjs")],
+      { cwd: PROJECT_ROOT, stdio: "pipe" }
+    );
+    const cssSource = path.join(PROJECT_ROOT, "public", "styles.css");
+    if (!fs.existsSync(cssSource)) {
+      throw new Error("构建后仍找不到 public/styles.css");
+    }
+    fs.copyFileSync(cssSource, path.join(OUTPUT_PATH, "public", "styles.css"));
   } catch (e) {
-    log("yellow", "  CSS 构建跳过（tailwindcss 未安装或构建失败）");
+    log("red", `  ❌ CSS 构建失败（dist 内保留的是复制过来的旧 styles.css）: ${e.message || e}`);
+    if (e.stdout) log("white", String(e.stdout).trim().split("\n").slice(-3).join("\n"));
+    if (e.stderr) log("white", String(e.stderr).trim().split("\n").slice(-3).join("\n"));
   }
 
   // 构建 JS Bundle
   log("yellow", "📦 构建JS Bundle...");
   try {
-    execSync("node scripts/build-bundle.js", {
-      cwd: PROJECT_ROOT,
-      stdio: "pipe",
-    });
+    execFileSync(
+      process.execPath,
+      [path.join(PROJECT_ROOT, "scripts", "build-bundle.js")],
+      { cwd: PROJECT_ROOT, stdio: "pipe" }
+    );
     const bundleSource = path.join(PROJECT_ROOT, "public", "app.bundle.js");
-    if (fs.existsSync(bundleSource)) {
-      fs.copyFileSync(
-        bundleSource,
-        path.join(OUTPUT_PATH, "public", "app.bundle.js")
-      );
+    if (!fs.existsSync(bundleSource)) {
+      throw new Error("构建后仍找不到 public/app.bundle.js");
     }
+    fs.copyFileSync(bundleSource, path.join(OUTPUT_PATH, "public", "app.bundle.js"));
   } catch (e) {
-    log("yellow", "  JS Bundle 构建失败: " + e.message);
+    log("red", `  ❌ JS Bundle 构建失败（dist 内保留的是复制过来的旧 app.bundle.js）: ${e.message || e}`);
+    if (e.stdout) log("white", String(e.stdout).trim().split("\n").slice(-3).join("\n"));
+    if (e.stderr) log("white", String(e.stderr).trim().split("\n").slice(-3).join("\n"));
   }
 
-  // 运行测试
+  // 运行测试（此前这里只打印「暂无自动化测试」，而仓库已有 581 个用例 —— 属失效的占位实现）
   if (!skipTests) {
     log("yellow", "🧪 运行测试...");
-    // 预留测试命令接入点
-    // 当测试框架就绪后，在此处添加：execSync("npm test", ...)
-    log("gray", "  ⏭️ 暂无自动化测试（待引入测试框架）");
+    const vitestEntry = path.join(PROJECT_ROOT, "node_modules", "vitest", "vitest.mjs");
+    if (fs.existsSync(vitestEntry)) {
+      try {
+        execFileSync(process.execPath, [vitestEntry, "run"], {
+          cwd: PROJECT_ROOT,
+          stdio: "inherit",
+        });
+        log("green", "  ✔ 测试全部通过");
+      } catch (e) {
+        throw new Error("测试未通过，已中止生产构建（如需强制继续，加 --skip-tests）");
+      }
+    } else {
+      log("yellow", "  ⏭️ 未安装 vitest，跳过测试（先运行 npm ci）");
+    }
+  } else {
+    log("yellow", "🧪 已按 --skip-tests 跳过测试");
   }
 
   // 生成构建信息

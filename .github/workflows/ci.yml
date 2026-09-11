@@ -12,10 +12,16 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        # vitest 4 / vite 8 / jsdom 28 的 engines 要求 ^20.19 || ^22.12 || >=24，
+        # Node 18 已 EOL 且与锁定的工具链不兼容（原矩阵含 18 会让该分支必然失败）
+        node-version: [20, 22, 24]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 对照类测试会用 `git show bde5937:<file>` 取「修复前基线」，
+          # 默认的浅克隆（depth 1）取不到该提交 → 必须完整历史
+          fetch-depth: 0
 
       - name: 使用 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4

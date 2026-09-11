@@ -10,6 +10,8 @@ node_modules/
 styles.css
 *.css.map
 public/app.bundle.js
+# 生产构建输出（node scripts/build-production.mjs 默认写到 dist/）
+dist/
 
 # OS files
 .DS_Store

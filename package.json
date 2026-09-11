@@ -3,7 +3,7 @@
   "version": "1.3.3",
   "description": "智能翻译工具 - 多格式本地化翻译助手",
   "scripts": {
-    "build-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify --config ./config/tailwind.config.js",
+    "build-css": "node scripts/build-css.mjs",
     "postbuild-css": "node -e \"const fs=require('fs');const p='public/styles.css';let s=fs.readFileSync(p,'utf8');s=s.replace(/-webkit-text-size-adjust\\s*:\\s*100%;(?!text-size-adjust)/g,'-webkit-text-size-adjust:100%;text-size-adjust:100%;');fs.writeFileSync(p,s);\"",
     "watch-css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch --config ./config/tailwind.config.js",
     "update-cdn": "node scripts/tools.mjs update-cdn",

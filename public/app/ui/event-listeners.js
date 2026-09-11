@@ -21,6 +21,9 @@ function initEventListeners() {
   );
   const ctxTranslationSearchStats = DOMCache.get("translationSearchStats");
   const ctxTranslationSearchCount = DOMCache.get("translationSearchCount");
+  const ctxTranslationFindBar = DOMCache.get("translationFindBar");
+  const ctxToggleTranslationSearchBtn = DOMCache.get("toggleTranslationSearchBtn");
+  const ctxCloseTranslationSearchBtn = DOMCache.get("closeTranslationSearchBtn");
 
   const ctx = {
     sourceList,
@@ -36,6 +39,9 @@ function initEventListeners() {
     clearTranslationSearchMobile: ctxClearTranslationSearchMobile,
     translationSearchStats: ctxTranslationSearchStats,
     translationSearchCount: ctxTranslationSearchCount,
+    translationFindBar: ctxTranslationFindBar,
+    toggleTranslationSearchBtn: ctxToggleTranslationSearchBtn,
+    closeTranslationSearchBtn: ctxCloseTranslationSearchBtn,
   };
 
   if (typeof window.registerEventListenersKeyboard === "function") {

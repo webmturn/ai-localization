@@ -6,6 +6,9 @@ function registerEventListenersTranslationSearch(ctx) {
   const clearTranslationSearchMobile = ctx?.clearTranslationSearchMobile;
   const translationSearchStats = ctx?.translationSearchStats;
   const translationSearchCount = ctx?.translationSearchCount;
+  const translationFindBar = ctx?.translationFindBar;
+  const toggleTranslationSearchBtn = ctx?.toggleTranslationSearchBtn;
+  const closeTranslationSearchBtn = ctx?.closeTranslationSearchBtn;
 
   // 搜索翻译项函数（使用统一过滤函数）
   function searchTranslationItems(keyword) {
@@ -43,6 +46,88 @@ function registerEventListenersTranslationSearch(ctx) {
 
   // 使用防抖的搜索函数
   const debouncedSearch = debounce(searchTranslationItems, 300);
+
+  // ==================== 查找条（按需展开） ====================
+  // 搜索条默认不展开，列表默认占满高度；由工具栏「搜索」按钮、Ctrl+F（keyboard.js 的
+  // focusSearch 动作）展开，Esc / ✕ 收起。
+  function openTranslationFindBar() {
+    if (!translationFindBar) return false;
+    translationFindBar.classList.remove("hidden");
+    translationFindBar.classList.add("flex");
+    toggleTranslationSearchBtn?.setAttribute("aria-expanded", "true");
+    if (translationSearchInput) {
+      translationSearchInput.focus();
+      if (typeof translationSearchInput.select === "function") {
+        translationSearchInput.select();
+      }
+    }
+    return true;
+  }
+
+  function closeTranslationFindBar(options) {
+    if (!translationFindBar) return false;
+    const wasOpen = !translationFindBar.classList.contains("hidden");
+    translationFindBar.classList.add("hidden");
+    translationFindBar.classList.remove("flex");
+    toggleTranslationSearchBtn?.setAttribute("aria-expanded", "false");
+    // 关闭即清空筛选：否则列表被过滤却看不到筛选条件，容易被误当成全部条目
+    const hadQuery = !!(
+      translationSearchInput?.value || translationSearchInputMobile?.value
+    );
+    if (wasOpen && hadQuery) {
+      if (translationSearchInput) translationSearchInput.value = "";
+      if (translationSearchInputMobile) translationSearchInputMobile.value = "";
+      searchTranslationItems("");
+    }
+    if (!options || options.restoreFocus !== false) {
+      if (
+        toggleTranslationSearchBtn &&
+        typeof toggleTranslationSearchBtn.focus === "function"
+      ) {
+        toggleTranslationSearchBtn.focus();
+      }
+    }
+    return true;
+  }
+
+  // 暴露给全局快捷键（Ctrl+F 展开、Esc 收起都在 keyboard.js 的动作表里）
+  if (window.App) {
+    window.App.ui = window.App.ui || {};
+    window.App.ui.openTranslationFindBar = openTranslationFindBar;
+    window.App.ui.closeTranslationFindBar = closeTranslationFindBar;
+  }
+
+  if (toggleTranslationSearchBtn) {
+    EventManager.add(
+      toggleTranslationSearchBtn,
+      "click",
+      () => {
+        if (translationFindBar && !translationFindBar.classList.contains("hidden")) {
+          closeTranslationFindBar();
+        } else {
+          openTranslationFindBar();
+        }
+      },
+      {
+        tag: "translations",
+        scope: "translationSearch",
+        label: "toggleTranslationSearchBtn:click",
+      }
+    );
+  }
+
+  if (closeTranslationSearchBtn) {
+    EventManager.add(
+      closeTranslationSearchBtn,
+      "click",
+      () => closeTranslationFindBar(),
+      {
+        tag: "translations",
+        scope: "translationSearch",
+        label: "closeTranslationSearchBtn:click",
+      }
+    );
+  }
 
   // 桌面端搜索输入
   if (translationSearchInput) {

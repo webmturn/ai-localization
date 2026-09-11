@@ -173,6 +173,27 @@
     }
   }
 
+  /**
+   * 若搜索查找条处于展开状态则收起它。
+   * 关闭动作由搜索模块（translations-search.js）经 App.ui.closeTranslationFindBar 提供，
+   * 以保证「清空筛选 + aria-expanded 同步 + 焦点回收」只有一处实现。
+   * @returns {boolean} 是否确实收起了一个展开的查找条
+   */
+  function closeFindBarIfOpen() {
+    try {
+      const bar = DOMCache.get("translationFindBar");
+      if (!bar || bar.classList.contains("hidden")) return false;
+      const close =
+        window.App && window.App.ui && window.App.ui.closeTranslationFindBar;
+      if (typeof close !== "function") return false;
+      close();
+      return true;
+    } catch (error) {
+      (loggers.app || console).debug("closeFindBarIfOpen:", error);
+      return false;
+    }
+  }
+
   function runAction(id, e) {
     if (id === "escape") {
       const visibleModals = Array.from(
@@ -185,6 +206,8 @@
       // 本监听器注册在 window 捕获阶段且对命中快捷键 stopImmediatePropagation，
       // 所以「更多」下拉内部的 document 级 Esc 监听收不到事件：菜单必须在这里关。
       if (closeMoreActionsMenuIfOpen()) return;
+      // 查找条同理（展开时先收查找条，再考虑清空多选）
+      if (closeFindBarIfOpen()) return;
       if ((AppState && AppState.translations && AppState.translations.multiSelected || []).length > 0) {
         if (typeof clearMultiSelection === "function") clearMultiSelection();
       }
@@ -214,6 +237,12 @@
     if (id === "focusSearch") {
       const desktop = DOMCache.get("translationSearchInput");
       const mobile = DOMCache.get("translationSearchInputMobile");
+      // 桌面端：查找条按需展开，展开的同时完成聚焦与全选
+      if (!isMobileViewport()) {
+        const openFindBar =
+          window.App && window.App.ui && window.App.ui.openTranslationFindBar;
+        if (typeof openFindBar === "function" && openFindBar()) return;
+      }
       const searchInput = isMobileViewport() ? (mobile || desktop) : (desktop || mobile);
       if (searchInput) {
         searchInput.focus();

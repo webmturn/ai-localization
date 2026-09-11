@@ -149,6 +149,30 @@
     );
   }
 
+  /**
+   * 若「更多」下拉处于打开状态则关闭它。
+   * 关闭动作由菜单模块（data-management.js）经 App.ui.closeMoreActionsMenu 提供，
+   * 以保证监听器清理与 aria-expanded 同步只有一处实现。
+   * @returns {boolean} 是否确实关闭了一个打开的菜单
+   */
+  function closeMoreActionsMenuIfOpen() {
+    try {
+      const menu = DOMCache.get("moreActionsMenu");
+      if (!menu || menu.classList.contains("hidden")) return false;
+      const close =
+        window.App && window.App.ui && window.App.ui.closeMoreActionsMenu;
+      if (typeof close !== "function") return false;
+      close();
+      // 菜单由键盘关闭：焦点回到触发按钮，符合弹出层惯例
+      const btn = DOMCache.get("moreActionsBtn");
+      if (btn && typeof btn.focus === "function") btn.focus();
+      return true;
+    } catch (error) {
+      (loggers.app || console).debug("closeMoreActionsMenuIfOpen:", error);
+      return false;
+    }
+  }
+
   function runAction(id, e) {
     if (id === "escape") {
       const visibleModals = Array.from(
@@ -156,7 +180,12 @@
       ).filter(function (modal) { return !modal.classList.contains("hidden"); });
       if (visibleModals.length > 0) {
         if (typeof closeModal === "function") closeModal();
-      } else if ((AppState && AppState.translations && AppState.translations.multiSelected || []).length > 0) {
+        return;
+      }
+      // 本监听器注册在 window 捕获阶段且对命中快捷键 stopImmediatePropagation，
+      // 所以「更多」下拉内部的 document 级 Esc 监听收不到事件：菜单必须在这里关。
+      if (closeMoreActionsMenuIfOpen()) return;
+      if ((AppState && AppState.translations && AppState.translations.multiSelected || []).length > 0) {
         if (typeof clearMultiSelection === "function") clearMultiSelection();
       }
       return;

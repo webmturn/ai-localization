@@ -760,6 +760,7 @@ function registerEventListenersDataManagement(ctx) {
   const moreActionsMenu = DOMCache.get("moreActionsMenu");
   if (moreActionsBtn && moreActionsMenu) {
     let moreActionsOutsideListenerId = null;
+    let moreActionsEscListenerId = null;
 
     const closeMoreActionsMenu = () => {
       moreActionsMenu.classList.add("hidden");
@@ -768,7 +769,19 @@ function registerEventListenersDataManagement(ctx) {
         EventManager.removeById(moreActionsOutsideListenerId);
         moreActionsOutsideListenerId = null;
       }
+      if (moreActionsEscListenerId) {
+        EventManager.removeById(moreActionsEscListenerId);
+        moreActionsEscListenerId = null;
+      }
     };
+
+    // 暴露给全局快捷键的 escape 动作（keyboard.js）。全局快捷键在 window 捕获阶段
+    // 注册并对命中项 stopImmediatePropagation，因此下面那个 document 级 Esc 监听
+    // 在默认快捷键生效时收不到事件，必须由动作本身来关菜单。
+    if (window.App) {
+      window.App.ui = window.App.ui || {};
+      window.App.ui.closeMoreActionsMenu = closeMoreActionsMenu;
+    }
 
     EventManager.add(
       moreActionsBtn,
@@ -796,6 +809,24 @@ function registerEventListenersDataManagement(ctx) {
                   tag: "data",
                   scope: "moreActions",
                   label: "document:clickCloseMoreActions",
+                }
+              );
+            }
+            // Esc 关闭并把焦点还给触发按钮（菜单内含引擎下拉，键盘用户需要能退出）
+            if (!moreActionsEscListenerId) {
+              moreActionsEscListenerId = EventManager.add(
+                document,
+                "keydown",
+                function (ev) {
+                  if (ev.key === "Escape") {
+                    closeMoreActionsMenu();
+                    moreActionsBtn.focus();
+                  }
+                },
+                {
+                  tag: "data",
+                  scope: "moreActions",
+                  label: "document:escapeCloseMoreActions",
                 }
               );
             }

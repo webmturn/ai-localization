@@ -290,6 +290,10 @@ function generateJSONFromOriginal(items, fileName) {
     // 解析 parseJSON 产出的路径（以 $ 为根，如 $.app.title、$.menu[0]、$[0].name）
     // 为键/下标序列。注意必须跳过根符号 $，否则 json["$"] 为 undefined，
     // 会导致所有条目提前返回、导出的文件不含任何译文。
+    //
+    // 键名里的 `.` 与 `[` 在路径中以 `\.` / `\[` 转义（反斜杠自身为 `\\`），
+    // 这样「键名含点」与「多层嵌套」不再混淆。
+    // 更稳妥的是直接用 metadata.pathTokens（解析器按真实键/下标输出），优先使用它。
     function parseJsonPath(path) {
       if (!path || typeof path !== "string") return null;
       const tokens = [];
@@ -311,20 +315,41 @@ function generateJSONFromOriginal(items, fileName) {
           i = end + 1;
           continue;
         }
-        // 读取一段键名（到下一个 . 或 [ 为止）
-        let j = i;
-        while (j < path.length && path[j] !== "." && path[j] !== "[") j++;
-        const key = path.slice(i, j);
+        // 读取一段键名（到下一个未转义的 . 或 [ 为止，处理 \. \[ \\ 转义）
+        let key = "";
+        let closed = false;
+        while (i < path.length) {
+          const c = path[i];
+          if (c === "\\" && i + 1 < path.length) {
+            key += path[i + 1];
+            i += 2;
+            continue;
+          }
+          if (c === "." || c === "[") {
+            closed = true;
+            break;
+          }
+          key += c;
+          i++;
+        }
         if (!key) return null;
         tokens.push(key);
-        i = j;
+        if (!closed && i >= path.length) break;
       }
       return tokens.length > 0 ? tokens : null;
     }
 
-    function setValueByPath(obj, path, value) {
-      const tokens = parseJsonPath(path);
-      if (!tokens) return;
+    /** 优先使用解析器提供的 pathTokens（无歧义），否则回退到路径字符串解析 */
+    function tokensForItem(item) {
+      const raw = item?.metadata?.pathTokens;
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw.map((t) => (typeof t === "number" ? t : String(t)));
+      }
+      return parseJsonPath(item?.metadata?.path);
+    }
+
+    function setValueByPath(obj, tokens, value) {
+      if (!Array.isArray(tokens) || tokens.length === 0) return;
       let current = obj;
 
       for (let i = 0; i < tokens.length - 1; i++) {
@@ -338,11 +363,11 @@ function generateJSONFromOriginal(items, fileName) {
     }
 
     items.forEach((item) => {
-      const path = item?.metadata?.path;
+      const tokens = tokensForItem(item);
       const targetText = item?.targetText;
-      if (!path) return;
+      if (!tokens) return;
       if (!targetText || !targetText.trim()) return;
-      setValueByPath(json, path, targetText);
+      setValueByPath(json, tokens, targetText);
     });
 
     return JSON.stringify(json, null, 2);
@@ -469,9 +494,30 @@ function __poReplaceMsgstrBlock(content, msgid, msgstr) {
     if (fileMsgidEscaped === null) continue;
     if (fileMsgidEscaped !== targetEscaped) continue;
 
-    // 该 msgid 之后紧跟的第一个 msgstr（跳过注释与 msgctxt）
+    // 该 msgid 之后紧跟的第一个 msgstr（跳过空行、注释、msgctxt 与 msgid_plural）
+    //
+    // P0 回归：复数条目的结构是
+    //     msgid "…"
+    //     msgid_plural "…"
+    //     msgstr[0] "…"      ← 主译文
+    //     msgstr[1] "…"
+    // 旧实现只跳过空行，于是在复数条目上停在 `msgid_plural` 行、匹配不到 msgstr 而直接 return null，
+    // 导致**主译文完全不写回**（静默丢失，且无任何警告）。
     let j = i + 1;
-    while (j < lines.length && /^\s*$/.test(lines[j])) j++;
+    while (j < lines.length) {
+      const probe = lines[j];
+      if (/^\s*msgid\s/.test(probe)) return null; // 进入下一条消息：本条目没有 msgstr
+      if (
+        /^\s*$/.test(probe) ||
+        /^\s*#/.test(probe) ||
+        /^\s*msgctxt\s/.test(probe) ||
+        /^\s*msgid_plural\s/.test(probe)
+      ) {
+        j++;
+        continue;
+      }
+      break;
+    }
     if (j >= lines.length) return null;
     const strMatch = lines[j].match(/^(\s*msgstr(?:\[\d+\])?\s+)((?:"(?:\\.|[^"\\])*"\s*)+)\s*$/);
     if (!strMatch) return null;

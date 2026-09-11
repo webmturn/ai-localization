@@ -269,22 +269,19 @@ function generateAndroidStringsXML(items, originalContent) {
     }
   }
 
-  function resourceRegex(escapedId) {
-    return new RegExp(
-      "(<string[^>]*\\bname=\"" + escapedId + "\"[^>]*>)([\\s\\S]*?)(</string>)",
-      "g"
-    );
-  }
-
   // 把值安全地写入 XML：可能含内联标记（解析器存的是序列化片段）。
   //  - 纯文本 → XML 转义（此前直接拼接原值，含 < & 的译文会破坏文档结构）
   //  - 含标记 → 逐个文本节点转义，标签原样保留
+  // 注意 hasMarkup 的判据是「片段里真的有元素节点」：纯文本同样能被解析成合法片段，
+  // 若据此置位，会导致每个 <string> 都被注入 formatted="false"（P1 回归）。
   function safeAndroidValue(doc, text) {
     const raw = String(text == null ? "" : text);
     const frag = parseFragment(doc, raw);
     if (frag && frag.childNodes && frag.childNodes.length > 0) {
-      // 值是合法 XML 片段：逐文本节点转义，保留元素结构
       const nodes = Array.prototype.slice.call(frag.childNodes);
+      const hasElement = nodes.some(function (n) {
+        return n.nodeType === 1;
+      });
       let out = "";
       for (const node of nodes) {
         if (node.nodeType === 3) {
@@ -295,48 +292,82 @@ function generateAndroidStringsXML(items, originalContent) {
             : new XMLSerializer().serializeToString(node);
         }
       }
-      return { value: out, hasMarkup: true };
+      return { value: out, hasMarkup: hasElement };
     }
     // 纯文本（或不是合法 XML）：整体转义
     return { value: escapeXml(raw), hasMarkup: false };
   }
 
-  function replaceSelfClosingOrPaired(tagName, name, kind, indexValue, newValue) {
-    const re = new RegExp(
-      "<(" + tagName + ")(?=[\\s>])([^>]*\\bname=\"" + name + "\"[^>]*)>" +
-        "([\\s\\S]*?)</" + tagName + ">",
-      "g"
-    );
+  /**
+   * 定位目标元素并替换其内容。
+   *
+   * P0 回归：容器既可能成对出现，也可能是**合法的自闭合形式**（`<string name="x"/>`）。
+   * 旧实现只写 `>…</tag>`，遇到自闭合元素时会跨过它去匹配**下一个** `</tag>`，
+   * 把后面的元素连同译文一起吞掉（产出非良构 XML 且丢失译文）。
+   * 因此这里用「成对 / 自闭合」二选一的匹配，自闭合元素按需展开成成对形式。
+   *
+   * @param {string} tagName - string / string-array / plurals
+   * @param {string} name - 已转义的 name 属性值
+   * @param {"string"|"arrayIndex"|"quantity"} kind - 定位方式
+   * @param {number|string|null} indexValue - 下标或 quantity
+   * @param {string} newValue - 译文
+   * @param {Object} [opts] - { injectFormatted: boolean }
+   */
+  function replaceSelfClosingOrPaired(tagName, name, kind, indexValue, newValue, opts) {
+    const options = opts || {};
     const doc = new DOMParser();
     const safe = safeAndroidValue(doc, newValue);
+    const re = new RegExp(
+      "<(" + tagName + ")(?=[\\s>])([^>]*\\bname=\"" + name + "\"[^>]*?)" +
+        "(\\/>|>([\\s\\S]*?)<\\/" + tagName + ">)",
+      "g"
+    );
 
-    result = result.replace(re, function (match, tag, attrs, inner) {
+    result = result.replace(re, function (match, tag, attrs, tail, inner) {
+      const selfClosing = tail === "/>";
+      const content = selfClosing ? "" : inner || "";
+
+      // 含内联标记时必须声明 formatted="false"，否则 Android 会剥离标记
+      let openAttrs = attrs;
+      if (options.injectFormatted && safe.hasMarkup && !/\bformatted=/.test(openAttrs)) {
+        openAttrs = ' formatted="false"' + openAttrs;
+      }
+      const open = "<" + tag + openAttrs + ">";
+
       if (kind === "arrayIndex") {
-        // <item> 无定位属性 → 按下标寻址，仅替换第 N 个 item
-        const itemRe = /(<item\b[^>]*>)([\s\S]*?)(<\/item>)/g;
+        // <item> 无定位属性 → 按下标寻址。自闭合的 <item/> 必须同样计入下标，
+        // 否则下标整体前移，译文会被写进错误的条目。
+        const itemRe = /<item\b([^>]*?)(\/>|>([\s\S]*?)<\/item>)/g;
         let seen = -1;
         let hit = false;
-        const newInner = inner.replace(itemRe, function (im, io, _ic, icl) {
+        const newInner = content.replace(itemRe, function (im, itemAttrs) {
           seen++;
           if (seen !== indexValue) return im;
           hit = true;
           replacedCount++;
-          return io + safe.value + icl;
+          return "<item" + itemAttrs + ">" + safe.value + "</item>";
         });
         if (!hit) return match;
-        return "<" + tag + attrs + ">" + newInner + "</" + tag + ">";
+        return open + newInner + "</" + tag + ">";
       }
 
-      // plurals：按 quantity 寻址
-      const itemRe = new RegExp(
-        "(<item\\b[^>]*?quantity=\"" + indexValue + "\"[^>]*>)([\\s\\S]*?)(</item>)"
-      );
-      if (!itemRe.test(inner)) return match;
-      const newInner = inner.replace(itemRe, function (im, io, _ic, icl) {
-        replacedCount++;
-        return io + safe.value + icl;
-      });
-      return "<" + tag + attrs + ">" + newInner + "</" + tag + ">";
+      if (kind === "quantity") {
+        // plurals：按 quantity 寻址（同样兼容自闭合的 <item quantity="one"/>）
+        const itemRe = new RegExp(
+          "<item\\b([^>]*?\\bquantity=\"" + indexValue + "\"[^>]*?)" +
+            "(\\/>|>([\\s\\S]*?)<\\/item>)"
+        );
+        if (!itemRe.test(content)) return match;
+        const newInner = content.replace(itemRe, function (_im, itemAttrs) {
+          replacedCount++;
+          return "<item" + itemAttrs + ">" + safe.value + "</item>";
+        });
+        return open + newInner + "</" + tag + ">";
+      }
+
+      // 普通 <string>：自闭合元素本身没有内容，展开成成对形式写入译文
+      replacedCount++;
+      return open + safe.value + "</" + tag + ">";
     });
   }
 
@@ -401,18 +432,9 @@ function generateAndroidStringsXML(items, originalContent) {
       return;
     }
 
-    // 3) 普通 <string name="x">
-    const escapedId = resourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const doc = new DOMParser();
-    const safe = safeAndroidValue(doc, newValue);
-    result = result.replace(resourceRegex(escapedId), function (_match, opening, _content, closing) {
-      replacedCount++;
-      // 含内联标记时必须声明 formatted="false"，否则 Android 会剥离标记
-      let open = opening;
-      if (safe.hasMarkup && !/\bformatted=/.test(open)) {
-        open = open.replace(/^<string/, '<string formatted="false"');
-      }
-      return open + safe.value + closing;
+    // 3) 普通 <string name="x">（含自闭合 <string name="x"/>）
+    replaceSelfClosingOrPaired("string", escName(resourceId), "string", null, newValue, {
+      injectFormatted: true,
     });
 
     if (result === before) {

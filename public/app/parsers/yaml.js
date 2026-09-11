@@ -174,14 +174,20 @@ async function exportYAML(items, options = {}) {
     throw new Error('YAML 导出需要传入数组，实际收到 ' + typeof items);
   }
 
-  // 按路径分组
+  // 按路径分组（优先使用解析器输出的 pathTokens，避免键名含 `.`/`[` 时的歧义）
   const processed = new Map();
   for (const item of items) {
+    const rawTokens = item.metadata?.pathTokens;
+    const tokens =
+      Array.isArray(rawTokens) && rawTokens.length > 0
+        ? rawTokens.map((t) => (typeof t === 'number' ? t : String(t)))
+        : null;
     const path = item.metadata?.path || '';
-    if (!path) continue;
+    if (!tokens && !path) continue;
     const value = item.targetText || item.sourceText;
     if (!value) continue;
-    processed.set(path, value);
+    const key = tokens ? 'T:' + JSON.stringify(tokens) : 'P:' + path;
+    processed.set(key, { tokens, path, value });
   }
 
   // 没有任何条目带路径信息时，直接报错而不是导出空对象 {}。
@@ -195,21 +201,56 @@ async function exportYAML(items, options = {}) {
     );
   }
 
-  // 构建嵌套结构（支持数组路径 [i]；路径以 $ 为根，需跳过根符号）
-  // 根级数组（如 $[0]、$[0].name）需要容器本身是数组，因此先探测再决定 result 形态。
-  const hasRootArray = [...processed.keys()].some((p) => /^\$\[\d+\]/.test(String(p)));
+  /** 把「以 $ 为根、键名中转义 \. 与 \[」的路径切成段 */
+  const splitPathParts = (path) => {
+    let s = String(path);
+    if (s.startsWith('$')) s = s.slice(1);
+    const parts = [];
+    let cur = '';
+    let i = 0;
+    while (i < s.length) {
+      const ch = s[i];
+      if (ch === '\\' && i + 1 < s.length) {
+        cur += s[i + 1];
+        i += 2;
+        continue;
+      }
+      if (ch === '.') {
+        if (cur !== '') parts.push(cur);
+        cur = '';
+        i++;
+        continue;
+      }
+      if (ch === '[') {
+        if (cur !== '') parts.push(cur);
+        cur = '';
+        const end = s.indexOf(']', i);
+        if (end === -1) return parts;
+        parts.push(s.slice(i, end + 1)); // 保留 "[n]" 形态，交给下面的分支处理
+        i = end + 1;
+        continue;
+      }
+      cur += ch;
+      i++;
+    }
+    if (cur !== '') parts.push(cur);
+    return parts;
+  };
+
+  // 构建嵌套结构（支持数组下标；根级数组需要容器本身是数组，因此先探测）
+  const entries = [...processed.values()];
+  const hasRootArray = entries.some((e) =>
+    e.tokens ? typeof e.tokens[0] === 'number' : /^\$\[\d+\]/.test(String(e.path))
+  );
   const result = hasRootArray ? [] : {};
   const isIndexPart = (p) => /^\[?\d+\]?$/.test(String(p == null ? '' : p).trim());
 
-  for (const [path, value] of processed) {
-    // 与 parsers/json.js 保持一致：路径形如 $.app.title、$.menu[0].label、$[0].name。
-    // 旧实现不跳过 "$"，会把全部内容错误地嵌套在一个名为 "$" 的顶层键下。
-    // 注意只剥掉「单独的 $」，不能剥掉 "$[0]" 里的 $（否则根级数组会丢段）。
-    const parts = String(path)
-      .split('.')
-      .filter((p) => p !== '')
-      .map((p) => (p === '$' ? '' : p.startsWith('$[') ? p.slice(1) : p))
-      .filter((p) => p !== '');
+  for (const entry of entries) {
+    const value = entry.value;
+    // 有 pathTokens 时直接用真实键/下标（无歧义）；否则回退到路径字符串解析
+    const parts = entry.tokens
+      ? entry.tokens.map((t) => (typeof t === 'number' ? `[${t}]` : String(t)))
+      : splitPathParts(entry.path);
     if (parts.length === 0) continue;
     let current = result;
 

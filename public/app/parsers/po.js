@@ -32,7 +32,11 @@ function collectQuotedParts(line) {
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i].trim();
-    if (!entry || entry.startsWith("#")) continue;
+    // 不能因为条目以注释开头就整条跳过：xgettext 生成的 PO 里每个条目都带
+    // `#: 引用位置` / `#. 提取注释`，整条跳过会让标准 PO 文件解析出 0 条（直接抛错），
+    // 或在一部分条目带注释时静默丢条目。注释由下面的逐行循环跳过，
+    // 纯注释块最终因 msgid 为空被过滤掉。
+    if (!entry) continue;
 
     const lines = entry.split("\n");
     let msgctxt = "";

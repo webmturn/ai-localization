@@ -185,17 +185,20 @@ function translationValidateResult(sourceText, translated, opts = {}) {
     return { ok: false, reason: "译文为空" };
   }
 
-  // 占位符完整性：源文中的占位符必须在译文中原样保留
+  // 占位符完整性：源文中的结构性占位符必须在译文中原样保留
+  // （实体/HTML 标签层面的差异已由 PlaceholderGuard 归入 benign*，不在此拦截）
   try {
     if (typeof PlaceholderGuard !== "undefined" && PlaceholderGuard && typeof PlaceholderGuard.validate === "function") {
       var v = PlaceholderGuard.validate(src, translated);
       if (v && v.valid === false) {
+        var missList = Array.isArray(v.missingStructural) ? v.missingStructural : v.missing || [];
+        var extraList = Array.isArray(v.fatalExtra) ? v.fatalExtra : v.extra || [];
         return {
           ok: false,
           reason:
             "占位符不匹配" +
-            (v.missing && v.missing.length ? "（缺失 " + v.missing.join(", ") + "）" : "") +
-            (v.extra && v.extra.length ? "（多出 " + v.extra.join(", ") + "）" : ""),
+            (missList.length ? "（缺失 " + missList.join(", ") + "）" : "") +
+            (extraList.length ? "（多出 " + extraList.join(", ") + "）" : ""),
         };
       }
     }
@@ -204,4 +207,59 @@ function translationValidateResult(sourceText, translated, opts = {}) {
   }
 
   return { ok: true, translated };
+}
+
+/**
+ * 单条译文的统一收尾：占位符还原 → 术语库 → 结果校验。
+ *
+ * 正常批量路径与「取消后保留已完成结果」路径必须共用本函数。
+ * 背景（P0）：引擎侧会把占位符替换成 «N» 哨兵（ai-engine-base.js），若取消分支不做还原，
+ * 哨兵会被直接写进 targetText 并标记为已翻译，随后自动保存 + 导出（静默数据损坏）。
+ *
+ * @param {Object} item - 待写入的条目（读取 sourceText / __phGuardMap）
+ * @param {*} translated - 引擎返回的译文（可能是非字符串的坏结果）
+ * @param {Object} [service] - TranslationService 实例（用于 applyTerminologyToTranslation）
+ * @returns {{ok: boolean, translated: *, reason?: string}}
+ */
+function translationFinalizeResult(item, translated, service) {
+  var value = translated;
+
+  // 1) 占位符还原
+  if (typeof PlaceholderGuard !== "undefined" && PlaceholderGuard) {
+    var map = item && item.__phGuardMap;
+    if ((!map || !map.length) && item && typeof PlaceholderGuard.protect === "function") {
+      try {
+        var ph = PlaceholderGuard.protect(item.sourceText);
+        if (ph && ph.hasPlaceholders) map = ph.map;
+      } catch (e) {
+        map = null;
+      }
+    }
+    if (map && map.length && typeof PlaceholderGuard.restore === "function") {
+      try {
+        value = PlaceholderGuard.restore(value, map);
+      } catch (e) {
+        // 非字符串等异常输入：保持原值，交由下面的校验拒绝
+      }
+    }
+  }
+  // 映射用完即弃，避免随条目进入持久化/项目导出
+  if (item && item.__phGuardMap) {
+    try { delete item.__phGuardMap; } catch (e) {}
+  }
+
+  // 2) 术语库（与正常路径一致，幂等）
+  if (service && typeof service.applyTerminologyToTranslation === "function") {
+    try {
+      value = service.applyTerminologyToTranslation(value);
+    } catch (e) {}
+  }
+
+  // 3) 结果校验
+  if (typeof translationValidateResult === "function" && item) {
+    var vr = translationValidateResult(item.sourceText, value);
+    if (!vr.ok) return { ok: false, reason: vr.reason, translated: value };
+  }
+
+  return { ok: true, translated: value };
 }

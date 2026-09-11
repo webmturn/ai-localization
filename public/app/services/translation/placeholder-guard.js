@@ -87,6 +87,21 @@ var PlaceholderGuard = (function () {
   }
 
   /**
+   * 判断某个 printf 命中是否其实是「百分数」而不是占位符。
+   *
+   * 例：`50%off`、`100%increase`、`30%discount` —— `%o`/`%i`/`%d` 恰好落在转换符表里，
+   * 但它们左边是数字、右边紧跟字母，语义是百分比。若当成占位符，送给模型的文本会被改写
+   * （`50«0»ff`），且正确译文会被 validate() 判为「缺失 %o」。
+   *
+   * 反向保护：`file%s.txt`（左边是字母）与 `"50%d"`（右边不是字母）仍按占位符处理。
+   */
+  function isLikelyPercentage(text, start, end) {
+    var prev = start > 0 ? text.charAt(start - 1) : "";
+    var next = end < text.length ? text.charAt(end) : "";
+    return /[0-9]/.test(prev) && /[A-Za-z]/.test(next);
+  }
+
+  /**
    * 保护文本中的占位符
    * @param {string} text - 原始文本
    * @returns {{ text: string, map: Array, hasPlaceholders: boolean }}
@@ -140,10 +155,14 @@ var PlaceholderGuard = (function () {
       // 用 IIFE 绑定当前 pattern，否则回调里引用的是循环结束后的最后一个 pattern
       (function (pat) {
         pat.re.lastIndex = 0;
-        result = result.replace(pat.re, function (match) {
+        result = result.replace(pat.re, function (match, offset, whole) {
           // 禁止跨过已生成的标记：例如 "{{{a}}}" 中 ICU 已替换掉 "{a, …}"，
           // 若让 doubleBrace 跨过标记去匹配，会连带吞掉多余的 '}'。
           if (match.indexOf(TAG_PREFIX) !== -1 || match.indexOf(TAG_SUFFIX) !== -1) return match;
+          // 百分数误判：`50%off` 不是占位符
+          if (pat.name === "printf" && isLikelyPercentage(whole, offset, offset + match.length)) {
+            return match;
+          }
           return registerMatch(match, pat.name);
         });
       })(pattern);
@@ -164,6 +183,9 @@ var PlaceholderGuard = (function () {
    */
   function restore(translated, map) {
     if (!translated || !map || map.length === 0) return translated || "";
+    // 非字符串（模型返回对象/数组/数字等坏结果）原样返回：交由调用方的结果校验拒绝，
+    // 而不是在这里抛 TypeError 把整批（甚至已付费的）结果一起作废。
+    if (typeof translated !== "string") return translated;
 
     var result = translated;
 
@@ -190,14 +212,89 @@ var PlaceholderGuard = (function () {
    * @param {string} translated - 译文
    * @returns {{ valid: boolean, missing: string[], extra: string[] }}
    */
-  function validate(source, translated) {
-    var srcPH = extractAll(source);
-    var tgtPH = extractAll(translated);
+  /**
+   * 收集文本中的 ICU 片段（与 protect 共用同一套配对扫描）
+   * @returns {Array<{text: string, end: number}>}
+   */
+  function collectIcu(text) {
+    var spans = [];
+    if (!text) return spans;
+    var i = 0;
+    while (i < text.length) {
+      if (text.charAt(i) !== "{") {
+        i++;
+        continue;
+      }
+      var balanced = scanBalancedBraces(text, i);
+      if (balanced && looksLikeIcu(balanced.text)) {
+        spans.push(balanced);
+        i = balanced.end + 1;
+        continue;
+      }
+      i++;
+    }
+    return spans;
+  }
 
+  /**
+   * ICU 片段的「骨架」：变量名 + 类型 + 分支键。
+   *
+   * 分支内部的文本是**要被翻译的**（one{# item} → one{# 项}），因此校验不能按字面比对整段，
+   * 只能要求结构一致；这样「正确翻译了分支」与「原样保留」都算通过，
+   * 而「整段删掉」「类型被改」「分支键丢失」仍会被判为不匹配。
+   */
+  function icuSkeleton(span) {
+    var body = String(span).slice(1, -1);
+    var comma = body.indexOf(",");
+    if (comma === -1) return String(span);
+    var arg = body.slice(0, comma).trim();
+    var rest = body.slice(comma + 1);
+    var typeMatch = rest.match(/^\s*([A-Za-z_]+)\s*,/);
+    if (!typeMatch) return String(span);
+    var type = typeMatch[1].toLowerCase();
+    var branches = rest.slice(typeMatch[0].length);
+    var keys = [];
+    var i = 0;
+    while (i < branches.length) {
+      while (i < branches.length && /[\s,]/.test(branches.charAt(i))) i++;
+      var keyMatch = /^(=\d+|[A-Za-z_]\w*)\s*\{/.exec(branches.slice(i));
+      if (!keyMatch) break;
+      keys.push(keyMatch[1]);
+      i += keyMatch[0].length - 1; // 移到 '{'
+      var balanced = scanBalancedBraces(branches, i);
+      if (!balanced) break;
+      i = balanced.end + 1;
+    }
+    return "{" + arg + "," + type + "," + keys.join("|") + "}";
+  }
+
+  /**
+   * 校验译文占位符完整性。
+   * ICU 片段按「骨架」比对，其余占位符（%s/{0}/<br>/实体…）按多重集比对。
+   * @param {string} source
+   * @param {string} translated
+   * @returns {{ valid: boolean, missing: string[], extra: string[] }}
+   */
+  function validate(source, translated) {
     var missing = [];
     var extra = [];
 
-    // 检查源文本的占位符是否都在译文中
+    // 1) ICU：按骨架比对（数量与结构敏感，分支内文本不敏感）
+    var srcIcu = collectIcu(source);
+    var tgtSkeletons = collectIcu(translated).map(function (s) {
+      return icuSkeleton(s.text);
+    });
+    for (var k = 0; k < srcIcu.length; k++) {
+      var skeleton = icuSkeleton(srcIcu[k].text);
+      var at = tgtSkeletons.indexOf(skeleton);
+      if (at === -1) missing.push(srcIcu[k].text);
+      else tgtSkeletons.splice(at, 1);
+    }
+    for (var k2 = 0; k2 < tgtSkeletons.length; k2++) extra.push(tgtSkeletons[k2]);
+
+    // 2) 其余占位符：多重集比对
+    var srcPH = extractSimple(source);
+    var tgtPH = extractSimple(translated);
     for (var i = 0; i < srcPH.length; i++) {
       var idx = tgtPH.indexOf(srcPH[i]);
       if (idx === -1) {
@@ -206,32 +303,103 @@ var PlaceholderGuard = (function () {
         tgtPH.splice(idx, 1);
       }
     }
+    extra = extra.concat(tgtPH);
 
-    extra = tgtPH;
+    // 分级：标记/编码层面的差异（XML 实体、HTML 标签）不算占位符损坏。
+    // 模型把 & 转义成 &amp;、或给译文补 <b> 都是合理行为；若按「多出即失败」处理，
+    // 正确译文会在重试若干次后被丢弃（P1）。结构性占位符（%s/{0}/{{x}}/ICU 骨架）仍严格比对。
+    var missingStructural = [];
+    var benignMissing = [];
+    var benignExtra = [];
+    var fatalExtra = [];
+    for (var mi = 0; mi < missing.length; mi++) {
+      if (isMarkupLike(missing[mi])) benignMissing.push(missing[mi]);
+      else missingStructural.push(missing[mi]);
+    }
+    for (var ei = 0; ei < extra.length; ei++) {
+      if (isMarkupLike(extra[ei])) benignExtra.push(extra[ei]);
+      else fatalExtra.push(extra[ei]);
+    }
 
     return {
-      valid: missing.length === 0 && extra.length === 0,
+      valid: missingStructural.length === 0 && fatalExtra.length === 0,
+      // 完整清单（兼容旧调用方）
       missing: missing,
-      extra: extra
+      extra: extra,
+      // 分级清单
+      missingStructural: missingStructural,
+      benignMissing: benignMissing,
+      benignExtra: benignExtra,
+      fatalExtra: fatalExtra
     };
   }
 
   /**
-   * 提取文本中的所有占位符
+   * 该占位符是否属于「标记/编码」层面（XML 实体、HTML 标签）。
+   *
+   * 这类差异是模型对译文做编码或补标记造成的（`&` → `&amp;`、补 `<b>`），属合理行为；
+   * 而 `%s`/`{0}`/`{{x}}`/ICU 骨架这类**结构性**占位符一旦多出或缺失，就是真的改坏了。
+   */
+  function isMarkupLike(token) {
+    var s = String(token == null ? "" : token);
+    if (/^&(?:#x?[0-9a-fA-F]+|[a-zA-Z]\w*);$/.test(s)) return true;
+    if (/^<\/?[a-zA-Z][\w-]*(?:\s[^>]*)?\/?>$/.test(s)) return true;
+    return false;
+  }
+
+  /**
+   * 提取文本中「ICU 之外」的占位符（ICU 片段先从输入里遮蔽掉，与 protect 的行为对齐）
+   * @param {string} text
+   * @returns {string[]}
+   */
+  function extractSimple(text) {
+    if (!text) return [];
+    var all = [];
+
+    var masked = "";
+    var i = 0;
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (ch !== "{") {
+        masked += ch;
+        i++;
+        continue;
+      }
+      var balanced = scanBalancedBraces(text, i);
+      if (balanced && looksLikeIcu(balanced.text)) {
+        masked += " "; // 遮蔽 ICU 片段，避免其中的 {0}/{{x}} 被重复计入
+        i = balanced.end + 1;
+        continue;
+      }
+      masked += ch;
+      i++;
+    }
+
+    for (var p = 1; p < PATTERNS.length; p++) {
+      PATTERNS[p].re.lastIndex = 0;
+      var m;
+      while ((m = PATTERNS[p].re.exec(masked)) !== null) {
+        if (PATTERNS[p].name === "printf" && isLikelyPercentage(masked, m.index, m.index + m[0].length)) {
+          continue;
+        }
+        all.push(m[0]);
+      }
+    }
+    return all;
+  }
+
+  /**
+   * 提取文本中的所有占位符（ICU 片段 + 其余），供测试/调试使用
    * @param {string} text
    * @returns {string[]}
    */
   function extractAll(text) {
     if (!text) return [];
-    var all = [];
-    for (var p = 0; p < PATTERNS.length; p++) {
-      PATTERNS[p].re.lastIndex = 0;
-      var m;
-      while ((m = PATTERNS[p].re.exec(text)) !== null) {
-        all.push(m[0]);
-      }
-    }
-    return all;
+    return collectIcu(text)
+      .map(function (s) {
+        return s.text;
+      })
+      .concat(extractSimple(text));
   }
 
   // ==================== 公共 API ====================

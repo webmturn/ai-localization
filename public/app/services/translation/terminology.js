@@ -68,7 +68,12 @@ function __terminologyReplaceIgnoreCase(text, source, target) {
   // 都将无法命中 —— 那等于让中文术语库整体失效（这是必须避免的回归）。
   // 因此：术语含 CJK 时按子串匹配（CJK 术语也不会嵌在拉丁单词内部，无副作用）；
   //       纯拉丁/数字术语才施加词边界。
-  // 词字符 = Unicode 字母/数字/下划线（用于拉丁文术语的边界判定）
+  // 词字符 = Unicode 字母/数字/下划线，但**不含 CJK**。
+  //
+  // 为什么必须排除 CJK：汉字与拉丁字母之间是真实词边界。
+  // 「用户id不可见」里的 id、「请安装SDK后再试」里的 SDK 都应命中；
+  // 若把 CJK 也算作词字符，这两处会被判成「词内」而永不替换 —— 拉丁术语在中文语境里静默失效。
+  // 反方向的误伤（category 里的 cat、node 里的 no）仍由拉丁词边界拦住。
   var WORD_CHAR;
   try {
     WORD_CHAR = new RegExp("[\\p{L}\\p{N}_]", "u");
@@ -78,14 +83,19 @@ function __terminologyReplaceIgnoreCase(text, source, target) {
 
   var CJK_RE = /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF66-\uFF9F\uAC00-\uD7AF]/;
   var termHasCjk = CJK_RE.test(source);
-  var headIsWord = WORD_CHAR.test(source.charAt(0));
-  var tailIsWord = WORD_CHAR.test(source.charAt(source.length - 1));
+  var isWordChar = function (ch) {
+    if (!ch) return false;
+    if (CJK_RE.test(ch)) return false; // CJK 不参与拉丁词边界判定
+    return WORD_CHAR.test(ch);
+  };
+  var headIsWord = isWordChar(source.charAt(0));
+  var tailIsWord = isWordChar(source.charAt(source.length - 1));
 
   function isReplacementSite(at) {
     if (termHasCjk) return true;
-    if (headIsWord && at > 0 && WORD_CHAR.test(text.charAt(at - 1))) return false;
+    if (headIsWord && at > 0 && isWordChar(text.charAt(at - 1))) return false;
     var end = at + source.length;
-    if (tailIsWord && end < text.length && WORD_CHAR.test(text.charAt(end))) return false;
+    if (tailIsWord && end < text.length && isWordChar(text.charAt(end))) return false;
     return true;
   }
 

@@ -683,6 +683,29 @@ body.sidebar-resizing * {
 
 .sidebar-tab .tab-icon {
     font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+/* 标签文字：默认允许换行但做「平衡断行」，避免出现「翻译设 / 置」这种把词切碎的排法；
+   text-wrap: balance 不支持时退化为普通换行，不产生副作用。 */
+.sidebar-tab span {
+    text-wrap: balance;
+    line-height: 1.15;
+}
+
+/* 侧栏被压窄时（由 applySidebarWidthsForLayout 按实测宽度打标）改为纯图标：
+   三个标签的完整文案在 240px 侧栏里放不下，硬挤必然断行。 */
+.sidebar-narrow .sidebar-tab {
+    padding: 0.625rem 0.5rem;
+    gap: 0;
+}
+
+.sidebar-narrow .sidebar-tab span:not(.tab-badge) {
+    display: none;
+}
+
+.sidebar-narrow .sidebar-tab .tab-icon {
+    font-size: 1rem;
 }
 
 .sidebar-tab .tab-badge {
@@ -1480,6 +1503,21 @@ input[type="range"] {
     background: #e5e7eb;
     border: none;
     outline: none;
+}
+
+/* 键盘焦点：上面的基础规则把 outline 去掉了，这里补回可见焦点环，
+   否则 4 个滑块（含设置页的温度）对键盘用户完全没有焦点提示。 */
+input[type="range"]:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.dark-mode input[type="range"] {
+    background: #374151;
+}
+
+.dark-mode input[type="range"]:focus-visible {
+    outline-color: #60a5fa;
 }
 
 input[type="range"]::-webkit-slider-thumb {

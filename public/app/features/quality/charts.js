@@ -30,7 +30,10 @@ function __updateQualityChartsImpl() {
   const accuracyLabels = radarFiltered.map(function (d) { return d.label; });
   const accuracyData = radarFiltered.map(function (d) { return d.data; });
 
-  const isDarkMode = document.body.classList.contains("dark-mode");
+  // 深色载体现在加在 <html> 上（body 也同步一份以兼容旧读取方），两处都检查
+  const isDarkMode =
+    document.documentElement.classList.contains("dark-mode") ||
+    document.body.classList.contains("dark-mode");
   const chartTextColor = isDarkMode ? "#e5e7eb" : "#374151";
   const chartGridColor = isDarkMode
     ? "rgba(229, 231, 235, 0.2)"

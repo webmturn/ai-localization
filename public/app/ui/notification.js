@@ -118,6 +118,11 @@ function showNotification(type, title, message, options) {
   _updateQueueBadge(0);
 
   // 显示通知（从左侧滑入）
+  if (notification) {
+    // 恢复可见性：关闭后我们会把通知设为 visibility:hidden，避免它被 Tab 命中
+    clearTimeout(notification._hideVisibilityTimer);
+    notification.style.visibility = "";
+  }
   notification.classList.remove("-translate-x-full", "opacity-0");
   notification.classList.add("translate-x-0", "opacity-100");
 
@@ -202,6 +207,14 @@ function closeNotification() {
   if (notification) {
     notification.classList.remove("translate-x-0", "opacity-100");
     notification.classList.add("-translate-x-full", "opacity-0");
+    // 滑出动画结束后彻底隐藏：仅靠 transform 移出屏幕时，
+    // 通知里的 #closeNotification 仍会被 Tab 命中（不可见但可聚焦）。
+    clearTimeout(notification._hideVisibilityTimer);
+    notification._hideVisibilityTimer = setTimeout(function () {
+      if (notification.classList.contains("-translate-x-full")) {
+        notification.style.visibility = "hidden";
+      }
+    }, 320); // 与 duration-300 对齐
   }
 
   // 移除body类

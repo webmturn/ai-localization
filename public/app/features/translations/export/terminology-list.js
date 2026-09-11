@@ -306,8 +306,9 @@ function editTerm(termId) {
   DOMCache.get("partOfSpeech").value = term.partOfSpeech;
   DOMCache.get("termDefinition").value = term.definition || "";
 
-  // 显示编辑模态框
-  DOMCache.get("addTermModal").classList.remove("hidden");
+  // 显示编辑模态框（走 openModal 以获得初始焦点/Tab 陷阱/关闭后还原焦点）
+  if (typeof openModal === "function") openModal("addTermModal");
+  else DOMCache.get("addTermModal").classList.remove("hidden");
 
   // 暂时保存正在编辑的术语ID
   const saveBtn = DOMCache.get("saveTermBtn");

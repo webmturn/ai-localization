@@ -141,20 +141,19 @@ function createTranslationItemElement(
     p.appendChild(highlightTextWithTerms(sourceText, searchQuery));
 
     const contentEl = clone.querySelector(".item-content");
-    if (context) {
-      const p2 = document.createElement("p");
-      p2.className =
-        "text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1 break-words";
-      p2.textContent = context;
-      contentEl.appendChild(p2);
-    }
-
-    if (item.metadata?.resourceId) {
-      const p3 = document.createElement("p");
-      p3.className =
-        "text-xs text-gray-400 dark:text-gray-500 mt-1 break-words";
-      p3.textContent = `ID: ${item.metadata.resourceId}`;
-      contentEl.appendChild(p3);
+    // 次要信息（语境 + 资源 ID）合并成一行并截断：
+    // 此前它们是两个独立段落（最多占两行），把行高撑高且长短不一，
+    // 双列列表的节奏忽高忽低；合并后每行最多「正文 + 一行次要信息」，高度更稳定。
+    const metaParts = [];
+    if (context) metaParts.push(context);
+    if (item.metadata?.resourceId) metaParts.push(`ID: ${item.metadata.resourceId}`);
+    if (metaParts.length > 0) {
+      const metaEl = document.createElement("p");
+      metaEl.className =
+        "text-xs text-gray-500 dark:text-gray-400 mt-1 truncate";
+      metaEl.textContent = metaParts.join(" · ");
+      metaEl.title = metaParts.join(" · ");
+      contentEl.appendChild(metaEl);
     }
 
     const status = clone.querySelector("span");
@@ -232,19 +231,16 @@ function createMobileCombinedTranslationItemElement(
     extra.className = "mt-1 hidden";
     extra.dataset.role = "extra";
 
-    if (context) {
-      const p2 = document.createElement("p");
-      p2.className = "text-xs text-gray-500 dark:text-gray-400 break-words";
-      p2.textContent = context;
-      extra.appendChild(p2);
-    }
-
-    if (item.metadata?.resourceId) {
-      const p3 = document.createElement("p");
-      p3.className =
-        "text-xs text-gray-400 dark:text-gray-500 mt-1 break-words";
-      p3.textContent = `ID: ${item.metadata.resourceId}`;
-      extra.appendChild(p3);
+    // 与桌面双列行保持一致：语境与资源 ID 合并成一行并截断（原来最多两行，把移动端行高撑高）
+    const extraParts = [];
+    if (context) extraParts.push(context);
+    if (item.metadata?.resourceId) extraParts.push(`ID: ${item.metadata.resourceId}`);
+    if (extraParts.length > 0) {
+      const metaEl = document.createElement("p");
+      metaEl.className = "text-xs text-gray-500 dark:text-gray-400 truncate";
+      metaEl.textContent = extraParts.join(" · ");
+      metaEl.title = extraParts.join(" · ");
+      extra.appendChild(metaEl);
     }
 
     left.appendChild(extra);
@@ -311,7 +307,7 @@ function createEmptyStateElement(message, withActions) {
   div.innerHTML =
     '<i class="fa-solid fa-language text-4xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>' +
     '<p class="text-sm text-gray-500 dark:text-gray-400"></p>' +
-    '<p class="text-xs text-gray-400 dark:text-gray-500 text-center">上传本地化文件开始翻译，<br>或加载示例项目快速体验</p>' +
+    '<p class="text-xs text-gray-600 dark:text-gray-400 text-center">上传本地化文件开始翻译，<br>或加载示例项目快速体验</p>' +
     '<div class="flex items-center gap-2 mt-1">' +
     '<button type="button" class="empty-load-sample-btn px-3 py-1.5 text-xs sm:text-sm text-primary dark:text-blue-400 border border-primary/40 dark:border-blue-400/40 rounded-lg hover:bg-primary/10 dark:hover:bg-blue-400/10 transition-colors" title="加载示例项目" aria-label="加载示例项目">加载示例项目</button>' +
     '<button type="button" class="empty-upload-btn btn-brand px-3 py-1.5 text-xs sm:text-sm text-white rounded-lg transition-all" title="上传文件" aria-label="上传文件">上传文件</button>' +

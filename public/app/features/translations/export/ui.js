@@ -114,6 +114,24 @@ function openModal(modalId) {
   }
 }
 
+// 关闭某个模态框后：若仍有上层模态框可见（例如设置页里打开清理缓存），
+// 把焦点陷阱交还给最上层那个；否则 Tab 会跑出剩余模态框之外。
+// 陷阱状态是单一全局对象，__removeModalFocusTrap 在关闭时已经把它移除了。
+function __restoreTrapToTopmostModal() {
+  try {
+    const visible = Array.from(
+      DOMCache.queryAll(".fixed.inset-0.bg-black.bg-opacity-50")
+    ).filter((m) => !m.classList.contains("hidden"));
+    if (visible.length > 0) {
+      __setupModalFocusTrap(visible[visible.length - 1]);
+      return true;
+    }
+  } catch (e) {
+    (loggers.app || console).debug("modal trap restore:", e);
+  }
+  return false;
+}
+
 // 关闭模态框
 function closeModal(eventOrModalId) {
   // 源文件保存进行中禁止关闭，避免半写入后丢失编辑上下文
@@ -138,7 +156,7 @@ function closeModal(eventOrModalId) {
     if (modal) {
       modal.classList.add("hidden");
     }
-    __restoreModalFocus();
+    if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
     return;
   }
 
@@ -149,7 +167,7 @@ function closeModal(eventOrModalId) {
     );
     if (modalToClose) {
       modalToClose.classList.add("hidden");
-      __restoreModalFocus();
+      if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
       return;
     }
   }
@@ -163,7 +181,7 @@ function closeModal(eventOrModalId) {
     // 只关闭最后一个（z-index最高的）
     visibleModals[visibleModals.length - 1].classList.add("hidden");
   }
-  __restoreModalFocus();
+  if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
 }
 
 // 设置焦点陷阱

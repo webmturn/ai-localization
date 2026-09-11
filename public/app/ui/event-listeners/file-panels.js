@@ -435,7 +435,9 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       () => {
         const exportModal = DOMCache.get("exportModal");
-        if (exportModal) exportModal.classList.remove("hidden");
+        // 走 openModal 以获得初始焦点/Tab 陷阱/关闭后还原焦点
+        if (typeof openModal === "function") openModal("exportModal");
+        else if (exportModal) exportModal.classList.remove("hidden");
       },
       { tag: "export", scope: "exportModal", label: "exportBtn:clickOpenModal" }
     );
@@ -507,7 +509,10 @@ function registerEventListenersFilePanels(ctx) {
       "click",
       () => {
         const newProjectModal = DOMCache.get("newProjectModal");
-        if (newProjectModal) newProjectModal.classList.remove("hidden");
+        // 走 openModal 以获得初始焦点/Tab 陷阱/关闭后还原焦点（该函数在导出模块里，
+        // 尚未加载时退回原来的裸显隐）
+        if (typeof openModal === "function") openModal("newProjectModal");
+        else if (newProjectModal) newProjectModal.classList.remove("hidden");
       },
       {
         tag: "project",

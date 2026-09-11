@@ -353,7 +353,8 @@ function registerEventListenersTerminology(ctx) {
         if (targetTermInput) targetTermInput.value = "";
         if (partOfSpeechInput) partOfSpeechInput.value = "noun";
         if (termDefinitionInput) termDefinitionInput.value = "";
-        DOMCache.get("addTermModal").classList.remove("hidden");
+        if (typeof openModal === "function") openModal("addTermModal");
+        else DOMCache.get("addTermModal").classList.remove("hidden");
       },
       {
         tag: "terminology",

@@ -217,6 +217,16 @@ function __updateIssuesTableImpl(filter = { severity: "all", type: "all" }) {
     }
   }
 
+  // 侧栏标签页徽章与面板徽章同源。
+  // 此前 #qualityIssueBadge 全项目零引用：永远 hidden、永远显示 0，
+  // 用户在切到「质量报告」之前看不到任何问题提示。
+  const tabBadge = DOMCache.get("qualityIssueBadge");
+  if (tabBadge) {
+    const total = AppState.qualityCheckResults.issues.length;
+    tabBadge.textContent = String(total);
+    tabBadge.classList.toggle("hidden", total === 0);
+  }
+
   if (filteredIssues.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");

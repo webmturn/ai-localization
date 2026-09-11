@@ -81,14 +81,23 @@ function updateProgress(current, total, status) {
   // 使用 batchUpdate 合并多次快速调用的 DOM 写入到同一帧
   DOMCache.batchUpdate("progress", function () {
     const bar = DOMCache.get("progressBar");
-    if (bar) bar.style.width = `${percentage}%`;
+    if (bar) {
+      bar.style.width = `${percentage}%`;
+      // 可访问性：进度条此前没有 role/aria-valuenow，读屏用户看不到任何进度
+      bar.setAttribute("aria-valuenow", String(percentage));
+      bar.setAttribute("aria-valuetext", `${percentage}% ${status || ""}`.trim());
+    }
     const pctEl = DOMCache.get("progressPercentage");
     if (pctEl) pctEl.textContent = `${percentage}%`;
     const statusEl = DOMCache.get("progressStatus");
     if (statusEl) statusEl.textContent = status;
     // 常驻内联进度条同步更新
     const inlineBar = DOMCache.get("inlineProgressBar");
-    if (inlineBar) inlineBar.style.width = `${percentage}%`;
+    if (inlineBar) {
+      inlineBar.style.width = `${percentage}%`;
+      inlineBar.setAttribute("aria-valuenow", String(percentage));
+      inlineBar.setAttribute("aria-valuetext", `${percentage}% ${status || ""}`.trim());
+    }
     const inlineStatus = DOMCache.get("inlineProgressStatus");
     if (inlineStatus) inlineStatus.textContent = status || "";
     const inlineCount = DOMCache.get("inlineProgressCount");
@@ -208,7 +217,9 @@ function initInlineTranslationProgress() {
       "click",
       function () {
         const modal = DOMCache.get("translationProgressModal");
-        if (modal) modal.classList.remove("hidden");
+        // 用户主动打开日志窗口 → 走 openModal 以获得初始焦点/关闭后还原焦点
+        if (typeof openModal === "function") openModal("translationProgressModal");
+        else if (modal) modal.classList.remove("hidden");
       },
       {
         tag: "ui",

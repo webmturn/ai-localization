@@ -353,22 +353,28 @@ function applySettings(settings) {
   // autoScrollEnabled）已在 state.js 显式声明（阶段 0），此处不再重复兜底赋值。
 
   // 应用主题设置
+  //
+  // 载体类必须加在 <html> 上：Tailwind 的 class 策略编译成后代选择器
+  // （.dark\:bg-gray-900:is(.dark-mode *)），若加在 <body> 上，
+  // <body> 自身写的 dark:bg-*/dark:text-* 永远不会匹配
+  // （页面底色与继承文字色会留在浅色，深色模式下出现浅色带/深字）。
   if (settings.themeMode) {
-    const body = document.body;
+    const root = document.documentElement;
+    const applyDark = (on) => {
+      root.classList.toggle("dark-mode", on);
+      // 兼容旧读取方（charts.js 曾读 body）；两处都同步，避免图表配色判断失效
+      document.body.classList.toggle("dark-mode", on);
+    };
     if (settings.themeMode === "dark") {
-      body.classList.add("dark-mode");
+      applyDark(true);
     } else if (settings.themeMode === "light") {
-      body.classList.remove("dark-mode");
+      applyDark(false);
     } else if (settings.themeMode === "auto") {
       // 根据系统主题设置
       const prefersDark = window.matchMedia(
         "(prefers-color-scheme: dark)"
       ).matches;
-      if (prefersDark) {
-        body.classList.add("dark-mode");
-      } else {
-        body.classList.remove("dark-mode");
-      }
+      applyDark(prefersDark);
     }
   }
 

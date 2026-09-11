@@ -195,16 +195,21 @@ function registerEventListenersDataAndUi(ctx) {
         : Math.min(tiers.defaultRight, maxRightWidth);
       rightSidebar.style.width = width + "px";
       rightSidebar.style.setProperty("--sidebar-width", width + "px");
+      // 三个标签的完整文案在窄侧栏里放不下（会断成「翻译设 / 置」），
+      // 因此按**实测宽度**而不是视口断点切换到纯图标模式。
+      rightSidebar.classList.toggle("sidebar-narrow", width < 300);
     }
   };
 
   applySidebarWidthsForLayout();
+  syncSidebarA11y();
 
   EventManager.add(
     window,
     "resize",
     () => {
       applySidebarWidthsForLayout();
+      syncSidebarA11y();
     },
     { tag: "ui", scope: "sidebar", label: "sidebar:resizeApplyWidths" }
   );
@@ -221,10 +226,31 @@ function registerEventListenersDataAndUi(ctx) {
     sidebarBackdrop.classList.remove("show");
     setTimeout(() => sidebarBackdrop.classList.add("hidden"), 300);
   }
+  // 抽屉的可访问性同步。
+  //
+  // 窄屏下侧栏只是「移出屏幕」（transform: translate-x-full），容器仍是 fixed inset-0，
+  // 因此不可见时其内部控件照样会被 Tab 命中、也会被读屏读到。
+  // 这里在「窄屏且未展开」时打上 inert + aria-hidden，展开或回到桌面布局时移除。
+  function syncSidebarA11y() {
+    const desktop = isDesktopLayout();
+    [leftSidebar, rightSidebar].forEach((el) => {
+      if (!el) return;
+      const offscreen = !desktop && !el.classList.contains("show-sidebar");
+      if (offscreen) {
+        el.setAttribute("inert", "");
+        el.setAttribute("aria-hidden", "true");
+      } else {
+        el.removeAttribute("inert");
+        el.removeAttribute("aria-hidden");
+      }
+    });
+  }
+
   function closeBothSidebars() {
     if (leftSidebar) leftSidebar.classList.remove("show-sidebar");
     if (rightSidebar) rightSidebar.classList.remove("show-sidebar");
     hideBackdrop();
+    syncSidebarA11y();
   }
 
   if (sidebarBackdrop) {
@@ -288,6 +314,7 @@ function registerEventListenersDataAndUi(ctx) {
         }
         willOpen ? showBackdrop() : hideBackdrop();
         applySidebarWidthsForLayout();
+        syncSidebarA11y();
       },
       { tag: "ui", scope: "sidebar", label: "toggleLeftSidebar:click" }
     );
@@ -305,6 +332,7 @@ function registerEventListenersDataAndUi(ctx) {
         }
         willOpen ? showBackdrop() : hideBackdrop();
         applySidebarWidthsForLayout();
+        syncSidebarA11y();
       },
       { tag: "ui", scope: "sidebar", label: "toggleRightSidebar:click" }
     );
@@ -339,6 +367,11 @@ function registerEventListenersDataAndUi(ctx) {
       mobileOpenProjectBtn: () => { DOMCache.get("openProjectBtn")?.click(); },
       mobileProjectManagerBtn: () => { DOMCache.get("projectManagerBtn")?.click(); },
       mobileSaveProjectBtn: () => { DOMCache.get("saveProjectBtn")?.click(); },
+      // 全部翻译在窄屏没有入口（#translateAllBtn 是 hidden sm:flex），
+      // 底栏的「翻译」只等价于「翻译选中」——这里补上唯一的全量入口。
+      mobileTranslateAllBtn: () => {
+        if (typeof translateAll === "function") translateAll();
+      },
       mobileSettingsBtn: () => { DOMCache.get("openSettingsMenu")?.click(); },
       mobileHelpBtn: () => { DOMCache.get("openHelpMenu")?.click(); },
       mobileAboutBtn: () => { DOMCache.get("openAboutMenu")?.click(); },

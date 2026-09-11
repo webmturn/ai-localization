@@ -10,6 +10,109 @@
 > 术语替换改坏单词）、**未生效的承诺**（暂停是死代码、取消后仍继续请求、占位符校验从未启用），
 > 以及构建/CI 的完整性缺口。测试从 373 增至 504 个用例。
 
+### 第二轮修复（代码 + 界面整合审查后）
+
+> 依据三份独立复核报告（`docs/review/REVIEW-2026-09-11-verification.md`、`-ui-integration.md`、
+> `-ui-visual.md`）修复。每条都用「修复前会失败」的回归测试锁定。
+> 测试从 504 增至 **552 个用例 / 37 个文件**。
+
+- **P0 取消路径把占位符哨兵写进成品** (batch.js/helpers.js) — 引擎把 `%s` 换成 `«0»` 发给模型，
+  正常路径会还原，**取消分支却直接写入并标记已翻译**，损坏文本随后被自动保存 + 导出。
+  现抽出 `translationFinalizeResult()`（还原 → 术语库 → 校验），两条路径共用。
+- **P0 Android 导出自闭合元素跨界匹配** (translation-formats.js) — 合法的 `<string name="x"/>`
+  会让内容正则跨过它去匹配下一个 `</string>`，吞掉后面的元素（非良构 XML + 译文丢失）；
+  `<item/>` 不计入下标导致译文写进错误条目。现按「成对 / 自闭合」二选一匹配，自闭合项展开写回。
+- **P0 PO 复数条目主译文丢失** (translation-original.js) — 定位 `msgstr` 时只跳过空行，
+  而复数条目的下一行是 `msgid_plural` → 匹配不到而 return，`msgstr[0]` 静默不写回。
+  现同时跳过空行/注释/`msgctxt`/`msgid_plural`。
+- **P1 非字符串结果作废整批** (placeholder-guard.js) — 源文含占位符且模型返回对象时，
+  `restore` 抛 TypeError 把整批（已付费的）结果一起作废并逐项重译；现非字符串原样返回、交由校验拒绝。
+- **P1 printf 把百分数当占位符** (placeholder-guard.js) — `50%off`/`100%increase` 被当成 `%o`/`%i`：
+  发给模型的文本被改写且正确译文被判无效。现「左侧数字 + 右侧字母」不再视为占位符。
+- **P1 ICU 校验与 protect 不一致** (placeholder-guard.js) — `validate` 改为按 ICU「骨架」
+  （变量名 + 类型 + 分支键）比对：正确翻译分支的译文通过，整段删除/改类型/丢分支仍会被拒。
+- **P1 术语库在中文语境下静默失效** (terminology.js) — 词边界把 CJK 当词字符，
+  `用户id不可见`、`请安装SDK后再试` 这类紧邻中文的拉丁术语永不替换；现 CJK 不参与拉丁词边界判定。
+- **P1 每个 `<string>` 都被注入 `formatted="false"`** (translation-formats.js) — 判据从
+  「片段能解析」改为「片段里真的有元素节点」。
+- **界面：进度模态框的「关闭」实为取消翻译** (index.html) — 右上角 ✕ 归位为通用关闭按钮，
+  另设显式「取消翻译」按钮（沿用原 id，绑定与状态逻辑不变）。
+- **界面：质量报告标签页徽章永不更新** (quality/ui.js) — 与面板徽章同源更新并按有无问题切换显隐。
+- **界面：手机端「全部翻译」无入口** (index.html/data-and-ui.js) — 窄屏下 `#translateAllBtn` 被隐藏，
+  现于「更多操作」菜单补充入口。
+- **界面：深色模式载体放错元素** (settings.js/charts.js) — `dark-mode` 加在 `<body>` 上而
+  Tailwind 编译成后代选择器，`<body>` 自身的 `dark:` 类永不生效（页面底色留在浅色）；
+  现载体上移到 `<html>`，并同步 body 以兼容旧读取方。
+- **可访问性：不可见元素仍可聚焦** (data-and-ui.js/notification.js) — 窄屏抽屉未展开时加
+  `inert`+`aria-hidden`；通知滑出后设为 `visibility:hidden`（此前其关闭按钮可被 Tab 命中）。
+- **可访问性：进度对辅助技术不可见** (index.html/progress.js) — 进度条补
+  `role="progressbar"` + `aria-valuemin/max/now`，并在更新宽度时同步 `aria-valuenow`。
+- **可访问性：四处对话框绕过焦点管理** (file-panels.js/terminology*.js/progress.js) —
+  用户触发的对话框改走 `openModal()`（初始焦点 + Tab 陷阱 + 关闭还原焦点）。
+- **对比度与样式一致性** (index.html) — 空状态引导文案 `gray-400`→`gray-600`（浅色 2.54→7.56）、
+  空状态图标 `gray-300`→`gray-500`；术语导出按钮由非标 `bg-green-600`（白字仅 3.30:1）改为 `btn-brand`；
+  清理缓存按钮补 `dark:border-red-800`；5 个密码可见性按钮与工具栏引擎筛选补焦点环。
+- **文档更正** — 上一轮把 parse.js 的真实修复误记为「防御性、不改变行为」，现恢复为修复并附实测对照；
+  两处「修复前基线对照」测试由 `git show HEAD:`（自比较）改为钉死 `bde5937`，CI checkout 相应改为
+  `fetch-depth: 0`；CI 矩阵去掉与锁定工具链不兼容的 Node 18。
+
+### 第三轮修复（剩余 P1）
+
+- **PO 导入丢弃带注释的条目** (parsers/po.js) — `if (entry.startsWith("#")) continue` 让**以注释开头**的条目
+  被整条跳过。xgettext 生成的 PO 每个条目都带 `#: 引用位置`，于是标准 PO 文件解析出 0 条并抛
+  「未找到有效的PO条目」，部分带注释时则静默丢条目。现只跳过注释行本身，纯注释块因 msgid 为空被过滤。
+- **JSON/YAML：键名含 `.` / `[` 的路径歧义** (parsers/json.js、translation-original.js、parsers/yaml.js) —
+  解析器用 `path + "." + key` 拼路径而键名不转义，导出端再按 `.`/`[` 拆开，导致
+  `{"menu.file.open":"Open"}` 这类扁平键名**译文写不回去**，键名与真实路径冲突时还会**摧毁子树**
+  （`{"a.b":"x","a":{"b":{"c":"z"}}}` → `a.b.c` 消失）。现解析器同时输出 `metadata.pathTokens`（真实键/下标数组），
+  导出端优先按 tokens 回写，路径字符串中的 `.`/`[` 也做转义以兼容旧数据。
+- **实体/标签差异不再判为占位符损坏** (placeholder-guard.js/helpers.js) — 原策略「多出即失败」会把
+  模型把 `&` 转义成 `&amp;`、或补 `<b>` 这类**合理**行为判为无效，正确译文在重试若干次后被丢弃。
+  现校验分级：XML 实体与 HTML 标签的差异只记录（`benignExtra`/`benignMissing`），
+  结构性占位符（`%s`/`{0}`/`{{x}}`/ICU 骨架）的缺失或多出仍然失败（`missingStructural`/`fatalExtra`）。
+- **可访问性收尾** — 嵌套对话框关闭后把焦点陷阱交还父级（此前关闭子框即失去陷阱）；
+  进度状态文本补 `role="status" aria-live="polite"`；4 个 Prompt 模板 textarea 补 `aria-label`；
+  range 滑块补回键盘焦点环（`src/input.css`，基础规则此前 `outline:none` 且无替代）；
+  清理 index.html 中所有未加 dark 变体的独立 `text-gray-400`（浅色对比度 2.54 → 4.83）。
+
+### 构建修复
+
+- **生产构建的 `production.js` 从未生效** (scripts/build-production.mjs) — 该脚本替换的是字面量
+  `<script src="app.js"></script>`，而 index.html 早已改为内联加载器加载 `app.bundle.js`（带 app.js 回退），
+  该字面量不存在 → `production.js` 被写进 `dist/` 却没有任何页面引用，`window.isProduction` 在生产包里恒为
+  `undefined`。现改为：兼容旧形态，否则注入到 `</head>` 之前，并**校验注入结果**（失败即中止构建）。
+  实测 dist 运行时 `window.isProduction === true`。
+- **CSS 构建不再依赖 npm 可执行文件** — 新增 `scripts/build-css.mjs`（Tailwind CLI + postbuild 的
+  `text-size-adjust` 补丁，单一实现），`npm run build-css` 转调它；`build-production.mjs` 也改为直接调用，
+  修复了原先 `execSync("npm run build-css")` 在 npm 不可用（如本机 npm.ps1 被执行策略禁用）时
+  **静默降级**、dist 内留下旧 CSS 的问题。
+- **生产构建的测试步骤是失效占位** — 原实现只打印「暂无自动化测试（待引入测试框架）」，而仓库已有 581 个用例；
+  现接入 vitest，测试不通过即中止构建（`--skip-tests` 可跳过）。同时把 bundle 步骤换成 `execFileSync`
+  并校验产物存在，失败时以红色明确提示"dist 内是旧产物"。
+- **`text-md` 不是合法的 Tailwind 类** (index.html) — 5 处小节标题（导入/导出术语库、质量指标分析、
+  检查规则、检测到的问题）写了不存在的字号类，实际没有字号样式、只能继承父级；改为 `text-base`。
+- **移除 3 个死类名** (index.html) — `responsive-pagination` / `pagination-info` / `pagination-controls`
+  既无样式也无 JS 引用（布局靠 Tailwind 工具类），属残留标记。
+- **`.gitignore` 补 `dist/`** — 生产构建默认输出到 `dist/`，此前未被忽略，会把 3.8 MB 未跟踪目录暴露在 `git status`。
+
+### 布局优化
+
+- **右栏标签断行** (index.html/src/input.css/data-and-ui.js) — 侧栏窄到 240–280px 时三个标签被挤成
+  「翻译设 / 置」「质量报 / 告」。现：标签文字 `text-wrap: balance` 平衡断行；并由
+  `applySidebarWidthsForLayout()` 按**实测侧栏宽度**（<300px）给右栏打 `sidebar-narrow`，切换为纯图标模式
+  （三个标签补 `aria-label`，图标模式下仍有可访问名）。
+- **列表行高忽高忽低** (render.js) — 语境与资源 ID 原本是两个独立段落（最多占两行），把源文列撑高、
+  行高长短不一。现合并为一行「语境 · ID: x」并 `truncate`（`title` 保留全文），桌面双列与移动合并列表两条
+  渲染路径都改；每行段落数由「最多 3」降为固定 2。
+- **设置页数字输入通栏** (index.html) — 自动保存间隔由 `w-full` 改 `w-28`（单位已写在标签里），
+  不再让 2–3 位数字独占整行。
+- **设置页内容稀疏** (index.html) — 数据管理三个分组（自动保存 / 文件存储 / 导出数据）改为卡片
+  （`rounded-lg border p-4`），去掉 `border-t` 分隔线，用分组卡片建立层级。
+- **模态宽度收敛** (index.html) — 项目列表与术语库 `2xl → 3xl`，AI 会话查看器 `6xl → 5xl`；
+  最终分布 md×7 / 2xl×1 / 3xl×7 / 4xl×1 / 5xl×2。
+- **JS 生成标记的对比度补齐** (render.js) — 与上一轮 HTML 扫描同源：行内 ID 行、移动端空状态提示等
+  `text-gray-400` 提到 `gray-500`/`gray-600`。
+
 ### 修复
 - **JSON「原格式」导出写入 0 条译文** (translation-original.js) — 路径解析按 `.` 切分却未跳过根符号 `$`，
   `json["$"]` 恒为 undefined 导致每个条目提前返回；导出的文件与输入完全相同却提示成功。
@@ -35,12 +138,12 @@
   无 `metadata.path` 的条目静默产出空 `{}`；非数组入参抛裸 `TypeError`。
 - **术语库 CSV 无法再导入** (terminology-export.js) — 导出用中文表头，导入端按 `term.source` 取值，
   自家文件无法回环。现改为英文键名并按 RFC 4180 加引号。
-- **畸形 XML 导入路径加固（防御性，经复核并非缺陷修复）** (parse.js) — 新增
-  `MalformedXmlError`，使 XML 系文件的解析失败不再可能退化为纯文本导入。
-  但交互级对照显示：`detectXmlFormat` 已对任何 `parsererror` 返回 invalid 并抛出，
-  退化路径**实测从未被走到**（给 `parseTextFile` 打桩计数，5 种畸形输入下
-  `textFallback=0`，HEAD 与当前行为完全一致）。故此项保留为 fail-closed 加固，
-  不改变现有行为。原先「畸形 XML 被当成普通文本导入」的描述已被证伪。
+- **畸形 XML 导入退化为纯文本垃圾条目** (parse.js) — 此前畸形 `.xml/.xlf/.resx/.ts` 会被
+  「解析器异常 → 回退纯文本」吞掉：界面提示导入成功，实际得到的是逐行切碎的垃圾条目。
+  现新增 `MalformedXmlError`，XML 系文件的畸形内容直接失败（fail-closed）。
+  **这是真实的行为变更**：以 `bde5937` 为基线实测，6 个畸形输入在修复前全部
+  `success=true` + `textFallback=1`，修复后全部 `success=false` + `textFallback=0`
+  （见 `docs/review/REVIEW-2026-09-11-verification.md` §C1）。
 - **批量路径未做任何结果校验** (batch.js/helpers.js) — 模型返回对象/`null`/空串/占位符损坏时
   一律按位置写入 `targetText` 并标记已翻译。现统一校验后记为失败项。
 - **占位符保护在批量路径失效** (ai-engine-base.js) — 发送给模型的是原始 `%s`/`{0}`，

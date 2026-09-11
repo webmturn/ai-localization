@@ -11,13 +11,23 @@ import fs from "fs";
 import { execSync } from "child_process";
 
 const FILE = "public/app/features/translations/ui-controller.js";
+// 基线钉死到修复前提交：此前用 `git show HEAD:`，而修复已提交，
+// 于是两个分支加载同一份源码，对照失去意义（详见 keyboard-editing-guard 的说明）。
+const BASELINE_REF = "bde5937";
 const IDS = ["translateSelectedBtn", "translateAllBtn", "cancelTranslationBtn", "pauseTranslationBtn"];
 
 function loadController(version) {
-  const src =
-    version === "HEAD"
-      ? execSync(`git show HEAD:${FILE}`, { encoding: "utf8", maxBuffer: 1 << 24 })
-      : fs.readFileSync(FILE, "utf8");
+  let src;
+  if (version === "HEAD") {
+    try {
+      src = execSync(`git show ${BASELINE_REF}:${FILE}`, { encoding: "utf8", maxBuffer: 1 << 24 });
+    } catch (e) {
+      console.warn(`[ui-controller-binding] 基线 ${BASELINE_REF} 不可用，跳过对照：${e.message.split("\n")[0]}`);
+      return null;
+    }
+  } else {
+    src = fs.readFileSync(FILE, "utf8");
+  }
 
   const added = [];
   const sandbox = {
@@ -73,8 +83,10 @@ describe("ui-controller 按钮绑定（复核后：有意不重复绑定）", ()
     expect(added).toHaveLength(0);
   });
 
-  it("HEAD 版本也不绑定（因为 id 写错取不到元素）", () => {
+  it("修复前基线也不绑定（因为 id 写错取不到元素）", () => {
     const added = loadController("HEAD");
+    if (added === null) return; // 浅克隆等场景取不到基线：跳过对照
+    console.log("BASELINE bound:", JSON.stringify(added.map((a) => a.id)));
     expect(added).toHaveLength(0);
   });
 

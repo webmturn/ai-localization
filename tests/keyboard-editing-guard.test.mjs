@@ -1,8 +1,12 @@
 /**
- * 复核：keyboard.js 交互行为——HEAD 与当前对照（跑完即删）
+ * 复核：keyboard.js 交互行为——修复前基线 与 当前 对照
  *
  * 目的：验证「guard 提到 preventDefault 之前」这一修复的真实交互效果，
  * 并确认没有把原本可用的快捷键改坏。
+ *
+ * 基线必须钉死到修复前的提交（bde5937）。此前用 `git show HEAD:`，
+ * 而测试与修复同属一个提交 —— 运行时 HEAD 已是修复后的代码，
+ * 两个分支加载的是同一份源码，对照退化成自比较（输出里 HEAD 与 CUR 完全相同）。
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import vm from "vm";
@@ -10,13 +14,22 @@ import fs from "fs";
 import { execSync } from "child_process";
 
 const FILE = "public/app/ui/event-listeners/keyboard.js";
+const BASELINE_REF = "bde5937"; // 修复前最后一个提交
 
-/** 在 jsdom 里加载某一版键盘模块，返回 { handler, calls } */
+/** 在 jsdom 里加载某一版键盘模块，返回 { handler, calls }；基线不可得时返回 null */
 function loadKeyboard(version) {
-  const src =
-    version === "HEAD"
-      ? execSync(`git show HEAD:${FILE}`, { encoding: "utf8", maxBuffer: 1 << 24 })
-      : fs.readFileSync(FILE, "utf8");
+  let src;
+  if (version === "HEAD") {
+    try {
+      src = execSync(`git show ${BASELINE_REF}:${FILE}`, { encoding: "utf8", maxBuffer: 1 << 24 });
+    } catch (e) {
+      // 浅克隆 / 该提交不存在：跳过基线对照，但当前行为的断言照常执行
+      console.warn(`[keyboard-editing-guard] 基线 ${BASELINE_REF} 不可用，跳过对照：${e.message.split("\n")[0]}`);
+      return null;
+    }
+  } else {
+    src = fs.readFileSync(FILE, "utf8");
+  }
 
   const calls = [];
   const sandbox = {
@@ -90,22 +103,28 @@ beforeAll(() => {
 });
 
 describe("键盘：编辑上下文中的行为对照", () => {
-  it("Shift+Enter 在 textarea 内：HEAD 会触发全量翻译，当前不会", () => {
-    const h = press(head, { key: "Enter", shiftKey: true, target: textarea });
+  it("Shift+Enter 在 textarea 内：修复前基线会触发全量翻译，当前不会", () => {
     const c = press(cur, { key: "Enter", shiftKey: true, target: textarea });
-    console.log("HEAD:", JSON.stringify(h));
-    console.log("CUR :", JSON.stringify(c));
     // 当前实现必须不触发、不吞默认行为
     expect(c.calls).toEqual([]);
     expect(c.prevented).toBe(false);
+    // 基线对照（基线可用时才有意义）：修复前会 preventDefault 并触发 translateAll
+    if (head) {
+      const h = press(head, { key: "Enter", shiftKey: true, target: textarea });
+      console.log("BASELINE:", JSON.stringify(h), "CUR:", JSON.stringify(c));
+      expect(h.prevented).toBe(true);
+      expect(h.calls).toContain("translateAll");
+    }
   });
 
-  it("Ctrl+A 在 input 内：HEAD 吞掉默认行为，当前不吞", () => {
-    const h = press(head, { key: "a", ctrlKey: true, target: input });
+  it("Ctrl+A 在 input 内：修复前基线吞掉默认行为，当前不吞", () => {
     const c = press(cur, { key: "a", ctrlKey: true, target: input });
-    console.log("HEAD:", JSON.stringify(h));
-    console.log("CUR :", JSON.stringify(c));
     expect(c.prevented).toBe(false);
+    if (head) {
+      const h = press(head, { key: "a", ctrlKey: true, target: input });
+      console.log("BASELINE:", JSON.stringify(h), "CUR:", JSON.stringify(c));
+      expect(h.prevented).toBe(true);
+    }
   });
 
   it("Ctrl+Enter 在 textarea 内：两边都不触发翻译选中", () => {

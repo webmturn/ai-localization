@@ -480,3 +480,27 @@ README 中「断点续传」的表述已改为与实现一致的说明（重试�
 - **YAML 导出丢弃非字符串叶子**（数字/布尔/null）：这是「仅翻译字符串」数据模型的固有取舍，
   属特性缺口而非缺陷，建议作为独立需求评估。
 - **`batch.js` 等长顺序错位**仍会静默错配：需让模型回传 key 并按其匹配（改动提示词契约）。
+
+---
+
+## 第三方复核后的更正（2026-09-11，追加，不改动上文）
+
+三份独立复核报告见 `REVIEW-2026-09-11-verification.md`（代码批次）、`REVIEW-2026-09-11-ui-integration.md`（接线与功能流）、
+`REVIEW-2026-09-11-ui-visual.md`（视觉/响应式/可访问性）。与本报告直接相关的更正：
+
+1. **§第八批「畸形 XML 降级路径不可达」是错误结论，已撤回该撤回。**
+   以 `bde5937`（修复前）为基线的实测显示：6 个畸形输入在修复前全部 `success=true` + `textFallback=1`
+   （导入垃圾文本条目并提示成功），修复后全部 `success=false` + `textFallback=0`。原缺陷成立、修复真实。
+   出错原因：`parse.js` 的修复在 `1368e22` 已提交，而第八批对照跑在 `8112105` 之后，
+   其「HEAD」分支取到的已是修复后的代码 —— 自比较导致的假阴性。CHANGELOG 对应条目已改回「修复」。
+2. **§修复记录中的中间用例数与实际树不符**：实测测试文件数 `bde5937` 24 → `90066aa` 34 → `4d0fb9e` 32，
+   被删两个文件内共 24 个 `it()`（非 25 个）。
+3. **§已删除的死代码中的恢复指令不可用**：`git cat-file -s HEAD:<path>` / `git checkout HEAD -- <path>`
+   在 `HEAD` 上已不存在该路径；应改用 `90066aa`（字节数与文档一致）。
+4. **两处「HEAD 对照」测试已改为钉死基线**：`tests/keyboard-editing-guard.test.mjs` 与
+   `tests/ui-controller-binding.test.mjs` 原用 `git show HEAD:`，因修复已提交而退化为自比较；
+   现固定为 `bde5937`（CI checkout 相应改为 `fetch-depth: 0`）。改后测试会真实打印差异：
+   `BASELINE: {"prevented":true,"calls":["translateAll"]} CUR: {"prevented":false,"calls":[]}`。
+5. **第一~三批的若干「已修复」结论在复核中被证伪或收窄**（Android 自闭合元素、PO 复数 `msgstr[0]`、
+   术语 CJK 相邻、ICU 校验一致性、`formatted` 误注入、取消路径哨兵泄漏等），已在本轮全部修复并补回归测试；
+   详见 CHANGELOG 的「第二轮修复」与上述三份报告。

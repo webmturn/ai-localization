@@ -34,7 +34,7 @@ html/
 │   └── history/                         # 归档/过程文档（修复报告等）
 │
 ├── scripts/                         # 构建与工具脚本
-│   ├── build-bundle.js                  # JS 打包脚本（合并 123 个 JS 为 app.bundle.js，terser 压缩）
+│   ├── build-bundle.js                  # JS 打包脚本（合并 121 个 JS 为 app.bundle.js，terser 压缩）
 │   ├── build-production.mjs             # 生产构建（Node 版）
 │   ├── build-production.ps1             # 生产构建脚本（PowerShell）
 │   ├── check-state-ownership.mjs        # ⭐ 状态所有权静态检查（AppState 切片写入守护，CI）
@@ -47,7 +47,7 @@ html/
 │   ├── auto-update-versions.ps1         # 自动更新配置入口
 │   └── check-node-install.ps1           # Node 安装检查
 │
-├── tests/                           # ⭐ 单元/契约测试（Vitest，373 个用例）
+├── tests/                           # ⭐ 单元/契约测试（Vitest，552 个用例）
 │   ├── setup.mjs                        # 测试环境（loadSource/setupGlobals 桩）
 │   ├── state-explicit.test.mjs          # AppState 显式声明契约
 │   ├── project-store.test.mjs           # ProjectStore 契约
@@ -57,13 +57,12 @@ html/
 │   ├── animate-scroll.test.mjs          # rAF 动画滚动契约
 │   ├── ai-engine-base.test.mjs          # 引擎温度钳制
 │   ├── ai-engine-base-batch.test.mjs    # 批量并发/取消/partialOutputs
-│   ├── batch-resume.test.mjs            # 断点续传
+│   ├── batch-cancel-finalize.test.mjs   # 取消路径的占位符还原与结果校验
 │   ├── parser-registry.test.mjs         # 解析器注册表
 │   ├── parsers-formats.test.mjs         # 各格式解析
 │   ├── parser-utils.test.mjs            # 解析工具
 │   ├── placeholder-guard.test.mjs       # 占位符保护
 │   ├── translation-memory.test.mjs      # 翻译记忆
-│   ├── translation-diff.test.mjs        # 增量 Diff
 │   ├── tm-auto-apply.test.mjs           # TM 自动应用
 │   ├── terminology.test.mjs             # 术语匹配
 │   ├── model-fetch.test.mjs             # 模型列表拉取
@@ -75,7 +74,7 @@ html/
 │
 ├── public/                          # 发布目录（浏览器打开/部署）
 │   ├── index.html                       # 主 HTML 文件
-│   ├── app.js                           # 开发模式入口（按顺序加载 123 个脚本）
+│   ├── app.js                           # 开发模式入口（按顺序加载 121 个脚本）
 │   ├── app.bundle.js                    # 生产 bundle（构建生成，勿手动编辑）
 │   ├── styles.css                       # 构建后的 CSS（Tailwind 生成，勿手动编辑）
 │   ├── favicon.svg                      # 网站图标
@@ -298,7 +297,7 @@ html/
 
 | 脚本 | 说明 |
 |------|------|
-| `build-bundle.js` | **JS 打包脚本**：合并 123 个 JS 为 `app.bundle.js`（terser 压缩，`npm run build-bundle`） |
+| `build-bundle.js` | **JS 打包脚本**：合并 121 个 JS 为 `app.bundle.js`（terser 压缩，`npm run build-bundle`） |
 | `check-state-ownership.mjs` | ⭐ **状态所有权静态检查**：AppState 各切片写入绕过 Owner Store 即报错（`npm run check-state`） |
 | `check-global-functions.mjs` | ⭐ **全局函数冻结检查**：基线外新增 window 挂载即报错（`npm run check-globals`，`--update` 更新基线） |
 | `build-production.mjs` / `build-production.ps1` | 生产构建 |
@@ -311,9 +310,9 @@ html/
 
 ### `tests/` — 单元/契约测试
 
-- 测试框架：**Vitest**（`npm test`），共 **373 个用例 / 24 个文件**
+- 测试框架：**Vitest**（`npm test`），共 **552 个用例 / 37 个文件**
 - 环境：`tests/setup.mjs` 提供 `loadSource`（vm 加载源文件）与 `setupGlobals`（AppState/loggers 桩）
-- 契约测试覆盖：四大状态 Store（project/terminology/translation-view/batch-progress）、AppState 显式声明、动画滚动、批量并发与取消、断点续传、解析器注册表与各格式、占位符保护、TM/Diff、安全工具
+- 契约测试覆盖：四大状态 Store（project/terminology/translation-view/batch-progress）、AppState 显式声明、动画滚动、批量并发与取消（含取消路径的占位符还原）、解析器注册表与各格式（含畸形 XML fail-closed）、占位符保护（printf/ICU）、术语替换词边界、导出往返（JSON/XLIFF/PO/Qt TS/iOS/Android/YAML/术语库 CSV）、界面接线合约、安全工具
 
 ### `public/app/` — 应用核心逻辑
 
@@ -340,9 +339,9 @@ html/
 npm install            # 安装依赖
 npm run build          # 一键构建（CSS + JS Bundle）
 npm run build-css      # 构建 CSS（生产）
-npm run build-bundle   # 合并 123 个 JS 为 bundle
+npm run build-bundle   # 合并 121 个 JS 为 bundle
 npm run watch-css      # 监听 CSS 变化（开发）
-npm test               # ⭐ 运行全量测试（373 个用例）
+npm test               # ⭐ 运行全量测试（552 个用例）
 npm run check-state    # ⭐ 状态所有权静态检查（CI）
 npm run check-globals  # ⭐ 全局函数冻结检查（CI）
 npm run update-cdn     # 更新 CDN 资源

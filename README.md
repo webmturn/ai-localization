@@ -76,7 +76,7 @@
    或分别构建：
    ```bash
    npm run build-css      # 构建 Tailwind CSS
-   npm run build-bundle   # 合并 123 个 JS 为 1 个 bundle
+   npm run build-bundle   # 合并 121 个 JS 为 1 个 bundle
    ```
 
 4. **打开应用**
@@ -96,7 +96,7 @@ html/
 ├── public/          # 发布目录（浏览器打开/部署）
 │   ├── lib/         # 第三方库（本地化）
 │   ├── index.html   # 主 HTML 文件
-│   ├── app.js       # 开发模式入口（按顺序加载 123 个脚本）
+│   ├── app.js       # 开发模式入口（按顺序加载 121 个脚本）
 │   ├── app.bundle.js # 生产 bundle（构建生成，1 个文件）
 │   ├── app/         # 应用核心逻辑（模块化代码）
 │   └── styles.css   # 构建后的 CSS
@@ -113,7 +113,7 @@ npm run watch-css
 ### 运行测试与架构守护
 
 ```bash
-npm test                # 全量单元/契约测试（373 个用例、24 个测试文件，Vitest）
+npm test                # 全量单元/契约测试（552 个用例、37 个测试文件，Vitest）
 npm run check-state     # 状态所有权静态检查（AppState 切片写入守护）
 npm run check-globals   # 全局函数冻结检查（基线化 window 挂载）
 ```

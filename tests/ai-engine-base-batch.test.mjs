@@ -120,6 +120,7 @@ function makeHarness(opts = {}) {
       }
       await new Promise((r) => setTimeout(r, delay));
       inFlight--;
+      translations = translations.map((text, index) => ({ id: payload.items[index].id, text }));
       return {
         ok: true,
         json: async () => ({

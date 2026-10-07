@@ -100,7 +100,7 @@ function makeHarness(opts = {}) {
       const payload = JSON.parse(lastMsg.substring(lastMsg.indexOf('{"items"')));
       dispatched.push(payload.items.map((i) => i.source));
       if (delay) await new Promise((r) => setTimeout(r, delay));
-      const translations = responder(payload.items);
+      const translations = responder(payload.items).map((text, index) => ({ id: payload.items[index].id, text }));
       return {
         ok: true,
         status: 200,

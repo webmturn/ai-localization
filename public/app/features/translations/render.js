@@ -66,9 +66,6 @@ var __sourceItemTemplate = (function () {
           '<p class="text-sm md:text-base font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100"></p>' +
         '</div>' +
       '</div>' +
-      '<div class="flex flex-col items-end ml-2">' +
-        '<span class="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"></span>' +
-      '</div>' +
     '</div>';
   return div;
 })();
@@ -78,8 +75,8 @@ var __targetItemTemplate = (function () {
   div.innerHTML =
     '<div class="flex items-stretch w-full h-full">' +
       '<div class="flex-1 min-w-0">' +
-        '<div class="item-content h-full">' +
-          '<textarea class="w-full h-full border-2 border-transparent rounded focus:outline-none focus:border-blue-500 resize-none break-words bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" aria-label="译文编辑" title="译文编辑" style="font-family:inherit"></textarea>' +
+        '<div class="item-content translation-target-content">' +
+          '<textarea rows="1" class="translation-editor w-full border-2 border-transparent rounded focus:outline-none focus:border-blue-500 resize-none break-words text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" aria-label="译文编辑" title="译文编辑" placeholder="输入译文，或翻译当前文件…" style="font-family:inherit"></textarea>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -125,7 +122,6 @@ function createTranslationItemElement(
     div.dataset.id = String(item.id);
   }
 
-  const statusClass = getStatusClass(item.status);
   const sourceText = item.sourceText || "";
   const targetText = item.targetText || "";
   const context = item.context || "";
@@ -156,10 +152,6 @@ function createTranslationItemElement(
       contentEl.appendChild(metaEl);
     }
 
-    const status = clone.querySelector("span");
-    status.className += ` ${statusClass}`;
-    status.textContent = getStatusText(item.status);
-
     div.appendChild(clone.firstElementChild);
   } else {
     // 译文列表 — 使用模板 cloneNode 加速
@@ -174,6 +166,7 @@ function createTranslationItemElement(
       textarea.dataset.id = String(item.id);
     }
     textarea.value = targetText;
+    clone.querySelector(".item-content").appendChild(App.ui.translationWorkspace.createReviewControls(item, originalIndex));
 
     div.appendChild(clone.firstElementChild);
   }
@@ -204,7 +197,6 @@ function createMobileCombinedTranslationItemElement(
     div.dataset.id = String(item.id);
   }
 
-  const statusClass = getStatusClass(item.status);
   const sourceText = item.sourceText || "";
   const targetText = item.targetText || "";
   const context = item.context || "";
@@ -248,10 +240,6 @@ function createMobileCombinedTranslationItemElement(
 
   const right = document.createElement("div");
   right.className = "flex flex-col items-end gap-0.5 flex-shrink-0";
-  const status = document.createElement("span");
-  status.className = `text-[10px] font-semibold ${statusClass} px-1.5 py-px rounded-full whitespace-nowrap`;
-  status.textContent = getStatusText(item.status);
-  right.appendChild(status);
 
   if (hasExtraInfo) {
     const btn = document.createElement("button");
@@ -285,6 +273,7 @@ function createMobileCombinedTranslationItemElement(
   textarea.rows = 2;
   textarea.value = targetText;
   bottom.appendChild(textarea);
+  bottom.appendChild(App.ui.translationWorkspace.createReviewControls(item, originalIndex));
 
   div.appendChild(top);
   div.appendChild(bottom);
@@ -320,6 +309,7 @@ function createEmptyStateElement(message, withActions) {
 // 更新翻译列表（优化版 - 使用DOM缓存）
 function updateTranslationLists() {
   __devLog("更新翻译列表开始");
+  updateCounters();
 
   try {
     // 直接使用 DOMCache 获取元素
@@ -374,13 +364,8 @@ function updateTranslationLists() {
 
     // 准备数据
     let filteredItems = AppState.translations.filtered;
-    const translationItems = TranslationViewStore.getViewItems();
 
-    // 使用 filteredItems
-    if (filteredItems.length === 0 && translationItems.length > 0) {
-      filteredItems = [...translationItems];
-      TranslationViewStore.setFilter(filteredItems);
-    }
+    // 空数组是有效的筛选结果，不回退到全部项目条目。
 
     // 虚拟滚动：根据数据量自动启用/禁用
     var vsm = typeof VirtualScrollManager !== 'undefined' ? VirtualScrollManager.getInstance() : null;
@@ -400,8 +385,9 @@ function updateTranslationLists() {
     } else {
       // 分页模式
       const itemsPerPage = AppState.translations.itemsPerPage;
-      const currentPage = AppState.translations.currentPage;
-      totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+      totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
+      const currentPage = Math.max(1, Math.min(totalPages, AppState.translations.currentPage));
+      if (currentPage !== AppState.translations.currentPage) TranslationViewStore.setPage(currentPage);
       startIndex = (currentPage - 1) * itemsPerPage;
       endIndex = Math.min(startIndex + itemsPerPage, filteredItems.length);
       itemsToShow = filteredItems.slice(startIndex, endIndex);
@@ -415,6 +401,23 @@ function updateTranslationLists() {
 
     if (itemsToShow.length === 0) {
       const emptyEl = createEmptyStateElement("没有找到匹配的翻译项");
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.className = "translation-reset-filters";
+      reset.textContent = "清除筛选";
+      reset.addEventListener("click", () => {
+        TranslationViewStore.setSearchQuery("");
+        TranslationViewStore.setStatusFilter("all");
+        for (const id of ["translationSearchInput", "translationSearchInputMobile"]) {
+          const input = DOMCache.get(id);
+          if (input) input.value = "";
+        }
+        App.ui.closeTranslationFindBar?.({ restoreFocus: false });
+        for (const id of ["translationSearchStats", "clearTranslationSearch", "clearTranslationSearchMobile"]) DOMCache.get(id)?.classList.add("hidden");
+        applySearchFilter();
+        updateTranslationLists();
+      });
+      emptyEl.appendChild(reset);
       if (isMobile) {
         mobileFragment.appendChild(emptyEl);
       } else {

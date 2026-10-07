@@ -3,7 +3,7 @@ function getStatusText(status) {
   switch (status) {
     case 'translated': return '已翻译';
     case 'edited': return '已编辑';
-    case 'approved': return '已批准';
+    case 'approved': return '已校对';
     case 'pending': return '待翻译';
     default: return status;
   }

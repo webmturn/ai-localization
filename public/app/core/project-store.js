@@ -20,6 +20,27 @@
 //   意图式 API 写入，不直写。
 
 const ProjectStore = {
+  // 解析器的 ID 通常只在单个文件内唯一；合并和恢复旧项目时统一消除冲突。
+  // 保留已有唯一 ID，避免使质量报告等引用失效。
+  _ensureUniqueItemIds(items) {
+    const reserved = new Set(items.filter(Boolean).map((item) => String(item.id ?? "")));
+    const used = new Set();
+    for (const item of items) {
+      if (!item) continue;
+      const original = String(item.id ?? "");
+      if (original && !used.has(original)) {
+        used.add(original);
+        continue;
+      }
+      const base = `${original || "item"}::${encodeURIComponent(item.metadata?.file || "entry")}`;
+      let id = base;
+      let suffix = 2;
+      while (reserved.has(id) || used.has(id)) id = `${base}::${suffix++}`;
+      item.id = id;
+      used.add(id);
+    }
+    return items;
+  },
   /**
    * 加载/切换一个完整项目（项目恢复、打开项目、加载示例等场景）。
    * 统一完成：写 project → 同步 translations 视图 → 写 fileMetadata → 水合 contentKey。
@@ -31,7 +52,7 @@ const ProjectStore = {
   loadProject(projectData) {
     AppState.project = projectData || null;
 
-    const items = (projectData && projectData.translationItems) || [];
+    const items = this._ensureUniqueItemIds((projectData && projectData.translationItems) || []);
     // canonical：project.translationItems；视图稳定引用 + 兼容别名经 TranslationViewStore 设置
     if (AppState.project) AppState.project.translationItems = items;
     TranslationViewStore.setViewItems(items);
@@ -208,7 +229,7 @@ const ProjectStore = {
    * @returns {Array} 写入后的条目数组
    */
   setTranslationItems(items) {
-    const list = items || [];
+    const list = this._ensureUniqueItemIds(items || []);
     if (AppState.project) AppState.project.translationItems = list;
     TranslationViewStore.setViewItems(list);
     return list;
@@ -273,9 +294,7 @@ const ProjectStore = {
     const kept = (AppState.project.translationItems || []).filter(
       (it) => !(it && it.metadata && it.metadata.file === fileName)
     );
-    const merged = kept.concat(newItems || []);
-    AppState.project.translationItems = merged;
-    TranslationViewStore.setViewItems(merged);
+    const merged = this.setTranslationItems(kept.concat(newItems || []));
     TranslationViewStore.setFilter([...merged]);
     return merged;
   },

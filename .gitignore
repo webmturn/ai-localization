@@ -40,7 +40,7 @@ npm-debug.log*
 # lib/
 
 # Dev tools output (screenshots & environment artifacts)
+.review/
 tools/shots/
 tools/wf-task-extension/
-
 

@@ -47,6 +47,7 @@ function updateTranslationControlState() {
   const isInProgress = BatchProgressStore.isBatchInProgress();
   const isPaused = BatchProgressStore.isBatchPaused();
   const hasFailed = BatchProgressStore.getLastFailedItems().length > 0;
+  if (typeof App !== "undefined") App.ui.translationWorkspace?.refresh();
 
   const setState = (btn, enabled) => {
     if (!btn) return;

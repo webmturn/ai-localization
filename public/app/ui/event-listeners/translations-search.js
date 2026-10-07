@@ -15,6 +15,8 @@ function registerEventListenersTranslationSearch(ctx) {
     const trimmedKeyword = keyword?.trim() || "";
     // 统一将搜索词存入 AppState，供列表渲染/高亮等逻辑复用（经 TranslationViewStore）
     TranslationViewStore.setSearchQuery(trimmedKeyword);
+    TranslationViewStore.setSelection(-1);
+    TranslationViewStore.setMultiSelection([]);
 
     if (!trimmedKeyword) {
       // 清除搜索，显示所有项

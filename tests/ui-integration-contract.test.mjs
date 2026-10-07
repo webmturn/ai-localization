@@ -106,7 +106,7 @@ describe("嵌套对话框与状态播报（a11y 收尾）", () => {
   it("关闭子对话框后把焦点陷阱交还父级（三条关闭路径都覆盖）", () => {
     const ui = read("public/app/features/translations/export/ui.js");
     expect(ui).toContain("function __restoreTrapToTopmostModal");
-    const wired = ui.match(/__restoreTrapToTopmostModal\(\)\) __restoreModalFocus\(\)/g) || [];
+    const wired = ui.match(/__restoreTrapToTopmostModal\((?:modal|modalToClose|topmostModal)\)\) __restoreModalFocus\(\)/g) || [];
     expect(wired.length).toBe(3);
   });
 

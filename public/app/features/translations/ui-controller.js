@@ -304,6 +304,7 @@ class TranslationUIController {
     if (translateAllBtn) translateAllBtn.disabled = isInProgress;
     if (cancelBtn) cancelBtn.style.display = isInProgress ? 'block' : 'none';
     if (pauseBtn) pauseBtn.style.display = isInProgress ? 'block' : 'none';
+    if (typeof App !== "undefined") App.ui.translationWorkspace?.refresh();
   }
   
   /**

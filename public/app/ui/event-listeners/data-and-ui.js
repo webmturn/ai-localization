@@ -135,6 +135,9 @@ function registerEventListenersDataAndUi(ctx) {
   //   <1280: 左 280 / 右 320（中间 ≥500px）
   //   ≥1280: 左 320 / 右 384（中间 ≥560px，即原固定默认值）
   const getSidebarLayoutTiers = (viewportWidth) => {
+    if (App.ui.workspaceLayout.isProofreading()) {
+      return { reservedMain: viewportWidth < 1100 ? 420 : 560, defaultLeft: viewportWidth < 900 ? 200 : 240, defaultRight: 300 };
+    }
     if (viewportWidth < 900) {
       return { reservedMain: 320, defaultLeft: 200, defaultRight: 240 };
     }
@@ -148,6 +151,7 @@ function registerEventListenersDataAndUi(ctx) {
   };
 
   const applySidebarWidthsForLayout = () => {
+    App.ui.workspaceLayout.syncResourcePlacement();
     const desktop = isDesktopLayout();
     const viewportWidth = window.innerWidth || 0;
 
@@ -171,15 +175,19 @@ function registerEventListenersDataAndUi(ctx) {
       tiers.defaultLeft + tiers.defaultRight,
       viewportWidth - tiers.reservedMain
     );
-    const maxLeftWidth = Math.max(200, Math.min(500, Math.floor(maxTotalSidebarWidth * 0.45)));
-    const maxRightWidth = Math.max(240, Math.min(600, Math.floor(maxTotalSidebarWidth * 0.55)));
+    const proofreading = App.ui.workspaceLayout.isProofreading();
+    const panelConsumesSpace = proofreading && App.ui.workspaceLayout.isPanelOpen() && viewportWidth >= 1100;
+    const maxLeftWidth = proofreading
+      ? Math.max(200, Math.min(400, viewportWidth - 56 - tiers.reservedMain - (panelConsumesSpace ? 300 : 0)))
+      : Math.max(200, Math.min(500, Math.floor(maxTotalSidebarWidth * 0.45)));
+    let maxRightWidth = Math.max(240, Math.min(600, Math.floor(maxTotalSidebarWidth * 0.55)));
 
     if (leftSidebar) {
       leftSidebar.style.removeProperty("max-width");
-      const savedLeftWidth = localStorage.getItem("leftSidebarWidth");
+      const savedLeftWidth = localStorage.getItem(App.ui.workspaceLayout.sidebarStorageKey("left"));
       // 下限不超过当前上限（窄窗口时避免历史保存值撑爆布局）
       const floorLeft = Math.min(200, maxLeftWidth);
-      const width = savedLeftWidth
+      const width = savedLeftWidth && Number.isFinite(Number(savedLeftWidth))
         ? Math.max(floorLeft, Math.min(maxLeftWidth, Number(savedLeftWidth)))
         : Math.min(tiers.defaultLeft, maxLeftWidth);
       leftSidebar.style.width = width + "px";
@@ -187,10 +195,14 @@ function registerEventListenersDataAndUi(ctx) {
     }
 
     if (rightSidebar) {
+      if (proofreading) {
+        maxRightWidth = viewportWidth < 1100 ? Math.min(420, viewportWidth - 96)
+          : Math.max(280, Math.min(420, viewportWidth - 56 - (leftSidebar?.offsetWidth || 240) - tiers.reservedMain));
+      }
       rightSidebar.style.removeProperty("max-width");
-      const savedRightWidth = localStorage.getItem("rightSidebarWidth");
+      const savedRightWidth = localStorage.getItem(App.ui.workspaceLayout.sidebarStorageKey("right"));
       const floorRight = Math.min(280, maxRightWidth);
-      const width = savedRightWidth
+      const width = savedRightWidth && Number.isFinite(Number(savedRightWidth))
         ? Math.max(floorRight, Math.min(maxRightWidth, Number(savedRightWidth)))
         : Math.min(tiers.defaultRight, maxRightWidth);
       rightSidebar.style.width = width + "px";
@@ -203,6 +215,12 @@ function registerEventListenersDataAndUi(ctx) {
 
   applySidebarWidthsForLayout();
   syncSidebarA11y();
+  EventManager.add(window, "workspace:layout-changed", () => {
+    applySidebarWidthsForLayout();
+    syncSidebarA11y();
+    if (typeof syncTranslationHeights === "function") syncTranslationHeights();
+  }, { tag: "ui", scope: "workspace", label: "workspace:layoutChanged" });
+  App.ui.workspaceLayout.bind();
 
   EventManager.add(
     window,
@@ -235,7 +253,8 @@ function registerEventListenersDataAndUi(ctx) {
     const desktop = isDesktopLayout();
     [leftSidebar, rightSidebar].forEach((el) => {
       if (!el) return;
-      const offscreen = !desktop && !el.classList.contains("show-sidebar");
+      const offscreen = (!desktop && !el.classList.contains("show-sidebar")) ||
+        (desktop && el === rightSidebar && App.ui.workspaceLayout.isProofreading() && !App.ui.workspaceLayout.isPanelOpen());
       if (offscreen) {
         el.setAttribute("inert", "");
         el.setAttribute("aria-hidden", "true");
@@ -373,8 +392,8 @@ function registerEventListenersDataAndUi(ctx) {
         if (typeof translateAll === "function") translateAll();
       },
       mobileSettingsBtn: () => { DOMCache.get("openSettingsMenu")?.click(); },
-      mobileHelpBtn: () => { DOMCache.get("openHelpMenu")?.click(); },
-      mobileAboutBtn: () => { DOMCache.get("openAboutMenu")?.click(); },
+      mobileHelpBtn: () => { App.ui.helpCenter.open("help", undefined, mobileMoreBtn); },
+      mobileAboutBtn: () => { App.ui.helpCenter.open("about", "start", mobileMoreBtn); },
     };
     EventManager.add(
       mobileMoreMenu,
@@ -589,18 +608,19 @@ function registerEventListenersDataAndUi(ctx) {
 
         const viewportWidth = window.innerWidth || 0;
         const tiers = getSidebarLayoutTiers(viewportWidth);
-        const maxTotalSidebarWidth = Math.max(
+        const proofreading = App.ui.workspaceLayout.isProofreading();
+        const maxTotalSidebarWidth = proofreading ? viewportWidth - 56 - tiers.reservedMain : Math.max(
           tiers.defaultLeft + tiers.defaultRight,
           viewportWidth - tiers.reservedMain
         );
         const otherSidebar = sidebarType === "left" ? rightSidebar : leftSidebar;
-        const otherWidth = otherSidebar ? otherSidebar.offsetWidth : 0;
+        const otherWidth = proofreading && viewportWidth < 1100 ? 0 : (otherSidebar ? otherSidebar.offsetWidth : 0);
         const absoluteMinWidth = sidebarType === "left" ? 200 : 280;
-        const absoluteMaxWidth = sidebarType === "left" ? 500 : 600;
+        const absoluteMaxWidth = proofreading ? (sidebarType === "left" ? 400 : 420) : (sidebarType === "left" ? 500 : 600);
         // 上限受总宽约束；下限不超过上限（窄窗口时避免下限反超挤压工作区）
         const maxWidth = Math.max(
           Math.min(absoluteMinWidth, absoluteMaxWidth),
-          Math.min(absoluteMaxWidth, maxTotalSidebarWidth - otherWidth)
+          Math.min(absoluteMaxWidth, proofreading && viewportWidth < 1100 && sidebarType === "right" ? viewportWidth - 96 : maxTotalSidebarWidth - otherWidth)
         );
         const minWidth = Math.min(absoluteMinWidth, maxWidth);
         newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
@@ -614,8 +634,9 @@ function registerEventListenersDataAndUi(ctx) {
       if (isResizing && sidebar) {
         // 保存宽度到 localStorage
         const sidebarType = resizer.dataset.sidebar;
-        const key = sidebarType === "left" ? "leftSidebarWidth" : "rightSidebarWidth";
+        const key = App.ui.workspaceLayout.sidebarStorageKey(sidebarType);
         localStorage.setItem(key, sidebar.offsetWidth);
+        if (typeof syncTranslationHeights === "function") syncTranslationHeights();
       }
       if (typeof resizer.releasePointerCapture === "function" && e && e.pointerId != null) {
         try { resizer.releasePointerCapture(e.pointerId); } catch (err) {}
@@ -660,17 +681,6 @@ function registerEventListenersDataAndUi(ctx) {
 
   // ==================== 右侧面板标签页增强 ====================
   const sidebarTabs = DOMCache.queryAll(".sidebar-tab");
-  const openFullSettingsBtn = DOMCache.get("openFullSettingsBtn");
-  if (openFullSettingsBtn) {
-    EventManager.add(
-      openFullSettingsBtn,
-      "click",
-      () => {
-        if (typeof openModal === "function") openModal("settingsModal");
-      },
-      { tag: "settings", scope: "sidebar", label: "openFullSettingsBtn:click" }
-    );
-  }
   
   sidebarTabs.forEach((tab) => {
     EventManager.add(

@@ -5,7 +5,7 @@
  * @typedef {Object} TranslationItem
  * @property {string} sourceText - 源文本
  * @property {string} targetText - 目标文本
- * @property {string} status - 状态 ('pending' | 'translated' | 'edited' | 'error')
+ * @property {string} status - 状态 ('pending' | 'translated' | 'edited' | 'approved' | 'error')
  * @property {number} qualityScore - 质量分数 (0-100)
  * @property {string} [context] - 上下文信息
  * @property {Object} [metadata] - 元数据
@@ -94,6 +94,7 @@ const AppState = {
     currentPage: 1,
     itemsPerPage: 20,
     searchQuery: "",
+    statusFilter: "all",
     // 当前选中的文件（文件树过滤视图；null = 全项目）
     selectedFile: null,
     isInProgress: false,
@@ -107,6 +108,10 @@ const AppState = {
     lastBatchContext: null,
   },
   ui: {
+    desktopLayout: "proofreading",
+    desktopSettingsPanel: "collapsed",
+    compactFileImport: true,
+    translationDensity: "compact",
     sourceSelectionIndicatorEnabled: true,
     sourceSelectionIndicatorUnselectedStyle: "gray",
     // 翻译进行时自动滚动到当前条目（设置页可改）

@@ -205,9 +205,15 @@
       }
       // 本监听器注册在 window 捕获阶段且对命中快捷键 stopImmediatePropagation，
       // 所以「更多」下拉内部的 document 级 Esc 监听收不到事件：菜单必须在这里关。
+      if (e?.target?.id === "sourcePageInput") {
+        e.target.value = AppState.translations.currentPage;
+        return;
+      }
       if (closeMoreActionsMenuIfOpen()) return;
       // 查找条同理（展开时先收查找条，再考虑清空多选）
       if (closeFindBarIfOpen()) return;
+      // 全局快捷键在捕获阶段消费 Esc，侧栏也必须在此处理。
+      if (window.App?.ui?.workspaceLayout?.closePanelIfOpen()) return;
       if ((AppState && AppState.translations && AppState.translations.multiSelected || []).length > 0) {
         if (typeof clearMultiSelection === "function") clearMultiSelection();
       }
@@ -292,6 +298,10 @@
       const target = e && e.target;
       const isEditable = !!(target && (target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT"));
       if (isEditable) return;
+      if (window.App?.ui?.translationWorkspace) {
+        window.App.ui.translationWorkspace.navigate(AppState.translations.selected, id === "prevItem" ? -1 : 1, false);
+        return;
+      }
       const all = Array.isArray(AppState && AppState.project && AppState.project.translationItems) ? AppState.project.translationItems : [];
       if (all.length === 0) return;
       const filtered = Array.isArray(AppState && AppState.translations && AppState.translations.filtered) ? AppState.translations.filtered : all;
@@ -355,6 +365,9 @@
 
   /** 在相邻 textarea 间导航（Tab 支持） */
   function _navigateTextarea(currentIndex, direction) {
+    if (window.App?.ui?.translationWorkspace) {
+      return window.App.ui.translationWorkspace.navigate(currentIndex, direction);
+    }
     var isMobile = isMobileViewport();
     var container = isMobile
       ? DOMCache.get("mobileCombinedList")
@@ -383,6 +396,8 @@
       "keydown",
       function (e) {
         const target = e.target;
+        // 阅读帮助时保留正文、折叠问答和主题导航的原生键盘操作。
+        if (target?.closest?.("#helpModal, #aboutModal") && e.key !== "Escape") return;
         const isEditable = !!(
           target &&
           (target.isContentEditable ||
@@ -408,9 +423,10 @@
         if (e.key === "Tab" && isEditable && target.tagName === "TEXTAREA") {
           var inList = !!(target.closest("#targetList") || target.closest("#mobileCombinedList"));
           if (inList && target.dataset.index) {
+            if (window.App?.ui?.translationWorkspace && !_navigateTextarea(parseInt(target.dataset.index), e.shiftKey ? -1 : 1)) return;
             e.preventDefault();
             e.stopImmediatePropagation();
-            _navigateTextarea(parseInt(target.dataset.index), e.shiftKey ? -1 : 1);
+            if (!window.App?.ui?.translationWorkspace) _navigateTextarea(parseInt(target.dataset.index), e.shiftKey ? -1 : 1);
             return;
           }
         }

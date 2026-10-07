@@ -343,12 +343,19 @@ function registerEventListenersSettings(ctx) {
           ? String(rawDefaultEngine)
           : EngineRegistry.getDefaultEngineId();
 
-        const rawModel =
-          DOMCache.get("translationModel")?.value || (typeof EngineRegistry !== "undefined" ? (EngineRegistry.get(defaultEngine)?.defaultModel || "deepseek-chat") : "deepseek-chat");
-        let normalizedModel = String(rawModel);
+        const modelInput = DOMCache.get("translationModel");
+        const config = EngineRegistry.get(defaultEngine);
+        const available = Array.from(modelInput?.options || []).map((o) => o.value);
+        const normalizedModel = config?.category !== "ai" ? "" :
+          (available.includes(modelInput?.value) ? modelInput.value :
+            (available.includes(config.defaultModel) ? config.defaultModel : (available[0] || config.defaultModel || "")));
 
         const settings = {
           // 外观设置
+          desktopLayout: DOMCache.get("desktopLayout")?.value || "proofreading",
+          desktopSettingsPanel: DOMCache.get("desktopSettingsPanel")?.value || "collapsed",
+          compactFileImport: DOMCache.get("compactFileImport")?.checked ?? true,
+          translationDensity: DOMCache.get("translationDensity")?.value || "compact",
           themeMode: DOMCache.get("themeMode")?.value || "auto",
           fontSize: DOMCache.get("fontSize")?.value || "medium",
           itemsPerPage:
@@ -372,7 +379,7 @@ function registerEventListenersSettings(ctx) {
           concurrentLimit:
             parseInt(DOMCache.get("concurrentLimit")?.value) || 5,
           retryCount:
-            parseInt(DOMCache.get("retryCount")?.value) || 2,
+            (Number.isFinite(parseInt(DOMCache.get("retryCount")?.value)) ? Math.max(0, Math.min(10, parseInt(DOMCache.get("retryCount")?.value))) : 2),
 
           translationRequestCacheEnabled,
           translationRequestCacheTTLSeconds,
@@ -535,22 +542,7 @@ function registerEventListenersSettings(ctx) {
         applySettings(settings);
 
         try {
-          const toolbarEngine = DOMCache.get("translationEngine");
-          const sidebarEngine = DOMCache.get(
-            "sidebarTranslationEngine",
-          );
-          if (toolbarEngine && toolbarEngine.value !== defaultEngine) {
-            toolbarEngine.value = defaultEngine;
-            toolbarEngine.dispatchEvent(new Event("change"));
-          }
-          if (sidebarEngine && sidebarEngine.value !== defaultEngine) {
-            sidebarEngine.value = defaultEngine;
-            sidebarEngine.dispatchEvent(new Event("change"));
-          }
-          const modelInput = DOMCache.get("translationModel");
-          if (modelInput && modelInput.value !== normalizedModel) {
-            modelInput.value = normalizedModel;
-          }
+          App.ui.engineSettings?.applySaved();
         } catch (e) {
           (loggers.app || console).debug("settings model sync:", e);
         }

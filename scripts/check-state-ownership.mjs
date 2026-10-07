@@ -169,7 +169,7 @@ const GUARDED_PATTERNS = [
   // AppState.translations.(filtered|selected|multiSelected|currentPage|
   // searchQuery|itemsPerPage|selectedFile) = ...（视图态字段赋值；含复合赋值）
   [
-    /AppState\.translations\.(filtered|selected|multiSelected|currentPage|searchQuery|itemsPerPage|selectedFile)\s*[+\-*/]?=(?!=)/,
+    /AppState\.translations\.(filtered|selected|multiSelected|currentPage|searchQuery|statusFilter|itemsPerPage|selectedFile)\s*[+\-*/]?=(?!=)/,
     "AppState.translations.<视图态字段> 赋值",
     "core/translation-view-store.js",
   ],

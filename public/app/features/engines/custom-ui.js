@@ -7,17 +7,18 @@ var CustomEngineUI = (function () {
   // ==================== 初始化 ====================
 
   function init() {
-    var openBtn = document.getElementById("openCustomEngineBtn");
     var addNewBtn = document.getElementById("ceAddNewBtn");
     var cancelFormBtn = document.getElementById("ceCancelFormBtn");
     var saveFormBtn = document.getElementById("ceSaveFormBtn");
 
-    if (openBtn) {
+    ["openCustomEngineBtn", "openSettingsCustomEngineBtn"].forEach(function (id) {
+      var openBtn = document.getElementById(id);
+      if (!openBtn) return;
       EventManager.add(openBtn, "click", function () {
         openModal("customEngineModal");
         _loadList();
       });
-    }
+    });
 
     if (addNewBtn) {
       EventManager.add(addNewBtn, "click", function () {

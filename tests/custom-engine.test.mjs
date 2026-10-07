@@ -34,6 +34,17 @@ beforeEach(() => {
 });
 
 describe("CustomEngineManager.add", () => {
+  it("修改端点或模型清除旧列表缓存，单独改名保留缓存", () => {
+    const config = { id: "cache", name: "旧名", apiUrl: "http://old/v1/chat/completions", model: "old" };
+    CustomEngineManager.add(config);
+    const cache = JSON.stringify({ fetchedAt: Date.now(), models: [{ id: "old" }] });
+    localStorage.setItem("__aiModels_custom-cache", cache);
+    CustomEngineManager.add({ ...config, name: "新名" });
+    expect(ModelFetcher.getCachedModels("custom-cache")).toHaveLength(1);
+    CustomEngineManager.add({ ...config, apiUrl: "http://new/v1/chat/completions", model: "new" });
+    expect(ModelFetcher.getCachedModels("custom-cache")).toBeNull();
+    expect(EngineRegistry.get("custom-cache").defaultModel).toBe("new");
+  });
   it("注册并持久化：id 自动补 custom- 前缀，推导 modelsEndpoint", () => {
     const ok = CustomEngineManager.add({
       id: "ollama",

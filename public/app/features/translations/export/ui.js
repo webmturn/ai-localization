@@ -57,6 +57,7 @@ function closeUserMenuOnClickOutside(e) {
 // 模态框焦点陷阱状态
 const __modalFocusTrapState = {
   previousActiveElement: null,
+  returnFocusTargets: new WeakMap(),
   trapHandler: null,
 };
 
@@ -68,9 +69,16 @@ function openModal(modalId) {
   const modal = DOMCache.get(modalId);
   if (modal) {
     // 记录触发元素，关闭时恢复焦点
-    __modalFocusTrapState.previousActiveElement = document.activeElement;
+    if (modal.classList.contains("hidden")) {
+      if (modalId === "settingsModal" && typeof loadSettings === "function") loadSettings({ applyRuntime: false });
+      __modalFocusTrapState.returnFocusTargets.set(modal, document.activeElement);
+      __modalFocusTrapState.previousActiveElement = document.activeElement;
+    }
 
     modal.classList.remove("hidden");
+    if (modalId === "helpModal" || modalId === "aboutModal") {
+      window.App?.ui?.helpCenter?.prepare(modalId);
+    }
     try {
       modal.scrollTop = 0;
       modal.scrollLeft = 0;
@@ -117,13 +125,18 @@ function openModal(modalId) {
 // 关闭某个模态框后：若仍有上层模态框可见（例如设置页里打开清理缓存），
 // 把焦点陷阱交还给最上层那个；否则 Tab 会跑出剩余模态框之外。
 // 陷阱状态是单一全局对象，__removeModalFocusTrap 在关闭时已经把它移除了。
-function __restoreTrapToTopmostModal() {
+function __restoreTrapToTopmostModal(closedModal) {
   try {
+    const returnTarget = __modalFocusTrapState.returnFocusTargets.get(closedModal);
+    if (closedModal) {
+      __modalFocusTrapState.returnFocusTargets.delete(closedModal);
+      if (returnTarget) __modalFocusTrapState.previousActiveElement = returnTarget;
+    }
     const visible = Array.from(
       DOMCache.queryAll(".fixed.inset-0.bg-black.bg-opacity-50")
     ).filter((m) => !m.classList.contains("hidden"));
     if (visible.length > 0) {
-      __setupModalFocusTrap(visible[visible.length - 1]);
+      __setupModalFocusTrap(visible[visible.length - 1], returnTarget);
       return true;
     }
   } catch (e) {
@@ -156,7 +169,7 @@ function closeModal(eventOrModalId) {
     if (modal) {
       modal.classList.add("hidden");
     }
-    if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
+    if (!__restoreTrapToTopmostModal(modal)) __restoreModalFocus();
     return;
   }
 
@@ -167,7 +180,7 @@ function closeModal(eventOrModalId) {
     );
     if (modalToClose) {
       modalToClose.classList.add("hidden");
-      if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
+      if (!__restoreTrapToTopmostModal(modalToClose)) __restoreModalFocus();
       return;
     }
   }
@@ -177,19 +190,25 @@ function closeModal(eventOrModalId) {
     DOMCache.queryAll(".fixed.inset-0.bg-black.bg-opacity-50"),
   ).filter((modal) => !modal.classList.contains("hidden"));
 
-  if (visibleModals.length > 0) {
+  const topmostModal = visibleModals[visibleModals.length - 1];
+  if (topmostModal) {
     // 只关闭最后一个（z-index最高的）
-    visibleModals[visibleModals.length - 1].classList.add("hidden");
+    topmostModal.classList.add("hidden");
   }
-  if (!__restoreTrapToTopmostModal()) __restoreModalFocus();
+  if (!__restoreTrapToTopmostModal(topmostModal)) __restoreModalFocus();
 }
 
 // 设置焦点陷阱
-function __setupModalFocusTrap(modal) {
+function __setupModalFocusTrap(modal, preferredFocus) {
   __removeModalFocusTrap();
 
   // 将焦点移到模态框内第一个可聚焦元素
   requestAnimationFrame(() => {
+    if (modal.classList.contains("hidden")) return;
+    if (preferredFocus?.isConnected && modal.contains(preferredFocus)) {
+      preferredFocus.focus();
+      return;
+    }
     const focusable = DOMCache.queryAll(__FOCUSABLE_SELECTOR, modal);
     if (focusable.length > 0) {
       focusable[0].focus();

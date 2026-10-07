@@ -187,6 +187,49 @@ describe("文件元数据操作", () => {
 });
 
 describe("翻译条目操作", () => {
+  it("导入多个文件的局部 ID 不冲突，已有条目保持身份", () => {
+    const first = { id: "json-1", sourceText: "Save changes", metadata: { file: "accounts.json" } };
+    ProjectStore.loadProject({ id: "multi-file", translationItems: [first] });
+    const second = { id: "json-1", sourceText: "Checkout", metadata: { file: "checkout.json" } };
+    const items = ProjectStore.setTranslationItems([first, second]);
+    expect(first.id).toBe("json-1");
+    expect(second.id).not.toBe(first.id);
+    expect(TranslationViewStore.getViewItems()).toBe(items);
+    // 按渲染器的 ID 映射编辑第一项，不能改到另一文件。
+    const indexById = Object.fromEntries(items.map((item, index) => [item.id, index]));
+    items[indexById[first.id]].targetText = "保存修改";
+    expect(first.targetText).toBe("保存修改");
+    expect(second.targetText).toBeUndefined();
+    const ids = items.map((item) => item.id);
+    ProjectStore.setTranslationItems(items);
+    expect(items.map((item) => item.id)).toEqual(ids);
+  });
+
+  it("恢复旧项目时修复重复和缺失 ID，不占用已有的带文件后缀 ID", () => {
+    const items = [
+      { id: "json-1", metadata: { file: "a.json" } },
+      { id: "json-1", metadata: { file: "b.json" } },
+      { id: "json-1::b.json", metadata: { file: "c.json" } },
+      { metadata: { file: "a.json" } },
+      { metadata: { file: "a.json" } },
+    ];
+    ProjectStore.loadProject({ id: "legacy", translationItems: items });
+    expect(new Set(items.map((item) => String(item.id))).size).toBe(5);
+    expect(items[2].id).toBe("json-1::b.json");
+    const ids = items.map((item) => item.id);
+    ProjectStore.loadProject(JSON.parse(JSON.stringify(AppState.project)));
+    expect(ProjectStore.getTranslationItems().map((item) => item.id)).toEqual(ids);
+  });
+
+  it("重新解析一个文件时消除与其他文件的 ID 冲突", () => {
+    const other = { id: "json-1", targetText: "结账", metadata: { file: "checkout.json" } };
+    ProjectStore.loadProject({ id: "reparse", translationItems: [other] });
+    const replacement = { id: "json-1", metadata: { file: "accounts.json" } };
+    const merged = ProjectStore.replaceFileItems("accounts.json", [replacement]);
+    expect(merged).toEqual([other, replacement]);
+    expect(replacement.id).not.toBe(other.id);
+    expect(other.targetText).toBe("结账");
+  });
   it("replaceFileItems 替换指定文件条目并同步视图", () => {
     ProjectStore.loadProject({
       id: "p10",

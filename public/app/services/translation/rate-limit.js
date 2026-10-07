@@ -17,7 +17,7 @@ TranslationService.prototype._ensureRateLimitEntry = function (engine) {
   return limit;
 };
 
-TranslationService.prototype.checkRateLimit = async function (engine) {
+TranslationService.prototype.checkRateLimit = async function (engine, shouldCancel) {
   const limit = this._ensureRateLimitEntry(engine);
 
   // 初始化并发队列
@@ -26,7 +26,20 @@ TranslationService.prototype.checkRateLimit = async function (engine) {
   const minInterval = 1000 / limit.maxPerSecond;
 
   // 将本次请求排队，确保每次只有一个 worker 计算等待时间
-  limit._pending = limit._pending.then(async () => {
+  const checkCancelled = () => {
+    if (typeof shouldCancel === "function" && shouldCancel()) {
+      throw Object.assign(new Error("用户取消"), { code: "USER_CANCELLED" });
+    }
+  };
+  const waitUntil = async (deadline) => {
+    while (deadline > Date.now()) {
+      checkCancelled();
+      await new Promise((resolve) => setTimeout(resolve, Math.min(100, deadline - Date.now())));
+    }
+    checkCancelled();
+  };
+  const pending = limit._pending.catch(() => {}).then(async () => {
+    checkCancelled();
     // 如果处于 429 冷却期，等待冷却结束
     if (limit._cooldownUntil) {
       const waitMs = limit._cooldownUntil - Date.now();
@@ -34,7 +47,7 @@ TranslationService.prototype.checkRateLimit = async function (engine) {
         (loggers.translation || console).debug(
           engine + " 速率限制冷却中，等待 " + Math.ceil(waitMs / 1000) + "s"
         );
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        await waitUntil(limit._cooldownUntil);
       }
       limit._cooldownUntil = 0;
     }
@@ -44,13 +57,14 @@ TranslationService.prototype.checkRateLimit = async function (engine) {
 
     if (timeSinceLastRequest < minInterval) {
       const waitTime = minInterval - timeSinceLastRequest;
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      await waitUntil(Date.now() + waitTime);
     }
 
+    checkCancelled();
     limit.lastRequest = Date.now();
   });
-
-  await limit._pending;
+  limit._pending = pending.catch(() => {});
+  await pending;
 };
 
 /**

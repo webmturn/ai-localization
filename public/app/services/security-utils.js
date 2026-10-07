@@ -172,11 +172,10 @@ class SecurityUtils {
   sanitizeForApi(input) {
     if (typeof input !== "string") return "";
 
-    // 仅去除不可见控制字符（保留换行/制表符），限制长度
+    // 仅去除不可见控制字符；原文长度由 API 明确校验，不能静默丢弃内容。
     return input
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-      .trim()
-      .substring(0, 10000);
+      .trim();
   }
 
   // 验证API密钥格式

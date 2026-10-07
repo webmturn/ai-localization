@@ -1,12 +1,55 @@
 // 批量翻译接口
 // 通过 EngineRegistry 自动分发：AI 引擎走批量 JSON 路径，传统/不支持批量的引擎走逐项路径
 TranslationService.prototype.translateBatch = async function (
+  items, sourceLang, targetLang, engine = null, onProgress = null
+) {
+  const cfg = EngineRegistry.get(engine || EngineRegistry.getDefaultEngineId());
+  if (!cfg || cfg.category !== "ai" || !cfg.supportsBatch || typeof TMAutoApply === "undefined") {
+    return this._translateBatchUncached(items, sourceLang, targetLang, engine, onProgress);
+  }
+  const generation = typeof BatchProgressStore.getGeneration === "function" ? BatchProgressStore.getGeneration() : undefined;
+  const cancelled = () => !BatchProgressStore.isBatchInProgress() || translationIsCancelled(generation);
+  const results = [];
+  const misses = [];
+  const indices = [];
+  for (let index = 0; index < items.length; index++) {
+    while (BatchProgressStore.isBatchPaused() && !cancelled()) await new Promise((resolve) => setTimeout(resolve, 100));
+    if (cancelled()) break;
+    const item = items[index];
+    let hit;
+    try { hit = await TMAutoApply.lookup(item.sourceText, sourceLang, targetLang); } catch (e) { hit = { hit: false }; }
+    if (cancelled()) break;
+    const check = hit?.hit && hit.exact ? translationFinalizeResult(item, hit.translation, this) : { ok: false };
+    if (check.ok) {
+      item.targetText = check.translated;
+      item.status = "translated";
+      results.push({ success: true, index, result: check.translated, item, fromMemory: true });
+      if (onProgress) onProgress(results.length, items.length, "已复用翻译记忆：" + results.length + " 项");
+    } else {
+      misses.push(item);
+      indices.push(index);
+    }
+  }
+  if (cancelled()) {
+    const completed = new Set(results.map((r) => r.index));
+    return { results, errors: items.flatMap((item, index) => completed.has(index) ? [] : [{ success: false, index, item, error: "用户取消", code: "USER_CANCELLED" }]) };
+  }
+  if (!misses.length) return { results, errors: [] };
+  const rest = await this._translateBatchUncached(misses, sourceLang, targetLang, engine,
+    onProgress ? (current, total, status) => onProgress(results.length + current, items.length, status) : null);
+  const remap = (r) => Object.assign({}, r, { index: indices[r.index] });
+  return { results: results.concat(rest.results.map(remap)).sort((a, b) => a.index - b.index), errors: rest.errors.map(remap) };
+};
+
+TranslationService.prototype._translateBatchUncached = async function (
   items,
   sourceLang,
   targetLang,
   engine = null,
   onProgress = null
 ) {
+  const generation = typeof BatchProgressStore.getGeneration === "function" ? BatchProgressStore.getGeneration() : undefined;
+  const isActive = () => BatchProgressStore.isBatchInProgress() && !translationIsCancelled(generation);
   const results = [];
   const errors = [];
   let completed = 0;
@@ -15,7 +58,7 @@ TranslationService.prototype.translateBatch = async function (
 
   const waitWhilePaused = async () => {
     while (BatchProgressStore.isBatchPaused()) {
-      if (!BatchProgressStore.isBatchInProgress()) return false;
+      if (!isActive()) return false;
       if (!pauseNotified) {
         pauseNotified = true;
       }
@@ -37,7 +80,7 @@ TranslationService.prototype.translateBatch = async function (
   // ========== AI 引擎批量路径 ==========
   if (engineConfig && engineConfig.category === "ai" && engineConfig.supportsBatch) {
     try {
-      if (!BatchProgressStore.isBatchInProgress()) {
+      if (!isActive()) {
         (loggers.translation || console).debug("翻译已被取消 (尚未开始)");
         return { results, errors };
       }
@@ -91,7 +134,7 @@ TranslationService.prototype.translateBatch = async function (
           (loggers.translation || console).debug("翻译已被取消");
           break;
         }
-        if (!BatchProgressStore.isBatchInProgress()) {
+        if (!isActive()) {
           flushLogs();
           errors.push({
             success: false,
@@ -198,7 +241,7 @@ TranslationService.prototype.translateBatch = async function (
       const msg = (error && error.message ? String(error.message) : String(error || ""))
         .trim();
 
-      if (translationIsUserCancelled(error, BatchProgressStore.isBatchInProgress())) {
+      if (translationIsUserCancelled(error, isActive())) {
         const partial = Array.isArray(error?.partialOutputs)
           ? error.partialOutputs
           : [];
@@ -355,7 +398,7 @@ TranslationService.prototype.translateBatch = async function (
       return;
     }
 
-    if (!BatchProgressStore.isBatchInProgress()) {
+    if (!isActive()) {
       errors.push({
         success: false,
         index: i,
@@ -403,7 +446,7 @@ TranslationService.prototype.translateBatch = async function (
         }
       }
 
-      if (!BatchProgressStore.isBatchInProgress()) {
+      if (!isActive()) {
         errors.push({
           success: false,
           index: i,
@@ -486,12 +529,12 @@ TranslationService.prototype.translateBatch = async function (
         (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
-      if (!BatchProgressStore.isBatchInProgress()) {
+      if (!isActive()) {
         (loggers.translation || console).debug(`翻译已被取消 (已完成 ${completed}/${total})`);
         break;
       }
       await processOne(i);
-      if (!BatchProgressStore.isBatchInProgress()) {
+      if (!isActive()) {
         (loggers.translation || console).debug("翻译已被取消");
         break;
       }
@@ -503,7 +546,7 @@ TranslationService.prototype.translateBatch = async function (
       .map(async () => {
         while (true) {
           if (!(await waitWhilePaused())) return;
-          if (!BatchProgressStore.isBatchInProgress()) return;
+          if (!isActive()) return;
           const i = nextIndex;
           nextIndex++;
           if (i >= items.length) return;

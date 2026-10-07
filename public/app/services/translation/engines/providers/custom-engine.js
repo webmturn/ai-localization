@@ -125,7 +125,13 @@
    * 添加并持久化自定义引擎
    */
   function addCustomEngine(config) {
+    if (!config) return false;
+    var previous = loadCustomEngines().find(function (e) { return normalizeCustomEngineId(e.id) === normalizeCustomEngineId(config.id); });
     if (!registerCustomEngine(config)) return false;
+    if (previous && typeof ModelFetcher !== "undefined" && typeof ModelFetcher.clearCache === "function" &&
+        ["apiUrl", "model", "requiresApiKey", "headers"].some(function (field) {
+          return JSON.stringify(previous[field]) !== JSON.stringify(config[field]);
+        })) ModelFetcher.clearCache(normalizeCustomEngineId(config.id));
 
     var engineId = normalizeCustomEngineId(config.id);
     var engines = loadCustomEngines();

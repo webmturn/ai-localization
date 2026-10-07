@@ -620,7 +620,7 @@ function registerEventListenersFilePanels(ctx) {
       (e) => {
         e.preventDefault();
         DOMCache.get("userMenu")?.classList.add("hidden");
-        openModal("helpModal");
+        App.ui.helpCenter.open("help", undefined, userMenuBtn);
       },
       { tag: "help", scope: "userMenu", label: "openHelpMenu:click" }
     );
@@ -633,7 +633,7 @@ function registerEventListenersFilePanels(ctx) {
       (e) => {
         e.preventDefault();
         DOMCache.get("userMenu")?.classList.add("hidden");
-        openModal("aboutModal");
+        App.ui.helpCenter.open("about", "start", userMenuBtn);
       },
       { tag: "about", scope: "userMenu", label: "openAboutMenu:click" }
     );

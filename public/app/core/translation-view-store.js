@@ -1,6 +1,6 @@
 // ==================== 翻译视图状态存储（TranslationViewStore） ====================
 // AppState.translations 切片中"视图态"字段的唯一写入方（Owner）：
-// filtered / selected / multiSelected / currentPage / searchQuery / itemsPerPage / selectedFile。
+// filtered / selected / multiSelected / currentPage / searchQuery / statusFilter / itemsPerPage / selectedFile。
 //
 // 背景：此前 10 个文件、37 处直接裸写 translations 视图态字段，无所有权边界，
 // 任何模块都能改视图选择/过滤/分页。本 Store 以"意图式 API"收编全部写入。
@@ -80,6 +80,8 @@ const TranslationViewStore = {
   setViewItems(items) {
     const list = Array.isArray(items) ? items : [];
     this._viewItems = list;
+    // 载入方可能修复了同一数组中的重复 ID，不能继续使用旧的索引缓存。
+    AppState.translations._idToIndexSource = null;
     return list;
   },
 
@@ -138,6 +140,20 @@ const TranslationViewStore = {
     return AppState.translations.searchQuery;
   },
 
+  setStatusFilter(filter) {
+    AppState.translations.statusFilter = ["pending", "unreviewed", "reviewed"].includes(filter) ? filter : "all";
+    return AppState.translations.statusFilter;
+  },
+
+  matchesStatus(item) {
+    const filter = AppState.translations.statusFilter || "all";
+    const hasTranslation = !!String(item?.targetText || "").trim();
+    if (filter === "pending") return !hasTranslation;
+    if (filter === "reviewed") return hasTranslation && item.status === "approved";
+    if (filter === "unreviewed") return hasTranslation && item.status !== "approved";
+    return true;
+  },
+
   /**
    * 设置每页条数（用户设置项，不随项目清空）。
    *
@@ -171,6 +187,7 @@ const TranslationViewStore = {
     AppState.translations.selected = -1;
     AppState.translations.currentPage = 1;
     AppState.translations.searchQuery = "";
+    AppState.translations.statusFilter = "all";
   },
 
   /**
@@ -187,6 +204,7 @@ const TranslationViewStore = {
     AppState.translations.multiSelected = [];
     AppState.translations.currentPage = 1;
     AppState.translations.searchQuery = "";
+    AppState.translations.statusFilter = "all";
     AppState.translations.selectedFile = null;
   },
 };

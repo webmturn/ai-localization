@@ -25,7 +25,7 @@ function __syncTranslationHeightsImpl(afterSync) {
     // 获取屏幕尺寸以确定最小高度 （isMobile 已在上方 early-return）
     var vw = window.innerWidth;
     var isTablet = vw >= 768 && vw < 1024;
-    var baseMinHeight = isTablet ? 80 : 90;
+    var baseMinHeight = AppState.ui.translationDensity === "comfortable" ? (isTablet ? 80 : 90) : 64;
 
     // 横屏且高度有限的情况
     if (window.matchMedia("(orientation: landscape)").matches && window.innerHeight < 600) {
@@ -41,9 +41,9 @@ function __syncTranslationHeightsImpl(afterSync) {
         var ti = targetItems[i];
         if (!si || !ti) continue;
         var sc = si.querySelector(".item-content");
-        var tc = ti.querySelector("textarea") || ti.querySelector(".item-content");
+        var tc = ti.querySelector(".item-content");
         if (!sc || !tc) continue;
-        pairs.push({ si: si, ti: ti, sc: sc, tc: tc });
+        pairs.push({ si: si, ti: ti, sc: sc, tc: tc, textarea: ti.querySelector("textarea") });
       }
 
       // 批量写：重置高度
@@ -53,13 +53,23 @@ function __syncTranslationHeightsImpl(afterSync) {
         p.ti.style.removeProperty("height");
         if (p.sc.style) p.sc.style.removeProperty("min-height");
         if (p.tc.style) p.tc.style.removeProperty("min-height");
+        if (p.textarea) {
+          p.textarea.style.height = "0px";
+          p.textarea.style.minHeight = "0px";
+        }
       }
 
+      // 先按内容撑开输入框，再测量含状态栏和内边距的整行高度。
+      var textareaHeights = pairs.map((p) => p.textarea ? p.textarea.scrollHeight : 0);
+      for (var t = 0; t < pairs.length; t++) {
+        // scrollHeight 不含输入框的上下边框（各 2px），需计入以完整显示末行。
+        if (pairs[t].textarea) pairs[t].textarea.style.height = Math.max(28, textareaHeights[t] + 4) + "px";
+      }
       // 批量读：测量高度
       for (var k = 0; k < pairs.length; k++) {
         var q = pairs[k];
-        var sh = Math.max(q.sc.scrollHeight, baseMinHeight);
-        var th = Math.max(q.tc.scrollHeight, baseMinHeight);
+        var sh = Math.max(q.sc.scrollHeight + 1, baseMinHeight);
+        var th = Math.max(q.tc.scrollHeight + 1, baseMinHeight);
         q.h = Math.max(sh, th);
       }
 
@@ -69,8 +79,8 @@ function __syncTranslationHeightsImpl(afterSync) {
         var px = r.h + "px";
         r.si.style.height = px;
         r.ti.style.height = px;
-        if (r.sc.style) r.sc.style.minHeight = px;
-        if (r.tc.style) r.tc.style.minHeight = px;
+        if (r.sc.style) r.sc.style.minHeight = (r.h - 1) + "px";
+        if (r.tc.style) r.tc.style.minHeight = (r.h - 1) + "px";
       }
 
       // 将滚动回调推迟到下一帧，避免在高度写操作后立即读取布局属性导致强制重排

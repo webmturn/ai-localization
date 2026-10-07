@@ -25,6 +25,11 @@
 // 旧测试桩（直写 translations._batchCancelled 等）不受影响。
 
 const BatchProgressStore = {
+  _generation: 0,
+
+  getGeneration() {
+    return this._generation;
+  },
   // ──────────────── getters（读取一律走这里） ────────────────
 
   /** @returns {boolean} 批量翻译是否进行中 */
@@ -56,7 +61,8 @@ const BatchProgressStore = {
    * 用户取消检测（跨模块取消协议的语义化封装）。
    * 协议（与旧 _batchStarted/_batchCancelled 组合判断语义一致）：
    *   - 显式取消：beginBatch 后 cancelBatch 置位 _cancelled → true
-   *   - 隐式取消：批量曾启动（_started）且 isInProgress 已变 false → true
+   *   - 异常终止：批量仍处于 _started 状态但 isInProgress 已变 false → true
+   *   - 正常 endBatch 清除 _started，不影响后续单条翻译
    *   - 从未启动批量或正常运行中 → false
    * @returns {boolean}
    */
@@ -75,6 +81,7 @@ const BatchProgressStore = {
    * @returns {Object|null} 写入后的 lastBatchContext
    */
   beginBatch(context) {
+    this._generation++;
     AppState.translations.isInProgress = true;
     AppState.translations.isPaused = false;
     AppState.translations.lastFailedItems = [];
@@ -88,18 +95,21 @@ const BatchProgressStore = {
   },
 
   /**
-   * 批量正常结束（finally 清理场景）：复位进行/暂停标记。
+   * 批量正常结束（finally 清理场景）：复位进行/暂停和启动标记。
    * 不清 lastFailedItems / lastBatchContext（重试入口要读）。
    */
   endBatch() {
     AppState.translations.isInProgress = false;
     AppState.translations.isPaused = false;
+    this._started = false;
+    AppState.translations._batchStarted = false;
   },
 
   /**
    * 用户取消：复位进行/暂停标记并置取消位，供引擎层中断判定。
    */
   cancelBatch() {
+    this._generation++;
     AppState.translations.isInProgress = false;
     AppState.translations.isPaused = false;
     this._cancelled = true;
@@ -152,6 +162,7 @@ const BatchProgressStore = {
    * 联动；本 Store 独立提供，用于项目清空时复位批量态与取消协议）。
    */
   clearBatch() {
+    this._generation++;
     AppState.translations.isInProgress = false;
     AppState.translations.isPaused = false;
     AppState.translations.progress = { current: 0, total: 0, status: "" };

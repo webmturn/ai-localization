@@ -12,7 +12,7 @@ var TraditionalEngineBase = {
    * @param {TranslationService} service - 翻译服务实例
    * @returns {Promise<string>} 翻译结果
    */
-  translateSingle: async function (engineId, text, sourceLang, targetLang, service) {
+  translateSingle: async function (engineId, text, sourceLang, targetLang, service, shouldCancel) {
     var config = EngineRegistry.get(engineId);
     if (!config) throw new Error("未知的翻译引擎: " + engineId);
 
@@ -50,6 +50,7 @@ var TraditionalEngineBase = {
     var reqConfig = config._buildRequest(cleanText, sourceLang, targetLang, apiKey, settings);
 
     try {
+      if (shouldCancel && shouldCancel()) throw translationMakeCancelError();
       var response = await networkUtils.fetchWithDedupe(
         reqConfig.url,
         {
@@ -82,6 +83,7 @@ var TraditionalEngineBase = {
       }
 
       var data = await response.json();
+      if (shouldCancel && shouldCancel()) throw translationMakeCancelError();
       return config._parseResponse(data);
     } catch (error) {
       (loggers.translation || console).error(config.name + "翻译失败:", error);

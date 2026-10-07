@@ -115,33 +115,7 @@ function _aiChunkItems(items, maxChars, maxItems) {
   return chunks;
 }
 
-// ======================== 超长条目告警 ========================
-// securityUtils.sanitizeForApi 会将超过 10000 字符的文本截断，
-// 这里在截断发生前给出明确提示，避免用户误以为内容被完整翻译
-var _aiLongTextNotified = false;
-
-function _aiNotifyLongTextOnce() {
-  if (_aiLongTextNotified) return;
-  _aiLongTextNotified = true;
-  try {
-    if (typeof showNotification === "function") {
-      showNotification("warning", "检测到超长文本", "部分条目超过 10000 字符，将截断翻译，建议拆分后重试");
-    }
-  } catch (e) {}
-}
-
-function _aiWarnOversizedItem(item) {
-  var src = item && item.sourceText ? String(item.sourceText) : "";
-  if (src.length <= 10000) return false;
-  (loggers.translation || console).warn(
-    "翻译条目超过 10000 字符将被截断：" +
-    (item && item.key ? "key=" + String(item.key) + " " : "") +
-    "长度=" + src.length + " 字符"
-  );
-  _aiNotifyLongTextOnce();
-  return true;
-}
-
+// ======================== 自适应拆批与完整性检查 ========================
 function _aiIsAdaptiveBatchError(error) {
   var code = error && error.code ? String(error.code) : "";
   var status = error && error.status;
@@ -385,6 +359,8 @@ function _aiCoerceTranslations(parsed) {
  * - 其余程序化注册且声明 availableModels 的引擎仍校验并回退 defaultModel
  */
 function _aiResolveModel(settings, config) {
+  var selected = String(settings.model || settings.translationModel || "");
+  if (Array.isArray(config?.retiredModels) && config.retiredModels.includes(selected)) return config.defaultModel;
   var requested = settings && settings.model ? String(settings.model) : "";
   // 自定义引擎：动态模型列表（ModelFetcher 缓存）为唯一数据源，不做白名单校验
   if (config && config.isCustom) {
@@ -442,19 +418,20 @@ function _aiSupportsJsonMode(config, model) {
   return true;
 }
 
-function _aiCreateCancelWatcher(partialOutputs) {
+function _aiCreateCancelWatcher(partialOutputs, shouldCancel) {
+  shouldCancel = shouldCancel || _aiIsCancelled;
   var intervalId = null;
   var cancelled = false;
 
   var cancelPromise = new Promise(function (_, reject) {
-    if (_aiIsCancelled()) {
+    if (shouldCancel()) {
       cancelled = true;
       reject(_aiMakeCancelError(partialOutputs));
       return;
     }
 
     intervalId = setInterval(function () {
-      if (_aiIsCancelled()) {
+      if (shouldCancel()) {
         cancelled = true;
         clearInterval(intervalId);
         intervalId = null;
@@ -478,6 +455,21 @@ function _aiCreateCancelWatcher(partialOutputs) {
 // ======================== 核心翻译逻辑 ========================
 
 var AIEngineBase = {
+  // 将响应按请求标识还原；拒绝缺失、重复、未知标识，避免译文落到错误原文。
+  mapBatchTranslations(parsed, reqItems) {
+    var rows = _aiCoerceTranslations(parsed);
+    var mismatch = () => Object.assign(new Error("批量译文标识或数量不匹配"), { code: "BATCH_OUTPUT_MISMATCH" });
+    if (!Array.isArray(rows) || rows.length !== reqItems.length) throw mismatch();
+    // 单条响应没有顺序歧义，兼容只返回一个字符串的旧模板。
+    if (reqItems.length === 1 && typeof rows[0] === "string") return rows;
+    var expected = new Set(reqItems.map((it) => it.id));
+    var values = new Map();
+    for (var row of rows) {
+      if (!row || typeof row !== "object" || !expected.has(row.id) || values.has(row.id) || !Object.prototype.hasOwnProperty.call(row, "text")) throw mismatch();
+      values.set(row.id, row.text);
+    }
+    return reqItems.map((it) => values.get(it.id));
+  },
 
   /**
    * 单条翻译（Chat Completions API）
@@ -489,7 +481,7 @@ var AIEngineBase = {
    * @param {TranslationService} service - 翻译服务实例
    * @returns {Promise<string>} 翻译结果
    */
-  translateSingle: async function (engineId, text, sourceLang, targetLang, context, service) {
+  translateSingle: async function (engineId, text, sourceLang, targetLang, context, service, shouldCancel) {
     var config = EngineRegistry.get(engineId);
     if (!config) throw new Error("未知的翻译引擎: " + engineId);
 
@@ -522,12 +514,6 @@ var AIEngineBase = {
 
     var sourceLanguage = _AI_LANG_NAMES[sourceLang] || sourceLang;
     var targetLanguage = _AI_LANG_NAMES[targetLang] || targetLang;
-    if (text && String(text).length > 10000) {
-      (loggers.translation || console).warn(
-        "单条翻译文本超过 10000 字符将被截断：长度=" + String(text).length + " 字符"
-      );
-      _aiNotifyLongTextOnce();
-    }
     var cleanText = securityUtils.sanitizeForApi(text);
 
     // 构建系统提示词
@@ -617,6 +603,7 @@ var AIEngineBase = {
         }
       }
 
+      if (shouldCancel && shouldCancel()) throw _aiMakeCancelError();
       var response = await networkUtils.fetchWithDedupe(
         config.apiUrl,
         {
@@ -657,6 +644,10 @@ var AIEngineBase = {
       }
 
       var data = await response.json();
+      if (shouldCancel && shouldCancel()) throw _aiMakeCancelError();
+      if (_aiIsTruncatedBatchResponse(data)) {
+        throw Object.assign(new Error(config.name + " 译文未完整返回，请增加输出上限或拆分原文"), { code: "OUTPUT_TRUNCATED", provider: engineId });
+      }
       var resultText;
       if (typeof config._parseResponseText === "function") {
         resultText = config._parseResponseText(data);
@@ -689,6 +680,8 @@ var AIEngineBase = {
    * @returns {Promise<string[]>} 翻译结果数组
    */
   translateBatch: async function (engineId, items, sourceLang, targetLang, options, service) {
+    var generation = typeof BatchProgressStore.getGeneration === "function" ? BatchProgressStore.getGeneration() : undefined;
+    var shouldCancel = () => _aiIsCancelled() || (generation !== undefined && generation !== BatchProgressStore.getGeneration());
     var config = EngineRegistry.get(engineId);
     if (!config) throw new Error("未知的翻译引擎: " + engineId);
 
@@ -769,7 +762,7 @@ var AIEngineBase = {
         "批量输出要求：\n" +
         "9. 逐条翻译，条目之间互不干扰\n" +
         "10. key/字段名仅作为上下文参考：严禁翻译、严禁改写、严禁改变大小写\n" +
-        "11. 你必须使用 JSON 格式输出，结构为 {\"translations\":[\"...\",\"...\"]}：数组长度与输入完全一致，顺序一一对应，只输出 JSON，不要输出任何解释";
+        "11. 你必须使用 JSON 格式输出，结构为 {\"translations\":[{\"id\":\"输入 id\",\"text\":\"译文\"}]}：每个输入 id 恰好返回一次，id 保持原样，只输出 JSON，不要输出任何解释";
     }
 
     // 会话历史
@@ -790,7 +783,7 @@ var AIEngineBase = {
 
     var waitWhilePaused = async function () {
       while (BatchProgressStore.isBatchPaused()) {
-        if (_aiIsCancelled()) {
+        if (shouldCancel()) {
           throw _aiMakeCancelError(buildOrderedOutputs());
         }
         if (onLog && !pauseNotified) {
@@ -809,7 +802,9 @@ var AIEngineBase = {
     var chunkConcurrency = 1;
     if (!conversationEnabled) {
       var _rpsNum = Number(config.rateLimitPerSecond);
-      chunkConcurrency = Math.max(1, Math.min(3, Math.ceil(_rpsNum) || 1));
+      var userLimit = parseInt(settings.concurrentLimit, 10);
+      if (!Number.isFinite(userLimit)) userLimit = 5;
+      chunkConcurrency = Math.max(1, Math.min(3, userLimit, Math.ceil(_rpsNum) || 1));
     }
 
     // chunk 任务队列 + 有序结果槽：并发完成顺序可能与 chunk 顺序不一致，
@@ -853,11 +848,11 @@ var AIEngineBase = {
         onProgress(completedItems, items.length, "请求中...（已完成 " + completedItems + "/" + items.length + " 项）");
       }
 
-      await service.checkRateLimit(engineId);
+      await service.checkRateLimit(engineId, shouldCancel);
+      if (shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
+      await waitWhilePaused();
 
-      var reqItems = chunk.map(function (it) {
-        // 超长条目告警（sanitizeForApi 会截断到 10000 字符，提前提示避免静默丢内容）
-        _aiWarnOversizedItem(it);
+      var reqItems = chunk.map(function (it, index) {
         // 占位符保护：把 %s/{0}/${x} 等替换为安全标记后再发给模型，
         // 使其不会被翻译/改写；译文回来后由 batch.js 还原。
         // 此前批量路径发送的是原始占位符，导致 batch.js 中的 restore 实际是空操作。
@@ -874,6 +869,7 @@ var AIEngineBase = {
         }
         var cleanText = securityUtils.sanitizeForApi(rawText);
         return {
+          id: task.id + "-item-" + index,
           key: useKeyContext ? translationGetItemKey(it) : "",
           source: cleanText,
           file: it?.metadata?.file || "",
@@ -903,8 +899,8 @@ var AIEngineBase = {
         content:
           "请将以下 items 翻译为目标语言，并返回严格 JSON。\n" +
           "输出格式示例（必须包含 json 字样且结构一致）：\n" +
-          '{"translations":["...","..."]}\n' +
-          "规则：translations 数组长度必须与 items 长度一致，且按顺序一一对应。\n" +
+          '{"translations":[{"id":"输入条目的 id","text":"译文"}]}\n' +
+          "规则：每个输入 id 必须恰好返回一次，保留 id 原样，译文写入 text；不得省略或新增条目。此格式优先于旧模板中的数组格式。\n" +
           JSON.stringify({ items: reqItems }),
       };
 
@@ -972,7 +968,8 @@ var AIEngineBase = {
         }
       }
 
-      var watcher = _aiCreateCancelWatcher(buildOrderedOutputs());
+      if (shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
+      var watcher = _aiCreateCancelWatcher(buildOrderedOutputs(), shouldCancel);
       var fetchPromise = networkUtils
         .fetchWithTimeout(
           config.apiUrl,
@@ -995,7 +992,7 @@ var AIEngineBase = {
         watcher.cleanup();
       }
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
+      if (shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (!response.ok) {
         var rawErr = await response.text();
@@ -1040,7 +1037,7 @@ var AIEngineBase = {
         throw errBatchEmpty;
       }
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
+      if (shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (onLog) {
         onLog(config.name + " 已返回响应，正在解析 JSON...");
@@ -1056,16 +1053,7 @@ var AIEngineBase = {
       }
       var parsedResp = extracted.value;
 
-      var translations = _aiCoerceTranslations(parsedResp);
-      if (!Array.isArray(translations) || translations.length !== chunk.length) {
-        var errBatchMismatch = new Error(
-          config.name + " 返回 translations 数量不匹配：期望 " + chunk.length +
-          "，实际 " + (Array.isArray(translations) ? translations.length : 0)
-        );
-        errBatchMismatch.code = "BATCH_OUTPUT_MISMATCH";
-        errBatchMismatch.provider = engineId;
-        throw errBatchMismatch;
-      }
+      var translations = AIEngineBase.mapBatchTranslations(parsedResp, reqItems);
 
       for (var ti = 0; ti < translations.length; ti++) {
         completedItems++;
@@ -1079,7 +1067,7 @@ var AIEngineBase = {
       }
       slotResults[task.id] = translations;
 
-      if (_aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
+      if (shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
 
       if (onLog) {
         onLog(
@@ -1133,7 +1121,7 @@ var AIEngineBase = {
         history = trimmedHistory;
       }
       } catch (chunkError) {
-        if (batchFailed || _aiIsCancelled()) throw _aiMakeCancelError(buildOrderedOutputs());
+        if (batchFailed || shouldCancel()) throw _aiMakeCancelError(buildOrderedOutputs());
 
         if (_aiIsAdaptiveBatchError(chunkError) && chunk.length > 1) {
           var splitAt = Math.ceil(chunk.length / 2);

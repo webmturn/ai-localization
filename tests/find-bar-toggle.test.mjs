@@ -47,6 +47,8 @@ globalThis.__searchLog = [];
 globalThis.TranslationViewStore = {
   setSearchQuery: (q) => globalThis.__searchLog.push("query:" + q),
   setPage: (p) => globalThis.__searchLog.push("page:" + p),
+  setSelection: (index) => { globalThis.AppState.translations.selected = index; },
+  setMultiSelection: (indices) => { globalThis.AppState.translations.multiSelected = indices; },
 };
 globalThis.applySearchFilter = () => {
   const q = (globalThis.TranslationViewStore.__lastQuery || "").trim();

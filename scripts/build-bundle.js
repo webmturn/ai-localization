@@ -225,6 +225,15 @@ async function build() {
     "// app.bundle.js — 自动生成，请勿手动编辑\n" + manifest + "\n" + body;
 
   fs.writeFileSync(OUTPUT, finalBundle, "utf-8");
+  // 关于页的版本来自包元数据，避免发版后沿用旧的硬编码版本。
+  const indexPath = path.join(PUBLIC_DIR, "index.html");
+  const appVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8")).version;
+  if (fs.existsSync(indexPath)) {
+    const html = fs.readFileSync(indexPath, "utf-8");
+    const synced = html.replace(/(<meta name="application-version" content=")[^"]*(")/, (match, before, after) => before + appVersion + after)
+      .replace(/(<span data-app-version\b[^>]*>)[^<]*(<\/span>)/g, (match, before, after) => before + "v" + appVersion + after);
+    if (synced !== html) fs.writeFileSync(indexPath, synced, "utf-8");
+  }
 
   const bundleSize = (finalBundle.length / 1024).toFixed(1);
   const sourceSize = (totalSize / 1024).toFixed(1);

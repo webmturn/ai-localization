@@ -39,6 +39,11 @@ function registerEventListenersTranslationLists(ctx) {
       targetList,
       "click",
       function (e) {
+        const review = e.target.closest('[data-action="toggle-reviewed"]');
+        if (review) {
+          App.ui.translationWorkspace.toggleReviewed(parseInt(review.dataset.index));
+          return;
+        }
         if (e.target && e.target.tagName === "TEXTAREA") return;
         const item = e.target.closest(".responsive-translation-item");
         if (item && item.dataset.index) {
@@ -113,6 +118,10 @@ function registerEventListenersTranslationLists(ctx) {
           rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement;
 
         const actionEl = targetEl ? targetEl.closest("[data-action]") : null;
+        if (actionEl?.dataset.action === "toggle-reviewed") {
+          App.ui.translationWorkspace.toggleReviewed(parseInt(actionEl.dataset.index));
+          return;
+        }
         if (actionEl && actionEl.dataset.action === "toggle-extra") {
           const item = actionEl.closest(".responsive-translation-item");
           if (!item) return;

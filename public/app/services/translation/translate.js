@@ -8,6 +8,9 @@ TranslationService.prototype.translate = async function (
   context = null,
   maxRetries = null
 ) {
+  const generation = typeof BatchProgressStore !== "undefined" && typeof BatchProgressStore.getGeneration === "function"
+    ? BatchProgressStore.getGeneration() : undefined;
+  const shouldCancel = () => typeof translationIsCancelled === "function" && translationIsCancelled(generation);
   if (!text || !text.trim()) {
     return text;
   }
@@ -30,6 +33,7 @@ TranslationService.prototype.translate = async function (
     }
   }
   maxRetries = Math.max(0, Math.min(10, parseInt(maxRetries)));
+  const totalAttempts = maxRetries + 1;
 
   // 占位符保护：提取占位符替换为安全标记，翻译后恢复
   var _phGuard = typeof PlaceholderGuard !== "undefined" ? PlaceholderGuard.protect(text) : null;
@@ -37,11 +41,11 @@ TranslationService.prototype.translate = async function (
 
   let lastError;
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < totalAttempts; attempt++) {
     try {
       // 取消检查（发起请求之前）：用户取消后不再发出新请求，
       // 否则取消仍会继续消耗付费引擎的配额。
-      if (typeof translationIsCancelled === "function" && translationIsCancelled()) {
+      if (shouldCancel()) {
         if (typeof translationMakeCancelError === "function") {
           throw translationMakeCancelError();
         }
@@ -51,19 +55,21 @@ TranslationService.prototype.translate = async function (
       }
 
       // 速率限制
-      await this.checkRateLimit(engineId);
+      await this.checkRateLimit(engineId, shouldCancel);
+      if (shouldCancel()) throw translationMakeCancelError();
 
       // 通过引擎分类分发到对应的基类
       let result;
       if (config.category === "ai") {
         result = await AIEngineBase.translateSingle(
-          engineId, _safeText, sourceLang, targetLang, context, this
+          engineId, _safeText, sourceLang, targetLang, context, this, shouldCancel
         );
       } else {
         result = await TraditionalEngineBase.translateSingle(
-          engineId, _safeText, sourceLang, targetLang, this
+          engineId, _safeText, sourceLang, targetLang, this, shouldCancel
         );
       }
+      if (shouldCancel()) throw translationMakeCancelError();
 
       // 恢复占位符
       if (_phGuard && _phGuard.hasPlaceholders) {
@@ -167,12 +173,12 @@ TranslationService.prototype.translate = async function (
       }
 
       (loggers.translation || console).warn(
-        `翻译尝试 ${attempt + 1}/${maxRetries} 失败${isRateLimited ? " (速率限制)" : ""}:`,
+        `翻译尝试 ${attempt + 1}/${totalAttempts} 失败${isRateLimited ? " (速率限制)" : ""}:`,
         message
       );
 
       // 429 时不再自行等待，由 checkRateLimit 的冷却队列统一控制
-      if (attempt < maxRetries - 1) {
+      if (attempt < totalAttempts - 1) {
         if (isRateLimited) {
           // 直接进入下一次循环，checkRateLimit 会阻塞到冷却结束
           continue;
@@ -182,7 +188,7 @@ TranslationService.prototype.translate = async function (
           setTimeout(resolve, baseDelay * Math.pow(2, attempt))
         );
         // 退避等待期间用户取消：不再发起下一次尝试
-        if (typeof translationIsCancelled === "function" && translationIsCancelled()) {
+        if (shouldCancel()) {
           throw typeof translationMakeCancelError === "function"
             ? translationMakeCancelError()
             : Object.assign(new Error("用户取消"), { code: "USER_CANCELLED" });

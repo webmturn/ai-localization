@@ -128,9 +128,11 @@ function translationMarkAllAsErrors(items, errorsArray, errorMsg, extra = {}) {
  * BatchProgressStore 不存在时视为未取消（保持既有行为）。
  * @returns {boolean}
  */
-function translationIsCancelled() {
+function translationIsCancelled(generation) {
   try {
     if (typeof BatchProgressStore === "undefined" || !BatchProgressStore) return false;
+    if (generation !== undefined && typeof BatchProgressStore.getGeneration === "function" &&
+        generation !== BatchProgressStore.getGeneration()) return true;
     if (typeof BatchProgressStore.isUserCancelled !== "function") return false;
     return !!BatchProgressStore.isUserCancelled();
   } catch (e) {

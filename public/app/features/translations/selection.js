@@ -109,6 +109,7 @@ function updateSelectionStyles() {
   // 默认「不滚动」，只有显式传入 shouldScroll: true（例如键盘导航）时才滚动
   const shouldScroll = options.shouldScroll === true;
   const shouldFocusTextarea = options.shouldFocusTextarea !== false;
+  App.ui.translationWorkspace?.refresh();
 
   // 最小揭示滚动：仅当条目越界时滚动到刚好可见（留约一行上下文），
   // 已完全可见则不动。避免"每次选中都跳到视口中央"的大幅跳动。
@@ -251,14 +252,15 @@ function clearMultiSelection() {
 
 function toggleMultiSelection(index) {
   const selected = AppState.translations.multiSelected || [];
-  const next = new Set(selected);
+  const primary = AppState.translations.selected;
+  const next = new Set(selected.length ? selected : primary >= 0 ? [primary] : []);
   if (next.has(index)) {
     next.delete(index);
   } else {
     next.add(index);
   }
   TranslationViewStore.setMultiSelection(Array.from(next));
-  TranslationViewStore.setSelection(index);
+  TranslationViewStore.setSelection(next.has(index) ? index : next.size ? Array.from(next).pop() : -1);
   // 多选切换也不自动滚动，只更新样式
   updateSelectionStyles({ shouldScroll: false, shouldFocusTextarea: false });
 }
@@ -272,12 +274,6 @@ function selectCurrentPageTranslationItems() {
   let filtered = Array.isArray(AppState?.translations?.filtered)
     ? AppState.translations.filtered
     : [];
-  if (filtered.length === 0) {
-    filtered =
-      typeof TranslationViewStore !== "undefined"
-        ? TranslationViewStore.getViewItems()
-        : all;
-  }
   if (filtered.length === 0) return;
 
   // 虚拟滚动模式：选择当前可见范围内的项
@@ -361,6 +357,7 @@ function updateTranslationItem(index, targetText) {
     const item = AppState.project.translationItems[index];
     const oldStatus = item.status;
     const oldTargetText = item.targetText || "";
+    if (oldTargetText === targetText) return;
     item.targetText = targetText;
 
     // 只有当译文不为空时才设置为已编辑，避免清空时也标记为已编辑
@@ -383,17 +380,21 @@ function updateTranslationItem(index, targetText) {
 
     // 更新计数器
     updateCounters();
+    if (!!String(oldTargetText).trim() !== !!String(targetText || "").trim()) {
+      updateFileTree();
+    }
 
     // 只有当状态改变时才更新状态标签，避免每次输入都重渲染
     if (oldStatus !== item.status) {
       updateStatusBadge(index, item.status);
     }
+    syncTranslationHeights();
   }
 }
 
 // 更新单个项的状态标签（不重渲染整个列表）
 function updateStatusBadge(index, newStatus) {
-  const sourceList = DOMCache.get("sourceList");
+  const sourceList = DOMCache.get("targetList");
   const mobileCombinedList = DOMCache.get("mobileCombinedList");
   if (!sourceList && !mobileCombinedList) return;
 
@@ -405,22 +406,24 @@ function updateStatusBadge(index, newStatus) {
     if (sourceList) {
       const item = sourceList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
       if (item) {
-        const badge = item.querySelector("span.text-xs");
+        const badge = item.querySelector(".translation-status");
         if (badge) {
           badge.textContent = statusText;
-          badge.className = statusClassName;
+          badge.className = `translation-status ${statusClassName}`;
         }
+        App.ui.translationWorkspace?.refreshReviewControl(item, AppState.project.translationItems[index]);
       }
     }
 
     if (mobileCombinedList) {
       const item = mobileCombinedList.querySelector(`.responsive-translation-item[data-index="${index}"]`);
       if (item) {
-        const badge = item.querySelector("span.text-xs");
+        const badge = item.querySelector(".translation-status");
         if (badge) {
           badge.textContent = statusText;
-          badge.className = statusClassName;
+          badge.className = `translation-status ${statusClassName}`;
         }
+        App.ui.translationWorkspace?.refreshReviewControl(item, AppState.project.translationItems[index]);
       }
     }
   });
@@ -428,9 +431,9 @@ function updateStatusBadge(index, newStatus) {
 
 // 更新计数器
 function updateCounters() {
-  if (!AppState.project) return;
-
-  const items = AppState.project.translationItems || [];
+  const allItems = AppState.project?.translationItems || [];
+  const file = AppState.translations.selectedFile;
+  const items = file ? allItems.filter((item) => item.metadata?.file === file) : allItems;
   const total = items.length;
   const translated = items.filter(
     (item) =>
@@ -441,6 +444,8 @@ function updateCounters() {
 
   // 使用 batchUpdate 合并计数器 DOM 写入（每次编辑都会触发）
   DOMCache.batchUpdate("counters", function () {
+    if (App.ui.workspaceLayout) App.ui.workspaceLayout.updateContext(allItems, items);
+    App.ui.translationWorkspace?.refresh();
     const sourceCountEl = DOMCache.get("sourceCount");
     const targetCountEl = DOMCache.get("targetCount");
     if (sourceCountEl) sourceCountEl.textContent = `${total} 项`;

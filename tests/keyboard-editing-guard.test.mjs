@@ -103,6 +103,73 @@ beforeAll(() => {
 });
 
 describe("键盘：编辑上下文中的行为对照", () => {
+  it.each(["helpModal", "aboutModal"])("%s 内的按键不触发后台翻译或条目导航", (id) => {
+    const env = loadKeyboard("CUR");
+    const modal = document.createElement("div");
+    modal.id = id;
+    const button = document.createElement("button");
+    modal.appendChild(button);
+    document.body.appendChild(modal);
+    try {
+      for (const combo of [{ key: "ArrowDown" }, { key: "Enter", shiftKey: true }, { key: "Enter", ctrlKey: true }]) {
+        const result = press(env, { ...combo, target: button });
+        expect(result.calls).toEqual([]);
+        expect(result.prevented).toBe(false);
+      }
+    } finally { modal.remove(); }
+  });
+  it("页码输入中的 Esc 撤销输入，保留筛选和设置面板", () => {
+    const env = loadKeyboard("CUR");
+    vm.runInContext(`AppState.translations.currentPage = 2;
+      window.App = {ui:{workspaceLayout:{closePanelIfOpen(){globalThis.__calls.push('closePanel');return true;}}}};`, env.sandbox);
+    const pageInput = document.createElement('input');
+    pageInput.id = 'sourcePageInput'; pageInput.value = '99';
+    const result = press(env, {key:'Escape', target:pageInput});
+    expect(result.prevented).toBe(true);
+    expect(pageInput.value).toBe('2');
+    expect(result.calls).toEqual([]);
+  });
+  it("列表 Tab 调用跨页导航，文件末尾放行正常焦点切换", () => {
+    const env = loadKeyboard("CUR");
+    const list = document.createElement("div");
+    list.id = "targetList";
+    const editor = document.createElement("textarea");
+    editor.dataset.index = "19";
+    list.appendChild(editor);
+    document.body.appendChild(list);
+    vm.runInContext(`window.App = {ui:{translationWorkspace:{
+      navigate(index, direction){ globalThis.__calls.push([index, direction]); return true; }
+    }}};`, env.sandbox);
+    let result = press(env, {key:"Tab", target:editor});
+    expect(result.prevented).toBe(true);
+    expect(result.calls).toEqual([[19, 1]]);
+    result = press(env, {key:"Tab", shiftKey:true, target:editor});
+    expect(result.calls).toEqual([[19, -1]]);
+    vm.runInContext(`window.App.ui.translationWorkspace.navigate = () => false;`, env.sandbox);
+    result = press(env, {key:"Tab", target:editor});
+    expect(result.prevented).toBe(false);
+    list.remove();
+  });
+  it("全局 Esc 捕获监听关闭校对设置侧栏", () => {
+    const env = loadKeyboard("CUR");
+    vm.runInContext(`window.App = { ui: { workspaceLayout: {
+      closePanelIfOpen(){ globalThis.__calls.push("closeWorkspacePanel"); return true; }
+    } } };`, env.sandbox);
+    const c = press(env, { key: "Escape", target: input });
+    expect(c.prevented).toBe(true);
+    expect(c.calls).toEqual(["closeWorkspacePanel"]);
+  });
+
+  it("Esc 优先关闭模态框，保留其后面的校对设置侧栏", () => {
+    const env = loadKeyboard("CUR");
+    vm.runInContext(`window.App = { ui: { workspaceLayout: {
+      closePanelIfOpen(){ globalThis.__calls.push("closeWorkspacePanel"); return true; }
+    } } };
+    globalThis.DOMCache.queryAll = () => [{classList:{contains:()=>false}}];
+    globalThis.closeModal = () => globalThis.__calls.push("closeModal");`, env.sandbox);
+    const c = press(env, { key: "Escape", target: input });
+    expect(c.calls).toEqual(["closeModal"]);
+  });
   it("Shift+Enter 在 textarea 内：修复前基线会触发全量翻译，当前不会", () => {
     const c = press(cur, { key: "Enter", shiftKey: true, target: textarea });
     // 当前实现必须不触发、不吞默认行为

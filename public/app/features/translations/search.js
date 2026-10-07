@@ -18,7 +18,7 @@ function invalidateSearchCache() {
 
 // __devLog 已在 render.js 中定义，此处不再重复
 
-function applySearchFilter() {
+function applySearchFilter(options) {
   try {
     if (
       !AppState.project ||
@@ -99,15 +99,21 @@ function applySearchFilter() {
       lastSearchQuery = query;
     }
 
+    const statusFilter = AppState.translations.statusFilter || "all";
+    if (statusFilter !== "all") {
+      TranslationViewStore.setFilter(AppState.translations.filtered.filter((item) => {
+        return TranslationViewStore.matchesStatus(item);
+      }));
+    }
     __devLog("搜索过滤完成，结果数量:", AppState.translations.filtered.length);
 
     // 重置到第一页
-    TranslationViewStore.setPage(1);
+    const totalPages = Math.max(1, Math.ceil(AppState.translations.filtered.length / AppState.translations.itemsPerPage));
+    TranslationViewStore.setPage(options?.preservePage ? Math.min(AppState.translations.currentPage, totalPages) : 1);
   } catch (error) {
     (loggers.app || console).error("应用搜索过滤时出错:", error);
-    TranslationViewStore.setFilter(
-      AppState.project ? [...AppState.project.translationItems] : []
-    );
+    // 出错时也不扩大到其他文件或把空结果替换为全项目。
+    TranslationViewStore.setFilter([]);
   }
 }
 
@@ -128,23 +134,33 @@ function updatePaginationUI(
       const sourceStartRange = DOMCache.get("sourceStartRange");
       const sourceEndRange = DOMCache.get("sourceEndRange");
       const sourceTotalItems = DOMCache.get("sourceTotalItems");
-      const sourcePageInfo = DOMCache.get("sourcePageInfo");
+      const sourcePageInput = DOMCache.get("sourcePageInput");
+      const sourceTotalPages = DOMCache.get("sourceTotalPages");
+      const pageCount = Math.max(1, totalPages);
 
       if (sourceStartRange)
         sourceStartRange.textContent = totalItems > 0 ? startRange : 0;
       if (sourceEndRange)
         sourceEndRange.textContent = totalItems > 0 ? endRange : 0;
       if (sourceTotalItems) sourceTotalItems.textContent = totalItems;
-      if (sourcePageInfo) sourcePageInfo.textContent = `第 ${currentPage} 页`;
+      if (sourceTotalPages) sourceTotalPages.textContent = pageCount;
+      if (sourcePageInput) {
+        sourcePageInput.value = currentPage;
+        sourcePageInput.disabled = totalItems === 0 || pageCount === 1;
+        sourcePageInput.title = `输入 1–${pageCount} 的页码，按 Enter 跳转`;
+      }
+      const pageSize = DOMCache.get("paginationPageSize");
+      if (pageSize) pageSize.value = itemsPerPage;
+      DOMCache.get("paginationFilterHint")?.classList.toggle("hidden", !AppState.translations.searchQuery && (!AppState.translations.statusFilter || AppState.translations.statusFilter === "all"));
 
       // 更新分页按钮状态
       const sourcePrevBtn = DOMCache.get("sourcePrevBtn");
       const sourceNextBtn = DOMCache.get("sourceNextBtn");
 
       if (sourcePrevBtn) sourcePrevBtn.disabled = currentPage === 1;
-      if (sourceNextBtn) sourceNextBtn.disabled = currentPage === totalPages;
+      if (sourceNextBtn) sourceNextBtn.disabled = currentPage >= totalPages;
 
-      // 显示或隐藏分页控件
+      // 单页及空结果保留统计；隐藏翻页操作但保留其空间，筛选时底部不跳动。
       const paginationContainer = DOMCache.get("paginationContainer");
       __devLog(
         `分页信息: 总项数=${totalItems}, 每页项数=${itemsPerPage}, 是否显示=${
@@ -153,11 +169,11 @@ function updatePaginationUI(
       );
 
       if (paginationContainer) {
-        if (totalItems > itemsPerPage) {
-          paginationContainer.classList.remove("hidden");
-        } else {
-          paginationContainer.classList.add("hidden");
-        }
+        paginationContainer.classList.remove("hidden");
+        paginationContainer.dataset.singlePage = String(pageCount === 1);
+        const navigation = paginationContainer.querySelector(".pagination-navigation");
+        navigation?.setAttribute("aria-hidden", String(pageCount === 1));
+        if (navigation) navigation.inert = pageCount === 1;
       }
     } catch (error) {
       (loggers.app || console).error("更新分页UI时出错:", error);
@@ -178,6 +194,10 @@ function handleSearchInput() {
 
 // 处理分页导航
 function handlePagination(direction) {
+  if (typeof App !== "undefined" && App.ui.translationWorkspace?.jumpToPage) {
+    App.ui.translationWorkspace.jumpToPage(AppState.translations.currentPage + (direction === "prev" ? -1 : 1));
+    return;
+  }
   try {
     __devLog("分页导航开始，方向:", direction);
     __devLog("当前页:", AppState.translations.currentPage);

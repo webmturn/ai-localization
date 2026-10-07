@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="application-version" content="1.3.3">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Permissions-Policy" content="interest-cohort=(), user-id=(), storage-access=(self)">
     <title>智能翻译工具 - 多格式本地化翻译助手</title>
@@ -16,17 +17,24 @@
     <link rel="stylesheet" href="styles.css">
     
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-50 min-h-screen flex flex-col">
+<body class="proofreading-layout desktop-settings-collapsed bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-50 min-h-screen flex flex-col">
     <!-- 视口容器：固定高度 100vh，防止内部内容撑开整页和左右侧栏 -->
     <div id="appViewport" class="flex flex-col overflow-hidden">
     <!-- 顶部导航栏 -->
     <header class="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm dark:shadow-dark-elevated border-b border-gray-200 dark:border-gray-700">
         <div class="w-full px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2 sm:space-x-2.5">
+            <div class="workspace-brand flex items-center space-x-2 sm:space-x-2.5">
                 <span class="logo-badge" aria-hidden="true"><i class="fa-solid fa-language"></i></span>
                 <h1 class="text-base sm:text-xl font-bold text-primary font-display tracking-tight"><span class="hidden sm:inline">智能翻译工具</span><span class="sm:hidden">翻译</span></h1>
             </div>
+            <div class="workspace-project-context">
+                <span id="workspaceProjectName" class="font-semibold truncate">尚未打开项目</span>
+                <span id="workspaceProjectCount" class="text-xs text-gray-500 dark:text-gray-400">0 项</span>
+            </div>
             <div class="flex items-center space-x-1 sm:space-x-4">
+                <button id="workspaceExportBtn" type="button" class="workspace-header-export btn-brand px-3 py-1.5 text-sm text-white rounded-lg" title="导出项目中的翻译文件" disabled>
+                    <i class="fa-solid fa-download mr-2" aria-hidden="true"></i>导出项目
+                </button>
                 <button id="newProjectBtn" class="btn-brand flex items-center px-2.5 sm:px-3 py-1.5 sm:py-1.5 text-white rounded-lg transition-all text-xs sm:text-sm min-h-[36px]" title="新建项目 (Ctrl+Alt+N)">
                     <i class="fa-solid fa-plus sm:mr-2"></i><span class="hidden sm:inline">新建项目</span>
                 </button>
@@ -131,7 +139,7 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <div class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+            <div id="fileImportSection" class="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
                 <div id="fileDropArea" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900/40 data-[active=true]:border-primary data-[active=true]:bg-blue-50 dark:data-[active=true]:bg-blue-500/10 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-primary transition-colors">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl sm:text-3xl text-gray-500 dark:text-gray-500 mb-2"></i>
                     <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">拖拽文件到此处或</p>
@@ -171,9 +179,14 @@
         </aside>
 
         <!-- 中央翻译工作区 -->
-        <section class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden">
+        <section id="translationWorkspace" class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="workspace-file-context border-b border-gray-200 dark:border-gray-700">
+                <i class="fa-regular fa-file-lines text-primary" aria-hidden="true"></i>
+                <span id="workspaceFileName" class="font-medium truncate">全部项目条目</span>
+                <span id="workspaceFileProgress" class="text-xs text-gray-500 dark:text-gray-400">已完成 0/0 项</span>
+            </div>
             <!-- 工具栏（flex-wrap：中间区被侧栏压缩时换行而非裁切） -->
-            <div class="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 min-w-0">
+            <div id="translationToolbar" class="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 min-w-0">
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 max-w-screen-2xl min-w-0">
                     <!-- 语言选择器（移动端紧凑） -->
                     <div class="language-switcher toolbar-control flex-shrink min-w-0">
@@ -204,11 +217,11 @@
 
                     <!-- 翻译操作按钮 -->
                     <div class="toolbar-actions flex items-center space-x-2 flex-shrink-0">
-                        <button id="translateSelectedBtn" class="toolbar-btn toolbar-btn-primary btn-brand px-3 sm:px-4 py-2 text-white rounded-lg transition-all flex items-center justify-center text-xs sm:text-sm font-medium" title="翻译选中项" aria-label="翻译选中项">
-                            <i class="fa-solid fa-language mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">翻译选中</span><span class="sm:hidden">翻译</span>
+                        <button id="translateAllBtn" class="toolbar-btn translation-action-primary px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center text-xs sm:text-sm font-medium" title="翻译当前文件中的待翻译项" aria-label="翻译当前文件">
+                            <i class="fa-solid fa-bolt mr-2"></i>翻译当前文件
                         </button>
-                        <button id="translateAllBtn" class="toolbar-btn hidden sm:flex px-3 py-2 border-0 bg-transparent text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors items-center justify-center text-sm font-medium" title="翻译所有项" aria-label="翻译所有项">
-                            <i class="fa-solid fa-bolt mr-2"></i>全部翻译
+                        <button id="translateSelectedBtn" class="toolbar-btn translation-action-secondary px-3 py-2 rounded-lg transition-colors flex items-center justify-center text-xs sm:text-sm font-medium" title="翻译选中项" aria-label="翻译选中项" disabled>
+                            <i class="fa-solid fa-language mr-1.5 sm:mr-2"></i><span data-role="translation-selection-label">翻译选中</span>
                         </button>
                     </div>
 
@@ -256,6 +269,14 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="workspace-review-bar">
+                <select id="translationStatusFilter" aria-label="筛选翻译状态" title="筛选翻译状态">
+                    <option value="all">全部条目</option><option value="pending">待翻译</option><option value="unreviewed">待校对</option><option value="reviewed">已校对</option>
+                </select>
+                <button id="reviewSelectedBtn" type="button" class="workspace-review-button" disabled title="标记选中的非空译文为已校对">标记已校对</button>
+                <button id="workspaceEngineSummary" type="button" class="workspace-engine-summary" title="查看翻译引擎设置" aria-label="查看翻译引擎设置"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>翻译引擎</span></button>
             </div>
 
             <!-- 常驻翻译进度条（批量翻译时显示，无需打开模态框即可查看进度） -->
@@ -362,29 +383,43 @@
             </div>
             
             <!-- 统一的分页控件 -->
-            <div id="paginationContainer" class="hidden min-h-14 sm:min-h-16 lg:min-h-[4.5rem] h-14 sm:h-16 lg:h-[4.5rem] flex items-center justify-center border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                <div class="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 h-full flex flex-col sm:flex-row items-center justify-between py-2 sm:py-4">
-                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-0 sm:order-1">
-                        显示 <span id="sourceStartRange" class="font-semibold text-gray-800 dark:text-gray-200">1</span>-<span id="sourceEndRange" class="font-semibold text-gray-800 dark:text-gray-200">20</span> 项，共 <span id="sourceTotalItems" class="font-semibold text-gray-800 dark:text-gray-200">49</span> 项
+            <div id="paginationContainer" class="translation-pagination border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900" role="navigation" aria-label="翻译列表分页" data-single-page="true">
+                <div class="pagination-inner">
+                    <div class="pagination-summary">
+                        <span><span id="sourceStartRange">0</span>–<span id="sourceEndRange">0</span>，共 <span id="sourceTotalItems">0</span> 项<span id="paginationFilterHint" class="hidden">（筛选结果）</span></span>
+                        <span class="workspace-keyboard-hint" title="在译文中按 Tab 到下一条，Shift+Tab 到上一条，可自动跨页"><i class="fa-regular fa-keyboard" aria-hidden="true"></i> Tab 切换条目</span>
                     </div>
-                    <div id="sourcePagination" class="flex items-center space-x-2 sm:order-2">
-                        <button id="sourcePrevBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all" title="上一页" aria-label="上一页" disabled>
-                            <i class="fa-solid fa-chevron-left text-gray-700 dark:text-gray-200 text-sm"></i>
-                        </button>
-                        <div id="sourcePageInfo" class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 min-w-[80px] sm:min-w-[100px] text-center">第 1 页</div>
-                        <button id="sourceNextBtn" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all" title="下一页" aria-label="下一页">
-                            <i class="fa-solid fa-chevron-right text-gray-700 dark:text-gray-200 text-sm"></i>
-                        </button>
+                    <div id="sourcePagination" class="pagination-controls">
+                        <select id="paginationPageSize" aria-label="每页显示数量" title="每页显示数量"><option value="10">10 条/页</option><option value="20" selected>20 条/页</option><option value="30">30 条/页</option><option value="50">50 条/页</option><option value="100">100 条/页</option></select>
+                        <div class="pagination-navigation">
+                            <button id="sourcePrevBtn" type="button" title="上一页" aria-label="上一页" disabled><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                            <div id="sourcePageInfo" class="pagination-page-entry">
+                                <input id="sourcePageInput" type="text" inputmode="numeric" pattern="[0-9]*" value="1" autocomplete="off" aria-label="跳转页码" title="输入页码，按 Enter 跳转" disabled>
+                                <span>/ <span id="sourceTotalPages">1</span> 页</span>
+                            </div>
+                            <button id="sourceNextBtn" type="button" title="下一页" aria-label="下一页" disabled><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                     <div id="targetPagination" class="hidden"></div>
                 </div>
             </div>
         </section>
 
+        <nav id="workspaceToolRail" class="workspace-tool-rail bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700" aria-label="工作区工具">
+            <button id="workspaceSettingsBtn" type="button" class="workspace-rail-button" aria-controls="rightSidebar" aria-expanded="false" title="展开或收起翻译设置"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>设置</span></button>
+            <button id="workspaceTerminologyBtn" type="button" class="workspace-rail-button" title="打开术语库"><i class="fa-solid fa-book" aria-hidden="true"></i><span>术语</span></button>
+            <div id="workspaceMemorySlot" class="workspace-memory-slot"></div>
+            <button id="workspaceQualityBtn" type="button" class="workspace-rail-button" title="打开质量检查"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>质量</span></button>
+            <button id="workspacePreferencesBtn" type="button" class="workspace-rail-button workspace-preferences-button" title="打开完整设置，自定义界面布局"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>偏好</span></button>
+        </nav>
         <!-- 右侧工具栏和设置面板 -->
         <aside id="rightSidebar" class="w-full md:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col min-h-0 fixed md:relative inset-0 md:inset-auto z-[42] md:z-auto transform translate-x-full md:translate-x-0 transition-transform duration-300 mobile-sidebar-right">
             <!-- 拖拽调整手柄 -->
             <div class="sidebar-resizer sidebar-resizer-right hidden md:block" data-sidebar="right" title="拖拽调整宽度"></div>
+            <div class="workspace-settings-heading border-b border-gray-200 dark:border-gray-700">
+                <span class="font-medium text-sm">翻译设置</span>
+                <button id="workspaceCloseSettingsBtn" type="button" class="workspace-close-button" title="收起翻译设置" aria-label="收起翻译设置"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
             <!-- 移动端关闭按钮 -->
             <button id="closeRightSidebarBtn" class="md:hidden absolute right-3 top-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 z-10 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="关闭设置面板" aria-label="关闭设置面板">
                 <i class="fa-solid fa-xmark"></i>
@@ -419,7 +454,10 @@
                             </select>
                         </div>
                         <div>
-                            <label for="sidebarTranslationEngine" class="block text-sm text-gray-600 dark:text-gray-300 mb-1">选择翻译引擎</label>
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <label for="sidebarTranslationEngine" class="text-sm text-gray-600 dark:text-gray-300">选择翻译引擎</label>
+                                <button id="openCustomEngineBtn" type="button" class="inline-flex items-center gap-1.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-blue-400 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" title="管理自定义引擎" aria-label="管理自定义引擎"><i class="fa-solid fa-plug" aria-hidden="true"></i><span>自定义引擎</span><span id="customEngineCountBadge"></span></button>
+                            </div>
                             <select id="sidebarTranslationEngine" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" title="选择翻译引擎" aria-label="选择翻译引擎">
                                 <option value="deepseek">DeepSeek</option>
                                 <option value="openai">OpenAI</option>
@@ -446,13 +484,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- flex-shrink-0：侧栏高度不足时不被挤压，由设置面板内部滚动 -->
-            <div class="px-4 pb-3 space-y-2 flex-shrink-0">
-                <button id="openFullSettingsBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="打开完整设置"><i class="fa-solid fa-sliders mr-2 text-blue-500"></i>完整设置<span class="ml-auto text-xs text-gray-500 dark:text-gray-400">API/外观/高级</span></button>
-                <button id="openTMManagerBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="翻译记忆库管理"><i class="fa-solid fa-brain mr-2 text-purple-500"></i>翻译记忆库<span id="tmCountBadge" class="ml-auto text-xs text-gray-500 dark:text-gray-400"></span></button>
-                <button id="openCustomEngineBtn" class="w-full flex items-center px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="自定义引擎配置"><i class="fa-solid fa-plug mr-2 text-green-500"></i>自定义引擎<span id="customEngineCountBadge" class="ml-auto text-xs text-gray-500 dark:text-gray-400"></span></button>
+                <div id="sidebarMemorySlot">
+                    <button id="openTMManagerBtn" type="button" class="sidebar-memory-button" title="打开翻译记忆库，管理已有译文" aria-label="打开翻译记忆库"><i class="fa-solid fa-brain" aria-hidden="true"></i><span class="memory-full-label">翻译记忆库</span><span class="memory-rail-label">记忆</span><span id="tmCountBadge" class="memory-count-badge"></span></button>
+                </div>
             </div>
 
             <!-- 底部操作按钮（flex-shrink-0 防挤压） -->
@@ -1314,6 +1348,26 @@
                         <div class="settings-tab-content" data-tab="appearance">
                             <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">外观设置</h4>
                             <div class="space-y-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div><label for="desktopLayout" class="text-sm font-medium text-gray-700 dark:text-gray-300">桌面工作区布局</label><p class="text-xs text-gray-500 dark:text-gray-400 mt-1">校对优先提供更宽的原文和译文区域</p></div>
+                                    <select id="desktopLayout" class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md" title="桌面工作区布局">
+                                        <option value="proofreading" selected>校对优先</option><option value="classic">经典三栏</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <div><label for="desktopSettingsPanel" class="text-sm font-medium text-gray-700 dark:text-gray-300">设置面板默认状态</label><p class="text-xs text-gray-500 dark:text-gray-400 mt-1">用于校对布局，可随时点击右侧「设置」展开</p></div>
+                                    <select id="desktopSettingsPanel" class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md" title="设置面板默认状态">
+                                        <option value="collapsed" selected>收起</option><option value="expanded">展开</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                    <div><label for="compactFileImport" class="text-sm font-medium text-gray-700 dark:text-gray-300">紧凑文件导入区</label><p class="text-xs text-gray-500 dark:text-gray-400 mt-1">桌面导入文件后缩小上传区，保留拖拽导入</p></div>
+                                    <input id="compactFileImport" type="checkbox" class="w-4 h-4 accent-primary" checked>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <div><label for="translationDensity" class="text-sm font-medium text-gray-700 dark:text-gray-300">翻译列表密度</label><p class="text-xs text-gray-500 dark:text-gray-400 mt-1">紧凑便于连续校对，舒适提供更多行间留白</p></div>
+                                    <select id="translationDensity" class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md" title="翻译列表密度"><option value="compact" selected>紧凑</option><option value="comfortable">舒适</option></select>
+                                </div>
                                 <div class="flex items-center justify-between">
                                     <label class="text-sm font-medium text-gray-700 dark:text-gray-300">主题模式</label>
                                     <select id="themeMode" class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="主题模式" aria-label="主题模式">
@@ -1349,7 +1403,7 @@
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">在原文列表左侧显示选中提示条（译文列表不显示）</p>
                                     </div>
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                        <input id="sourceSelectionIndicatorEnabled" type="checkbox" class="sr-only peer" title="原文选中提示条" aria-label="原文选中提示条">
+                                        <input id="sourceSelectionIndicatorEnabled" type="checkbox" class="sr-only peer" title="原文选中提示条" aria-label="原文选中提示条" checked>
                                         <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
                                 </div>
@@ -1389,7 +1443,10 @@
                                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">切换查看 AI 引擎或传统引擎的专属设置</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">默认翻译引擎</label>
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <label for="defaultEngine" class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">默认翻译引擎</label>
+                                        <button id="openSettingsCustomEngineBtn" type="button" class="inline-flex items-center gap-1.5 flex-shrink-0 py-1 text-xs text-primary dark:text-blue-400 hover:underline rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" title="管理自定义引擎" aria-label="管理自定义引擎"><i class="fa-solid fa-plug" aria-hidden="true"></i><span>自定义引擎</span></button>
+                                    </div>
                                     <select id="defaultEngine" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" title="默认翻译引擎" aria-label="默认翻译引擎">
                                         <optgroup label="AI 翻译">
                                             <option value="deepseek" selected>DeepSeek</option>
@@ -2160,246 +2217,44 @@
         </div>
     </div>
 
-    <!-- 帮助模态框 -->
-    <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
-        <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="sticky top-0 bg-white dark:bg-gray-800 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
-                <h3 id="helpModalTitle" class="text-lg sm:text-xl font-medium text-gray-900 dark:text-gray-100">帮助文档</h3>
-                <button class="close-modal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+    <!-- 帮助中心：内容和当前快捷键由 help-center.js 填充 -->
+    <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" class="help-dialog fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="modal-content help-center">
+            <header class="help-header">
+                <div class="help-heading">
+                    <span class="help-brand-icon"><i class="fa-solid fa-circle-question" aria-hidden="true"></i></span>
+                    <div><h3 id="helpModalTitle">帮助中心</h3><p>从文件导入到逐条校对</p></div>
+                </div>
+                <button type="button" class="close-modal help-close" title="关闭帮助" aria-label="关闭"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
+            <div class="help-body">
+                <aside class="help-sidebar"><p class="help-nav-caption">使用指南</p><nav id="helpNavigation" aria-label="帮助主题"></nav><div class="help-mobile-navigation"><label for="helpTopicSelect">帮助主题</label><select id="helpTopicSelect" aria-controls="helpSections"></select></div><p class="help-sidebar-note">先翻译，再校对。<br />让每条译文都有把握。</p></aside>
+                <div id="helpContent" class="help-content" tabindex="0" aria-label="帮助正文">
+                    <div id="helpSections"></div>
+                </div>
             </div>
-            <div class="p-4 sm:p-6 overflow-y-auto flex-1">
-                <!-- 快速开始 -->
-                <section class="mb-8">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa-solid fa-rocket text-primary mr-2"></i>快速开始
-                    </h4>
-                    <div class="space-y-4">
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">1. 导入文件</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">点击上方「浏览文件」或拖拽文件到上传区域。支持 XML、Android strings.xml、XLIFF（.xlf/.xliff）、JSON、YAML、CSV/TSV、PO、RESX、iOS Strings、Qt TS 等格式；其他扩展名会按文本方式尝试解析。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">2. 查看翻译项</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">解析后翻译项显示在中间面板，左侧为原文、右侧为译文。可使用搜索、筛选和分页快速定位。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">3. 执行翻译</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">选中需要翻译的项，点击「翻译选中」或「翻译全部」。使用在线引擎（OpenAI / DeepSeek / Google）时，请先在「设置」→「翻译」中配置对应 API Key。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">4. 导出结果</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">翻译完成后，在右侧面板点击「导出翻译」并选择格式。首次导出会按需加载组件，可能稍慢一次，之后会恢复正常。</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 主要功能 -->
-                <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa-solid fa-star text-primary mr-2"></i>主要功能
-                    </h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">📁 项目管理</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">新建、打开、保存翻译项目，支持多文件与多格式管理。</p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">🌐 多语言与引擎</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">支持多语种互译；可选 OpenAI、DeepSeek、Google 等在线引擎或仅编辑不翻译。</p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">📚 术语库</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">管理术语表，翻译时自动应用，保证用词一致。</p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">✅ 质量检查</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">自动检测空译文、长度异常、占位符缺失、数字不一致、HTML标签不匹配等问题，并生成可导出的报告。</p>
-                        </div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg md:col-span-2">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">⚙️ 设置与外观</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">在「设置」中可配置主题（浅色/深色/跟随系统）、字体大小（小/中/大）、每页条数、自动保存间隔等。快捷键 <kbd class="px-1.5 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + ,</kbd> 可快速打开设置（焦点在输入框内时请先点击空白处）。</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 快捷键 -->
-                <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa-regular fa-keyboard text-primary mr-2"></i>快捷键
-                    </h4>
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">打开设置</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + ,</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">新建项目</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + N</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">打开项目</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + O</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">保存项目</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + S</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">搜索翻译项</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + F</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">翻译选中 / 翻译全部</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Enter / Shift+Enter</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">取消翻译（进行中）</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + .</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">全选当前页翻译项</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + A</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">清除选中项译文</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Shift + Backspace/Delete</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">上一条 / 下一条翻译项</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + ↑/↓</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">上一页 / 下一页</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + [ / ]</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">打开术语库</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + T</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">运行质量检查</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + R</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">打开质量检查报告</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Ctrl/⌘ + Alt + Q</kbd>
-                        </div>
-                        <div class="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-900 rounded">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">关闭模态框 / 清空多选</span>
-                            <kbd class="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">Esc</kbd>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 常见问题 -->
-                <section class="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa-solid fa-circle-question text-primary mr-2"></i>常见问题
-                    </h4>
-                    <div class="space-y-4">
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 支持哪些文件格式？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 支持 XML、Android strings.xml、iOS Strings、JSON、YAML、CSV/TSV、XLIFF、PO、RESX、Qt TS 等。其他扩展名会按文本方式尝试解析。</p>
-                        </div>
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 如何配置 API 密钥？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 打开「设置」→「翻译」，在所选引擎下填写 API Key，会自动保存。所选引擎未配置或无效时，批量翻译会中止并提示。</p>
-                        </div>
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 为什么第一次导出/术语导入导出/质量检查会慢？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 为加快首屏加载，相关模块和 Chart.js、SheetJS 为按需加载，首次使用会加载一次，之后会正常。</p>
-                        </div>
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 数据存储在哪里？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 项目与设置等数据均保存在浏览器本地（localStorage + IndexedDB），不会上传到任何服务器。自动保存功能默认每10秒检查并保存更改。</p>
-                        </div>
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 如何暂停/恢复自动保存？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 可在控制台使用 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">autoSaveManager.pause()</code> 暂停，<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">autoSaveManager.resume()</code> 恢复。</p>
-                        </div>
-                        <div>
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-1">Q: 质量检查包含哪些项目？</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 pl-4">A: 包括空译文、长度异常、占位符缺失、数字不一致、标点符号异常、重复词、HTML标签不匹配、未翻译检测等。</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 开发与部署 -->
-                <section class="border-t border-gray-200 dark:border-gray-700 pt-8">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <i class="fa-solid fa-folder-open text-primary mr-2"></i>开发与部署
-                    </h4>
-                    <div class="space-y-4">
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">入口与本地使用</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">入口为 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">public/index.html</code>，浏览器打开即可使用。支持 file:// 直接打开；若遇网络或跨域限制，可换浏览器或调整网络/代理。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">样式构建</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">样式由 Tailwind 构建，输出到 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">public/styles.css</code>。常用：<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">npm run build-css</code> 生成样式，<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">npm run watch-css</code> 开发时监听。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">第三方库</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">资源在 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">public/lib/</code>，可用 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">npm run update-cdn</code> 更新。Chart.js、SheetJS 等为按需加载。</p>
-                        </div>
-                        <div class="pl-6">
-                            <h5 class="font-medium text-gray-800 dark:text-gray-200 mb-2">部署</h5>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">仅需发布 <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">public/</code> 目录即可。</p>
-                        </div>
-                    </div>
-                </section>
-            </div>
+            <footer class="help-footer"><span>设置和资源入口可从说明中直接打开。</span><button id="helpAboutBtn" type="button" class="help-text-button">关于此工具 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></footer>
         </div>
     </div>
 
-    <!-- 关于模态框 -->
-    <div id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4 overflow-y-auto">
-        <div class="modal-content bg-white dark:bg-gray-800 dark:text-gray-100 dark:border dark:border-gray-700 rounded-lg shadow-xl dark:shadow-dark-elevated w-full max-w-md">
-            <div class="p-6 text-center">
-                <button class="close-modal absolute top-4 right-4 text-gray-500 hover:text-gray-500 dark:hover:text-gray-200" title="关闭" aria-label="关闭">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <div class="w-20 h-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-language text-4xl text-primary"></i>
+    <!-- 关于：版本号在构建时与 package.json 同步 -->
+    <div id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle" class="help-dialog fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="modal-content about-dialog">
+            <header class="about-header"><h3 id="aboutModalTitle">关于智能翻译工具</h3><button type="button" class="close-modal help-close" title="关闭关于" aria-label="关闭"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
+            <div class="about-content">
+                <div class="about-product"><span class="about-product-icon"><i class="fa-solid fa-language" aria-hidden="true"></i></span><div><h4>智能翻译工具 <span data-app-version class="about-version">v1.3.3</span></h4><p>多格式本地化翻译与校对工作台</p></div></div>
+                <p class="about-intro">把文件导入、批量翻译和逐条校对放在同一个工作区，整理可交付的本地化资源。</p>
+                <div class="about-capabilities"><span><i class="fa-regular fa-file-lines" aria-hidden="true"></i>多格式资源</span><span><i class="fa-solid fa-language" aria-hidden="true"></i>多引擎翻译</span><span><i class="fa-solid fa-check-double" aria-hidden="true"></i>逐条校对</span></div>
+                <section class="about-data"><h5><i class="fa-solid fa-hard-drive" aria-hidden="true"></i>本地保存，按需翻译</h5><p>项目与设置默认在本地保存。使用在线翻译时，原文及启用的上下文会发送至所选服务；自定义引擎使用你配置的端点。</p></section>
+                <dl class="about-facts"><div><dt>开源协议</dt><dd>MIT</dd></div><div><dt>项目作者</dt><dd>webmturn</dd></div></dl>
+                <div class="about-links">
+                    <a href="https://github.com/webmturn/ai-localization" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-code" aria-hidden="true"></i><span>项目源码</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                    <a href="https://github.com/webmturn/ai-localization/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>更新日志</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                    <a href="https://github.com/webmturn/ai-localization/issues" target="_blank" rel="noopener noreferrer"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i><span>反馈问题</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
                 </div>
-                <h3 id="aboutModalTitle" class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">智能翻译工具</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">版本 1.1.0（本地运行）</p>
-                
-                <div class="text-left space-y-4 mb-6">
-                    <div>
-                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">功能亮点</h4>
-                        <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                            <li>• 支持多种文件格式</li>
-                            <li>• AI 驱动智能翻译</li>
-                            <li>• 术语库管理</li>
-                            <li>• 翻译质量检查</li>
-                            <li>• 实时翻译预览</li>
-                            <li>• 快捷键提升效率</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">技术支持</h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">
-                            项目开源地址：<br>
-                            <a href="https://github.com/webmturn/ai-localization" target="_blank" rel="noopener noreferrer" class="text-primary dark:text-blue-400 hover:underline dark:hover:text-blue-300">https://github.com/webmturn/ai-localization</a>
-                        </p>
-                    </div>
-                    
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            2026 智能翻译工具. 保留所有权利。<br>
-                            基于 MIT 协议开源
-                        </p>
-                    </div>
-                </div>
-                
-                <button class="btn-brand close-modal w-full py-2 text-white rounded-md transition-colors">
-                    关闭
-                </button>
+                <div id="aboutCopyFallback" class="about-copy-fallback" hidden><label for="aboutVersionDetails">版本信息</label><textarea id="aboutVersionDetails" readonly rows="4" aria-describedby="aboutCopyStatus"></textarea></div>
             </div>
+            <footer class="about-footer"><div><p>反馈问题时，可附上版本信息。</p><p id="aboutCopyStatus" role="status" aria-live="polite"></p></div><div class="about-footer-actions"><button id="aboutCopyVersion" type="button" class="help-secondary-button"><i class="fa-regular fa-copy" aria-hidden="true"></i>复制版本信息</button><button id="aboutHelpBtn" type="button" class="btn-brand help-primary-button">使用帮助</button></div></footer>
         </div>
     </div>
 

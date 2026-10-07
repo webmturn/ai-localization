@@ -171,7 +171,7 @@ describe("非字符串结果不再作废整批（P1 回归）", () => {
         const lastMsg = body.messages[body.messages.length - 1].content;
         const payload = JSON.parse(lastMsg.substring(lastMsg.indexOf('{"items"')));
         // 模型返回「等长但坏」的结果
-        return okResponse(payload.items.map(() => ({ text: "对象结果" })));
+        return okResponse(payload.items.map((i) => ({ id: i.id, text: { text: "对象结果" } })));
       },
       fetchWithDedupe: async (...a) => globalThis.networkUtils.fetchWithTimeout(...a),
       cancelAll: () => {},

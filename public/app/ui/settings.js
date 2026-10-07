@@ -1,9 +1,23 @@
-async function loadSettings() {
+async function loadSettings({ applyRuntime = true } = {}) {
   const settings = SettingsCache.get();
+  const layoutSettings = {
+    desktopLayout: settings?.desktopLayout === "classic" ? "classic" : "proofreading",
+    desktopSettingsPanel: settings?.desktopSettingsPanel === "expanded" ? "expanded" : "collapsed",
+    compactFileImport: settings?.compactFileImport !== false,
+    translationDensity: settings?.translationDensity === "comfortable" ? "comfortable" : "compact",
+  };
+  for (const [key, value] of Object.entries(layoutSettings)) {
+    const input = DOMCache.get(key);
+    if (input) {
+      if (input.type === "checkbox") input.checked = value;
+      else input.value = value;
+    }
+  }
+  if (applyRuntime) applySettings(layoutSettings);
   const setDecryptedApiKey = async function (field, elementId) {
-    if (!settings[field]) return;
     const input = DOMCache.get(elementId);
     if (!input) return;
+    if (!settings[field]) { input.value = ""; return; }
     try {
       input.value = await securityUtils.decrypt(settings[field]);
     } catch (e) {
@@ -19,7 +33,7 @@ async function loadSettings() {
         const themeModeValue = settings.themeMode || "auto";
         const themeMode = DOMCache.get("themeMode");
         if (themeMode) themeMode.value = themeModeValue;
-        applySettings({ themeMode: themeModeValue });
+        if (applyRuntime) applySettings({ themeMode: themeModeValue });
       }
       if (settings.fontSize) {
         const fontSize = DOMCache.get("fontSize");
@@ -29,7 +43,7 @@ async function loadSettings() {
         const itemsPerPage = DOMCache.get("itemsPerPage");
         if (itemsPerPage) itemsPerPage.value = settings.itemsPerPage;
         // 同步到 AppState（经 TranslationViewStore）
-        TranslationViewStore.setItemsPerPage(parseInt(settings.itemsPerPage));
+        if (applyRuntime) TranslationViewStore.setItemsPerPage(parseInt(settings.itemsPerPage));
       }
 
       if (settings.sourceSelectionIndicatorEnabled !== undefined) {
@@ -67,30 +81,7 @@ async function loadSettings() {
           autosaveIntervalSeconds.value = settings.autosaveIntervalSeconds;
       }
 
-      // 加载翻译引擎设置
-      const rawSavedEngine =
-        settings.defaultEngine || settings.translationEngine;
-      const savedEngine = (typeof EngineRegistry !== "undefined" && EngineRegistry.has(String(rawSavedEngine)))
-        ? String(rawSavedEngine)
-        : (typeof EngineRegistry !== "undefined" ? EngineRegistry.getDefaultEngineId() : "deepseek");
-      if (savedEngine !== rawSavedEngine) {
-        settings.defaultEngine = savedEngine;
-        settings.translationEngine = savedEngine;
-        SettingsCache.save(settings);
-      }
-      if (savedEngine) {
-        const engine = DOMCache.get("defaultEngine");
-        if (engine) {
-          engine.value = savedEngine;
-          // 触发模型下拉框联动：重建模型列表后恢复保存的模型
-          engine.dispatchEvent(new Event("change"));
-        }
-      }
-      const savedModel = settings.translationModel || settings.model;
-      if (savedModel) {
-        const model = DOMCache.get("translationModel");
-        if (model) model.value = savedModel;
-      }
+      App.ui.engineSettings?.loadDraft(settings);
       if (settings.apiTimeout) {
         const timeout = DOMCache.get("apiTimeout");
         if (timeout) timeout.value = settings.apiTimeout;
@@ -219,17 +210,7 @@ async function loadSettings() {
           (loggers.app || console).debug("settings applyTmSettings:", e);
         }
 
-        // 温度：设置页滑杆与侧边栏滑杆双向同步
-        const _rawTemp = parseFloat(settings.temperature);
-        const _temp = Number.isFinite(_rawTemp) && _rawTemp >= 0 && _rawTemp <= 2 ? _rawTemp : 0.3;
-        const tempEl = DOMCache.get("temperatureSettings");
-        if (tempEl) tempEl.value = String(_temp);
-        const tempVal = DOMCache.get("temperatureSettingsValue");
-        if (tempVal) tempVal.textContent = String(_temp);
-        const sidebarTemp = DOMCache.get("temperature");
-        if (sidebarTemp) sidebarTemp.value = String(_temp);
-        const sidebarTempVal = DOMCache.get("temperatureValue");
-        if (sidebarTempVal) sidebarTempVal.textContent = String(_temp);
+        // 引擎草稿中的温度已由 engineSettings.loadDraft 按模型能力适配。
       }
 
       // 加载质量检查设置
@@ -334,7 +315,7 @@ async function loadSettings() {
       await setDecryptedApiKey("claudeApiKey", "claudeApiKey");
 
       // 应用设置
-      applySettings(settings);
+      if (applyRuntime) applySettings(settings);
     } catch (e) {
       (loggers.app || console).error("加载设置失败:", e);
     }
@@ -343,12 +324,27 @@ async function loadSettings() {
   if (!settings || Object.keys(settings).length === 0) {
     const themeMode = DOMCache.get("themeMode");
     if (themeMode) themeMode.value = "auto";
-    applySettings({ themeMode: "auto" });
+    if (applyRuntime) applySettings({ themeMode: "auto" });
   }
 }
 
 // 应用设置
 function applySettings(settings) {
+  if (settings.translationDensity !== undefined) {
+    AppState.ui.translationDensity = settings.translationDensity === "comfortable" ? "comfortable" : "compact";
+    document.body.classList.toggle("compact-translation-list", AppState.ui.translationDensity === "compact");
+    if (typeof syncTranslationHeights === "function") syncTranslationHeights();
+  }
+  if (settings.desktopLayout !== undefined || settings.desktopSettingsPanel !== undefined || settings.compactFileImport !== undefined) {
+    if (settings.desktopLayout !== undefined) {
+      AppState.ui.desktopLayout = settings.desktopLayout === "classic" ? "classic" : "proofreading";
+    }
+    if (settings.desktopSettingsPanel !== undefined) {
+      AppState.ui.desktopSettingsPanel = settings.desktopSettingsPanel === "expanded" ? "expanded" : "collapsed";
+    }
+    if (settings.compactFileImport !== undefined) AppState.ui.compactFileImport = !!settings.compactFileImport;
+    App.ui.workspaceLayout.apply();
+  }
   // ui 切片默认值（sourceSelectionIndicatorEnabled / sourceSelectionIndicatorUnselectedStyle /
   // autoScrollEnabled）已在 state.js 显式声明（阶段 0），此处不再重复兜底赋值。
 

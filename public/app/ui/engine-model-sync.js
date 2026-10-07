@@ -51,9 +51,9 @@ function initEngineModelSync() {
       : null;
     if (dynamic && dynamic.length > 0) {
       dynamic.forEach(function (m) {
-        if (m && m.id) out.push({ value: m.id, label: m.label || m.id, source: "dynamic" });
+        if (m && m.id && !(cfg.retiredModels || []).includes(m.id)) out.push({ value: m.id, label: m.label || m.id, source: "dynamic" });
       });
-      return out;
+      if (out.length) return out;
     }
 
     // 2. 自定义引擎：用户显式配置的模型
@@ -111,7 +111,7 @@ function initEngineModelSync() {
    * - 模型能力 disablesTemperature（如 OpenAI o1/o3）→ 滑杆禁用并提示
    * - 当前值超出新范围时自动钳制并保存
    */
-  function _applyTemperatureRange(engineId, modelId) {
+  function _applyTemperatureRange(engineId, modelId, draft = false) {
     var cfg = (typeof EngineRegistry !== "undefined") ? EngineRegistry.get(engineId) : null;
     var range = (cfg && cfg.temperatureRange) || { min: 0, max: 2 };
     var min = Number.isFinite(range.min) ? range.min : 0;
@@ -122,18 +122,9 @@ function initEngineModelSync() {
       : null;
     var noTemperature = !!(capability && capability.disablesTemperature);
 
-    var sliders = [
-      DOMCache.get("temperature"),
-      DOMCache.get("temperatureSettings"),
-    ];
-    var values = [
-      DOMCache.get("temperatureValue"),
-      DOMCache.get("temperatureSettingsValue"),
-    ];
-    var hints = [
-      DOMCache.get("temperatureHint"),
-      DOMCache.get("temperatureSettingsHint"),
-    ];
+    var sliders = [DOMCache.get(draft ? "temperatureSettings" : "temperature")];
+    var values = [DOMCache.get(draft ? "temperatureSettingsValue" : "temperatureValue")];
+    var hints = [DOMCache.get(draft ? "temperatureSettingsHint" : "temperatureHint")];
 
     sliders.forEach(function (slider) {
       if (!slider) return;
@@ -154,7 +145,7 @@ function initEngineModelSync() {
     var cur = parseFloat(sliders[0] ? sliders[0].value : 0.3);
     if (!Number.isFinite(cur)) cur = 0.3;
     values.forEach(function (el) { if (el) el.textContent = String(cur); });
-    try {
+    if (!draft) try {
       SettingsCache.update(function (s) {
         s.temperature = cur;
       });
@@ -162,9 +153,9 @@ function initEngineModelSync() {
 
     // 两端标签
     var minLabel = DOMCache.get("temperatureMinLabel");
-    if (minLabel) minLabel.textContent = noTemperature ? "精确 (" + min + ")" : "精确 (" + min + ")";
+    if (!draft && minLabel) minLabel.textContent = noTemperature ? "精确 (" + min + ")" : "精确 (" + min + ")";
     var maxLabel = DOMCache.get("temperatureMaxLabel");
-    if (maxLabel) maxLabel.textContent = noTemperature ? "创意 (" + max + ")" : "创意 (" + max + ")";
+    if (!draft && maxLabel) maxLabel.textContent = noTemperature ? "创意 (" + max + ")" : "创意 (" + max + ")";
 
     // 提示
     var hintText = "";
@@ -287,8 +278,7 @@ function initEngineModelSync() {
       // 传统引擎：恢复温度滑杆可用状态（下次切回 AI 时由 _applyTemperatureRange 重新配置）
       var _t1 = DOMCache.get("temperature");
       if (_t1) _t1.disabled = false;
-      var _t2 = DOMCache.get("temperatureSettings");
-      if (_t2) _t2.disabled = false;
+
     }
 
     // 保存选择
@@ -296,6 +286,7 @@ function initEngineModelSync() {
       s.translationEngine = selectedEngine;
       s.defaultEngine = selectedEngine;
     });
+    App.ui.translationWorkspace?.refreshEngine();
   }
 
   /**
@@ -359,13 +350,13 @@ function initEngineModelSync() {
     var hasPrev = Array.from(settingsModelSelect.options).some(function (o) { return o.value === prevModel; });
     if (hasPrev) {
       settingsModelSelect.value = prevModel;
-    } else if (settingsConfig && settingsConfig.defaultModel) {
+    } else if (settingsConfig && models.some(m => m.value === settingsConfig.defaultModel)) {
       settingsModelSelect.value = settingsConfig.defaultModel;
     } else if (settingsModelSelect.options.length > 0) {
       settingsModelSelect.value = settingsModelSelect.options[0].value;
     }
     _setCapabilityHint(translationModelHint, engine, settingsModelSelect.value);
-    _applyTemperatureRange(engine, settingsModelSelect.value);
+    _applyTemperatureRange(engine, settingsModelSelect.value, true);
   }
 
   function updateConcurrentLimitHint(selectedEngine) {
@@ -383,9 +374,10 @@ function initEngineModelSync() {
     }
 
     var maxByEngine = rps < 1 ? 1 : Math.ceil(rps);
+    if (cfg.category === "ai" && cfg.supportsBatch) maxByEngine = Math.min(3, maxByEngine);
     if (userLimit > maxByEngine) {
       concurrentLimitHint.textContent =
-        cfg.name + " 速率较低，实际并发将自动限制为 " + maxByEngine + "，避免触发限流";
+        cfg.name + " 当前最多并发 " + maxByEngine + " 个翻译请求";
       concurrentLimitHint.classList.remove("text-gray-500", "dark:text-gray-400");
       concurrentLimitHint.classList.add("text-amber-600", "dark:text-amber-400");
     } else {
@@ -394,6 +386,36 @@ function initEngineModelSync() {
       concurrentLimitHint.classList.add("text-gray-500", "dark:text-gray-400");
     }
   }
+
+  // 设置表单独立于当前翻译配置；首次打开和取消后重开时读取已保存值。
+  App.ui.engineSettings = {
+    loadDraft(settings = SettingsCache.get()) {
+      const engine = EngineRegistry.has(settings.translationEngine || settings.defaultEngine)
+        ? (settings.translationEngine || settings.defaultEngine) : EngineRegistry.getDefaultEngineId();
+      const category = EngineRegistry.get(engine).category;
+      const filter = DOMCache.get("engineCategoryFilter");
+      if (filter) filter.value = category;
+      rebuildEngineSelectByCategory(settingsEngineSelect, category, engine);
+      const ai = DOMCache.get("aiEngineSettingsSection");
+      const traditional = DOMCache.get("traditionalEngineSettingsSection");
+      if (ai) ai.style.display = category === "ai" ? "" : "none";
+      if (traditional) traditional.style.display = category === "traditional" ? "" : "none";
+      updateSettingsEngineUI(engine);
+      const savedModel = settings.model || settings.translationModel;
+      if (Array.from(settingsModelSelect.options).some(o => o.value === savedModel)) settingsModelSelect.value = savedModel;
+      const slider = DOMCache.get("temperatureSettings");
+      if (slider) slider.value = Number.isFinite(Number(settings.temperature)) ? settings.temperature : 0.3;
+      _setCapabilityHint(translationModelHint, engine, settingsModelSelect.value);
+      _applyTemperatureRange(engine, settingsModelSelect.value, true);
+    },
+    applySaved() {
+      const settings = SettingsCache.get();
+      const slider = DOMCache.get("temperature");
+      if (slider) slider.value = settings.temperature ?? 0.3;
+      const engine = settings.translationEngine || settings.defaultEngine;
+      syncToolbarCategory(EngineRegistry.get(engine)?.category || "ai", engine, true);
+    },
+  };
 
   window.refreshEngineModelSelectors = function (preferredEngine) {
     var targetEngine = preferredEngine && EngineRegistry.has(preferredEngine)
@@ -465,7 +487,9 @@ function initEngineModelSync() {
 
     try {
       var apiKey = null;
-      if (typeof ModelFetcher.readDecryptedApiKey === "function") {
+      var keyInput = DOMCache.get(cfg.apiKeyField);
+      apiKey = keyInput ? keyInput.value.trim() : null;
+      if (!apiKey && typeof ModelFetcher.readDecryptedApiKey === "function") {
         apiKey = await ModelFetcher.readDecryptedApiKey(cfg);
       }
       var result = await ModelFetcher.fetchModels(engineId, apiKey);
@@ -474,8 +498,8 @@ function initEngineModelSync() {
         var count = Array.isArray(result.models) ? result.models.length : 0;
         setStatus("成功获取 " + count + " 个模型（已缓存，可在下拉框中查看）");
         // 重建工具栏 + 侧边栏 + 设置面板的模型下拉
-        updateEngineUI(engineSelect.value);
-        updateSettingsEngineUI(settingsEngineSelect ? settingsEngineSelect.value : engineId);
+        // 完整设置中的模型获取只更新草稿，保存后才应用到当前翻译。
+        if (settingsEngineSelect?.value === engineId) updateSettingsEngineUI(engineId);
         if (typeof showNotification === "function") {
           showNotification("success", "模型列表已更新", cfg.name + "：获取到 " + count + " 个模型", { duration: 3000 });
         }
@@ -636,6 +660,7 @@ function initEngineModelSync() {
         });
         _setCapabilityHint(modelCapabilityHint, engineSelect.value, modelSelect.value);
         _applyTemperatureRange(engineSelect.value, modelSelect.value);
+        App.ui.translationWorkspace?.refreshEngine();
       },
       { tag: "engine", scope: "engineModel", label: "modelSelect:change" },
     );
@@ -646,14 +671,12 @@ function initEngineModelSync() {
       settingsModelSelect,
       "change",
       function () {
-        SettingsCache.update(function (s) {
-          s.model = settingsModelSelect.value;
-          s.translationModel = settingsModelSelect.value;
-        });
+
         _setCapabilityHint(
           translationModelHint,
           settingsEngineSelect?.value,
           settingsModelSelect.value,
+          true,
         );
         _applyTemperatureRange(
           settingsEngineSelect?.value,
@@ -672,11 +695,6 @@ function initEngineModelSync() {
       function () {
         const v = this.value;
         temperatureValue.textContent = v;
-        // 同步设置面板的温度滑杆
-        const settingsTemp = DOMCache.get("temperatureSettings");
-        if (settingsTemp) settingsTemp.value = v;
-        const settingsTempVal = DOMCache.get("temperatureSettingsValue");
-        if (settingsTempVal) settingsTempVal.textContent = v;
         try {
           const num = parseFloat(v);
           SettingsCache.update(function (s) {
@@ -690,7 +708,7 @@ function initEngineModelSync() {
     );
   }
 
-  // 设置面板的温度滑杆（与侧边栏双向同步）
+  // 设置表单温度只更新草稿，点击保存后再应用。
   const temperatureSettingsInput = DOMCache.get("temperatureSettings");
   if (temperatureSettingsInput) {
     EventManager.add(
@@ -700,17 +718,7 @@ function initEngineModelSync() {
         const v = this.value;
         const valEl = DOMCache.get("temperatureSettingsValue");
         if (valEl) valEl.textContent = v;
-        // 同步侧边栏温度滑杆
-        if (temperatureInput) temperatureInput.value = v;
-        if (temperatureValue) temperatureValue.textContent = v;
-        try {
-          const num = parseFloat(v);
-          SettingsCache.update(function (s) {
-            s.temperature = Number.isFinite(num) ? num : 0.3;
-          });
-        } catch (e) {
-          (loggers.app || console).debug("engineModelSync saveTemperatureSettings:", e);
-        }
+
       },
       { tag: "engine", scope: "engineModel", label: "temperatureSettings:input" },
     );
@@ -733,7 +741,6 @@ function initEngineModelSync() {
   // 根据初始引擎类别重建工具栏和侧边栏引擎下拉（初始化恢复，不弹切换反馈）
   var initialConfig = EngineRegistry.get(initialEngine);
   var initialCategory = (initialConfig && initialConfig.category) || "ai";
-  syncToolbarCategory(initialCategory, initialEngine, true);
 
   // 加载保存的温度并同步到侧栏滑块与设置面板滑块（AI 引擎支持 0–2）
   if (temperatureInput && temperatureValue) {
@@ -747,6 +754,8 @@ function initEngineModelSync() {
     const settingsTempVal = DOMCache.get("temperatureSettingsValue");
     if (settingsTempVal) settingsTempVal.textContent = String(temp);
   }
+  // 先恢复温度再按模型能力钳制，避免初始化时把 DOM 默认值写回已保存设置。
+  syncToolbarCategory(initialCategory, initialEngine, true);
 
   try {
     if (settingsEngineSelect) {

@@ -35,7 +35,7 @@ function rebuildFilteredTranslationItems(options = {}) {
     });
   }
 
-  TranslationViewStore.setFilter([...base]);
+  TranslationViewStore.setFilter(base.filter((item) => TranslationViewStore.matchesStatus(item)));
 }
 
 function formatTranslationError(errorLike, engine) {

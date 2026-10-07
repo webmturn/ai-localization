@@ -91,13 +91,11 @@ describe("cancelBatch / isUserCancelled 取消协议", () => {
     expect(AppState.translations._batchStarted).toBe(false);
   });
 
-  it("隐式取消：批量曾启动（_started）后 isInProgress 变 false", () => {
+  it("正常结束不会误判为取消，后续单条翻译仍可执行", () => {
     BatchProgressStore.beginBatch(ctx);
-    // 模拟外部异常清理：仅复位 isInProgress（不经 endBatch）
     BatchProgressStore.endBatch();
-    // beginBatch 后未 cancel，但 _started 仍为 true（endBatch 不清除）
-    expect(BatchProgressStore._started).toBe(true);
-    expect(BatchProgressStore.isUserCancelled()).toBe(true);
+    expect(BatchProgressStore._started).toBe(false);
+    expect(BatchProgressStore.isUserCancelled()).toBe(false);
   });
 
   it("正常运行中不误判取消", () => {

@@ -583,7 +583,9 @@
               });
 
             // 经 ProjectStore 同步内存态项目名（仅命中当前项目时生效）
-            ProjectStore.renameProject(projectId, nextName);
+            if (ProjectStore.renameProject(projectId, nextName)) {
+              App.ui.workspaceLayout?.updateContext();
+            }
 
             await refreshProjectManagerList();
             showNotification("success", "已更新", "项目名称已更新");

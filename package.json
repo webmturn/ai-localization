@@ -1,7 +1,7 @@
 {
   "name": "translation-tool",
-  "version": "1.3.3",
-  "description": "智能翻译工具 - 多格式本地化翻译助手",
+  "version": "1.4.0",
+  "description": "面向本地化资源的 AI 翻译与校对工作台，支持批量翻译、自定义引擎、术语、翻译记忆与质量检查",
   "scripts": {
     "build-css": "node scripts/build-css.mjs",
     "postbuild-css": "node -e \"const fs=require('fs');const p='public/styles.css';let s=fs.readFileSync(p,'utf8');s=s.replace(/-webkit-text-size-adjust\\s*:\\s*100%;(?!text-size-adjust)/g,'-webkit-text-size-adjust:100%;text-size-adjust:100%;');fs.writeFileSync(p,s);\"",

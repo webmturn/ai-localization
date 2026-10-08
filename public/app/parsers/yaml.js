@@ -184,6 +184,70 @@ async function exportYAML(items, options = {}) {
     throw new Error('YAML 导出需要传入数组，实际收到 ' + typeof items);
   }
 
+  if (typeof options.originalContent === 'string') {
+    let originalDocuments;
+    try {
+      originalDocuments = window.jsyaml.loadAll(options.originalContent);
+    } catch (error) {
+      (loggers.app || console).error('YAML 原文件解析失败:', error);
+      const location = error.mark ? `（第 ${error.mark.line + 1} 行，第 ${error.mark.column + 1} 列）` : '';
+      throw new Error(`YAML 源文件无法解析${location}，请检查语法并重新导入`);
+    }
+    // 别名在解析后共享对象；逐路径复制，使同一原文的不同资源能独立回写。
+    const cloneTree = (value, ancestors = new Set()) => {
+      if (!value || typeof value !== 'object') return value;
+      if (ancestors.has(value)) throw new Error('不支持循环引用的 YAML 锚点');
+      if (value instanceof Date) return new Date(value.getTime());
+      if (value instanceof Uint8Array) return new Uint8Array(value);
+      ancestors.add(value);
+      const copy = Array.isArray(value) ? [] : {};
+      for (const key of Object.keys(value)) {
+        Object.defineProperty(copy, key, { value: cloneTree(value[key], ancestors), writable: true, enumerable: true, configurable: true });
+      }
+      ancestors.delete(value);
+      return copy;
+    };
+    const documents = originalDocuments.map(document => cloneTree(document));
+    let legacyPaths;
+    for (const item of items) {
+      if (!item.targetText?.trim()) continue;
+      const documentIndex = Number.isInteger(item.metadata?.documentIndex) ? item.metadata.documentIndex : 0;
+      let tokens = item.metadata?.pathTokens;
+      if (!Array.isArray(tokens)) {
+        // 用原文件重新取得真实路径，兼容旧项目；有歧义时不能猜测位置。
+        if (!legacyPaths) {
+          legacyPaths = new Map();
+          for (const parsed of await parseYAML(options.originalContent, item.metadata?.file || 'original.yaml')) {
+            const key = JSON.stringify([parsed.metadata.documentIndex, parsed.metadata.path]);
+            const matches = legacyPaths.get(key) || [];
+            matches.push(parsed.metadata.pathTokens);
+            legacyPaths.set(key, matches);
+          }
+        }
+        const matches = legacyPaths.get(JSON.stringify([documentIndex, item.metadata?.path]));
+        if (matches?.length === 1) tokens = matches[0];
+      }
+      const positionError = () => { throw new Error('YAML 原文或路径已变化，请重新导入源文件后导出'); };
+      if (!Array.isArray(tokens) || documentIndex < 0 || documentIndex >= documents.length) positionError();
+      if (tokens.length === 0) {
+        if (typeof documents[documentIndex] !== 'string' || documents[documentIndex] !== item.sourceText) positionError();
+        documents[documentIndex] = item.targetText;
+        continue;
+      }
+      let current = documents[documentIndex];
+      for (let i = 0; i < tokens.length - 1; i++) {
+        if (!current || typeof current !== 'object' || !Object.prototype.hasOwnProperty.call(current, tokens[i])) positionError();
+        current = current[tokens[i]];
+      }
+      const key = tokens[tokens.length - 1];
+      if (!current || typeof current !== 'object' || !Object.prototype.hasOwnProperty.call(current, key) ||
+          typeof current[key] !== 'string' || current[key] !== item.sourceText) positionError();
+      Object.defineProperty(current, key, { value: item.targetText, writable: true, enumerable: true, configurable: true });
+    }
+    // 保留完整数据，而非只从翻译条目重建；注释、样式、锚点名称不属于此数据模型。
+    return documents.map(document => window.jsyaml.dump(document, { indent, forceQuotes: useQuotes, noRefs: true })).join('---\n');
+  }
+
   // 按路径分组（优先使用解析器输出的 pathTokens，避免键名含 `.`/`[` 时的歧义）
   const processed = new Map();
   for (const item of items) {

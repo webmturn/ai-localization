@@ -36,6 +36,18 @@ function generateOriginalFormatExport(fileName, items) {
     return { content, filename: `${baseName}-translated.json` };
   }
 
+  if (extension === "csv" || extension === "tsv") {
+    const content = generateDelimitedFromOriginal(items, normalizedFileName, extension === "tsv" ? "\t" : ",");
+    return { content, filename: `${baseName}-translated.${extension}` };
+  }
+
+  if (extension === "yaml" || extension === "yml") {
+    // YAML 库可能按需加载；调用方需要 await，其他格式继续兼容同步调用。
+    return exportYAML(items, { originalContent, indent: 2, useQuotes: true }).then(content => ({
+      content, filename: `${baseName}-translated.${extension}`,
+    }));
+  }
+
   if (extension === "resx") {
     const content = generateRESXFromOriginal(items, normalizedFileName);
     return { content, filename: `${baseName}-translated.resx` };
@@ -57,6 +69,37 @@ function generateOriginalFormatExport(fileName, items) {
   }
 
   return null;
+}
+
+function generateDelimitedFromOriginal(items, fileName, delimiter) {
+  const original = AppState.fileMetadata?.[fileName]?.originalContent;
+  const formatRow = row => row.map(value => {
+    const text = String(value ?? "");
+    return /["\r\n]/.test(text) || text.includes(delimiter) ? '"' + escapeCsv(text) + '"' : text;
+  }).join(delimiter);
+  if (typeof original !== "string" || !original) {
+    // 资源文件里的公式样式字符串也是原文，不能附加单引号改变其内容。
+    const rows = [["ID", "Source", "Target", "Context", "Status"], ...items.map(item => [
+      item.metadata?.key || item.id || "", item.sourceText || "", item.targetText || "", item.context || "", item.status || "pending",
+    ])];
+    return rows.map(formatRow).join("\n") + "\n";
+  }
+
+  const rows = parseCSVLines(original.replace(/^\uFEFF/, ""), delimiter);
+  const normalize = text => String(text ?? "").replace(/\r\n?/g, "\n");
+  for (const item of items) {
+    if (!item.targetText?.trim()) continue;
+    const { row, sourceColumn, targetColumn } = item.metadata || {};
+    const cells = Number.isInteger(row) ? rows[row - 1] : null;
+    if (!cells || !Number.isInteger(sourceColumn) || sourceColumn < 0 || sourceColumn >= cells.length ||
+        !Number.isInteger(targetColumn) || targetColumn < 0 || targetColumn > cells.length ||
+        normalize(cells[sourceColumn]) !== normalize(item.sourceText)) {
+      throw new Error("CSV/TSV 原文或行列位置已变化，请重新导入源文件后导出");
+    }
+    cells[targetColumn] = item.targetText;
+  }
+  const newline = original.includes("\r\n") ? "\r\n" : original.includes("\r") ? "\r" : "\n";
+  return rows.map(formatRow).join(newline) + (/[\r\n]$/.test(original) ? newline : "");
 }
 
 function __withXmlDeclarationAndDoctypeTs(serialized, originalContent) {
@@ -305,7 +348,7 @@ function generateJSONFromOriginal(items, fileName) {
   }
 
   try {
-    const json = JSON.parse(originalContent);
+    let json = JSON.parse(originalContent);
 
     // 解析 parseJSON 产出的路径（以 $ 为根，如 $.app.title、$.menu[0]、$[0].name）
     // 为键/下标序列。注意必须跳过根符号 $，否则 json["$"] 为 undefined，
@@ -356,13 +399,13 @@ function generateJSONFromOriginal(items, fileName) {
         tokens.push(key);
         if (!closed && i >= path.length) break;
       }
-      return tokens.length > 0 ? tokens : null;
+      return tokens.length > 0 || path === "$" ? tokens : null;
     }
 
     /** 优先使用解析器提供的 pathTokens（无歧义），否则回退到路径字符串解析 */
     function tokensForItem(item) {
       const raw = item?.metadata?.pathTokens;
-      if (Array.isArray(raw) && raw.length > 0) {
+      if (Array.isArray(raw)) {
         return raw.map((t) => (typeof t === "number" ? t : String(t)));
       }
       return parseJsonPath(item?.metadata?.path);
@@ -387,6 +430,10 @@ function generateJSONFromOriginal(items, fileName) {
       const targetText = item?.targetText;
       if (!tokens) return;
       if (!targetText || !targetText.trim()) return;
+      if (tokens.length === 0) {
+        if (typeof json === "string") json = targetText;
+        return;
+      }
       setValueByPath(json, tokens, targetText);
     });
 

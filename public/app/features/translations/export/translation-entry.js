@@ -96,30 +96,29 @@ async function exportTranslation() {
       }
 
       let exportedCount = 0;
-      let failedCount = 0;
+      const failedFiles = [];
       const missingOriginalFiles = [];
 
       for (const [fileName, fileItems] of filesMap.entries()) {
-        if (fileName && fileName !== "unknown") {
-          await ensureOriginalContentLoadedForFile(fileName);
-        }
+        try {
+          if (fileName && fileName !== "unknown") {
+            await ensureOriginalContentLoadedForFile(fileName);
+          }
 
-        const meta = AppState.fileMetadata?.[fileName] || {};
-        const hasOriginal = !!(
-          meta.originalContent && typeof meta.originalContent === "string"
-        );
-        if (fileName && fileName !== "unknown" && !hasOriginal) {
-          missingOriginalFiles.push(fileName);
-        }
+          const meta = AppState.fileMetadata?.[fileName] || {};
+          const hasOriginal = typeof meta.originalContent === "string";
+          const exportResult = await generateOriginalFormatExport(fileName, fileItems);
+          if (!exportResult) throw new Error("此格式暂不支持原格式导出");
 
-        const exportResult = generateOriginalFormatExport(fileName, fileItems);
-        if (!exportResult) {
-          failedCount++;
-          continue;
+          downloadFile(exportResult.content, exportResult.filename);
+          exportedCount++;
+          if (fileName && fileName !== "unknown" && !hasOriginal) {
+            missingOriginalFiles.push(fileName);
+          }
+        } catch (error) {
+          (loggers.app || console).error(`文件 ${fileName} 导出失败:`, error);
+          failedFiles.push({ fileName, reason: error.message || String(error) });
         }
-
-        downloadFile(exportResult.content, exportResult.filename);
-        exportedCount++;
       }
 
       closeModal("exportModal");
@@ -136,16 +135,18 @@ async function exportTranslation() {
         showNotification(
           "warning",
           "原格式导出受限",
-          `部分文件缺少原始内容，将使用通用导出：${preview}${more}`
+          `部分文件缺少原始内容，已使用通用结构导出：${preview}${more}`
         );
       }
 
       const optionText = onlyTranslated ? "仅已翻译项" : "包含原文";
-      if (failedCount > 0) {
+      if (failedFiles.length > 0) {
+        const preview = failedFiles.slice(0, 3).map(({ fileName, reason }) => `${fileName}：${reason.slice(0, 180)}`).join("；");
+        const more = failedFiles.length > 3 ? `；另有 ${failedFiles.length - 3} 个文件失败` : "";
         showNotification(
           "warning",
           "导出完成",
-          `成功导出 ${exportedCount} 个文件，失败 ${failedCount} 个（${optionText}）`
+          `成功导出 ${exportedCount} 个文件，失败 ${failedFiles.length} 个（${optionText}）。${preview}${more}`
         );
       } else {
         showNotification(

@@ -172,13 +172,12 @@ function parseCSVLines(content, delimiter = ',') {
       } else if (char === delimiter) {
         currentLine.push(currentField);
         currentField = '';
-      } else if (char === '\n') {
+      } else if (char === '\n' || char === '\r') {
         currentLine.push(currentField);
         lines.push(currentLine);
         currentLine = [];
         currentField = '';
-      } else if (char === '\r') {
-        // 忽略 CR
+        if (char === '\r' && nextChar === '\n') i++;
       } else {
         currentField += char;
       }

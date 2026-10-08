@@ -146,7 +146,7 @@
                     <button id="browseFilesBtn" class="btn-brand mt-2 px-3 py-1 text-white dark:text-white text-xs sm:text-sm rounded transition-colors" title="浏览文件" aria-label="浏览文件">
                         浏览文件
                     </button>
-                    <input type="file" id="fileInput" class="hidden" multiple accept=".xml,.xlf,.xliff,.strings,.resx,.po,.json,.ts,.txt" title="选择要上传的翻译文件" aria-label="选择要上传的翻译文件">
+                    <input type="file" id="fileInput" class="hidden" multiple accept=".xml,.xlf,.xliff,.strings,.resx,.po,.pot,.json,.yaml,.yml,.csv,.tsv,.ts,.txt" title="选择要上传的翻译文件" aria-label="选择要上传的翻译文件">
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto scrollbar-thin">
@@ -2047,7 +2047,7 @@
                                         </label>
                                         <label class="flex items-center">
                                             <input type="checkbox" id="formatPO" class="rounded text-primary focus:ring-primary" checked title="支持PO格式" aria-label="支持PO格式">
-                                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">PO (.po)</span>
+                                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">PO / POT (.po, .pot)</span>
                                         </label>
                                         <label class="flex items-center">
                                             <input type="checkbox" id="formatRESX" class="rounded text-primary focus:ring-primary" checked title="支持RESX格式" aria-label="支持RESX格式">
@@ -2062,15 +2062,37 @@
                                             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Qt TS (.ts)</span>
                                         </label>
                                         <label class="flex items-center">
+                                            <input type="checkbox" id="formatYAML" class="rounded text-primary focus:ring-primary" checked title="支持 YAML/YML 格式" aria-label="支持 YAML/YML 格式">
+                                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">YAML / YML</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" id="formatCSV" class="rounded text-primary focus:ring-primary" checked title="支持 CSV/TSV 格式" aria-label="支持 CSV/TSV 格式">
+                                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">CSV / TSV</span>
+                                        </label>
+                                        <label class="flex items-center">
                                             <input type="checkbox" id="formatTextFallback" class="rounded text-primary focus:ring-primary" checked title="支持文本兜底解析" aria-label="支持文本兜底解析">
                                             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">文本兜底解析 (.txt / 其他扩展名)</span>
                                         </label>
                                     </div>
                                 </div>
+                                <div>
+                                    <label for="fileEncoding" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">导入文件编码</label>
+                                    <select id="fileEncoding" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                                        <option value="auto">自动识别</option>
+                                        <option value="utf-8">UTF-8</option>
+                                        <option value="utf-16le">UTF-16 LE</option>
+                                        <option value="utf-16be">UTF-16 BE</option>
+                                        <option value="gb18030">GB18030 / GBK</option>
+                                        <option value="shift_jis">Shift-JIS（日文）</option>
+                                        <option value="big5">Big5（繁体中文）</option>
+                                        <option value="windows-1252">Windows-1252（西欧）</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">乱码时选择源文件的实际编码，再重新导入；源文件编辑器使用 UTF-8。</p>
+                                </div>
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">自动检测文件编码</label>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">自动识别文件的字符编码</p>
+                                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">尝试识别旧文件编码</label>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">选择自动识别时生效；关闭后只接受 UTF-8 或带 BOM 的 Unicode 文件</p>
                                     </div>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" id="autoDetectEncoding" class="sr-only peer" checked title="自动检测文件编码" aria-label="自动检测文件编码">

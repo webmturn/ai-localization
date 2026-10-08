@@ -26,6 +26,7 @@ function parseJSON(content, fileName) {
     // 递归遍历JSON对象
     function traverseValue(value, path = "", tokens = []) {
       if (typeof value === "string") {
+        if (!value.trim()) return;
         items.push({
           id: `json-${items.length + 1}`,
           sourceText: value,

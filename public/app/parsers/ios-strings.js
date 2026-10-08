@@ -91,7 +91,7 @@ function parseIOSStrings(content, fileName) {
           i += 2;
           continue;
         }
-        if (esc === "u" && /^[0-9a-fA-F]{4}/.test(text.slice(i + 2, i + 6))) {
+        if ((esc === "u" || esc === "U") && /^[0-9a-fA-F]{4}/.test(text.slice(i + 2, i + 6))) {
           const hex = text.slice(i + 2, i + 6);
           out += String.fromCharCode(parseInt(hex, 16));
           i += 6;
@@ -115,7 +115,7 @@ function parseIOSStrings(content, fileName) {
       out += ch;
       i++;
     }
-    return out;
+    throw new Error('iOS Strings 字符串引号未闭合（行 ' + lineNumber + '）');
   }
 
   while (i < text.length) {

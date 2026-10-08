@@ -8,6 +8,68 @@
  * 解析器工具类
  */
 class ParserUtils {
+  /** BOM/声明优先；旧编码用严格解码和文字特征评分，无法确定时保留诊断。 */
+  static decodeFileBytes(bytes, options = {}) {
+    const decode = (encoding) => {
+      if (encoding === 'utf-32le') {
+        if (bytes.length % 4) throw new Error('UTF-32 文件字节数无效');
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        let text = '';
+        for (let i = 4; i < bytes.length; i += 4) {
+          const code = view.getUint32(i, true);
+          if (code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) throw new Error('UTF-32 字符无效');
+          text += String.fromCodePoint(code);
+        }
+        return text;
+      }
+      return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+    };
+    const manual = options.encoding && options.encoding !== 'auto' ? options.encoding : '';
+    const bom = ParserUtils.detectBom(bytes);
+    const head = String.fromCharCode(...bytes.slice(0, 2048));
+    const declaration = options.autoDetect !== false
+      ? (head.match(/^\s*<\?xml[^>]*encoding\s*=\s*["']([^"']+)["']/i)?.[1] || head.match(/Content-Type:[^"\r\n]*charset\s*=\s*([\w-]+)/i)?.[1] || '') : '';
+    let primary = manual || bom || declaration;
+    if (!primary && options.autoDetect !== false && bytes.length >= 4) {
+      const sample = bytes.slice(0, 4096);
+      let even = 0, odd = 0;
+      for (let i = 0; i < sample.length; i++) if (sample[i] === 0) { if (i % 2) odd++; else even++; }
+      if (odd / (sample.length / 2) > .3 && even / (sample.length / 2) < .05) primary = 'utf-16le';
+      if (even / (sample.length / 2) > .3 && odd / (sample.length / 2) < .05) primary = 'utf-16be';
+    }
+    if (primary) {
+      try { return { text: decode(primary), encoding: primary, uncertain: false }; }
+      catch (e) { throw new Error('无法按 ' + primary + ' 解码文件，请检查文件编码'); }
+    }
+    try { return { text: decode('utf-8'), encoding: 'utf-8', uncertain: false }; }
+    catch (e) {
+      if (options.autoDetect === false) throw new Error('文件不是有效的 UTF-8，请在文件处理设置中指定编码');
+    }
+    const candidates = [];
+    for (const encoding of ['gb18030', 'shift_jis', 'big5', 'windows-1252']) {
+      try {
+        const text = decode(encoding);
+        let score = encoding === 'gb18030' ? .5 : 0;
+        for (const char of text.slice(0, 16384)) {
+          const code = char.codePointAt(0);
+          if ((code < 32 && ![9, 10, 13].includes(code)) || (code >= 0x7f && code <= 0x9f)) score -= 20;
+          else if (code >= 0x3040 && code <= 0x30ff) score += 5;
+          else if (code >= 0x4e00 && code <= 0x9fff) score += 2;
+          else if (code >= 0xff61 && code <= 0xff9f) score += .5;
+          else if (code >= 0xc0 && code <= 0x24f) score += 1;
+        }
+        candidates.push({ text, encoding, score });
+      } catch (e) { /* 不接受带替换字符的解码结果 */ }
+    }
+    candidates.sort((a, b) => b.score - a.score);
+    if (!candidates.length || candidates[0].score < 0) throw new Error('无法可靠解码文件，请在文件处理设置中指定编码');
+    return { ...candidates[0], uncertain: true };
+  }
+
+  static getMaxFileSizeMB() {
+    const raw = parseInt(typeof SettingsCache !== 'undefined' ? SettingsCache.get()?.maxFileSize : 10, 10);
+    return Number.isFinite(raw) ? Math.max(1, Math.min(100, raw)) : 10;
+  }
   /**
    * 检测文件编码
    * @param {ArrayBuffer} buffer - 文件缓冲区

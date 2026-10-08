@@ -60,14 +60,19 @@ async function __processFilesImpl(files) {
     const newItems = [];
     let successCount = 0;
     const warnings = [];
+    const acceptedFiles = [];
+    const failedFiles = [];
 
-    results.forEach((result) => {
-      if (result.status === "fulfilled" && result.value) {
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled" && result.value?.success) {
         newItems.push(...result.value.items);
-        if (result.value.success) successCount++;
+        successCount++;
+        acceptedFiles.push(files[index]);
         if (Array.isArray(result.value.warnings)) {
           warnings.push(...result.value.warnings);
         }
+      } else {
+        failedFiles.push(files[index]?.name || "未知文件");
       }
     });
 
@@ -76,7 +81,14 @@ async function __processFilesImpl(files) {
     );
 
     // 完成文件处理
-    await __completeFileProcessingImpl(files, newItems, warnings);
+    if (acceptedFiles.length) {
+      await __completeFileProcessingImpl(acceptedFiles, newItems, warnings);
+    } else {
+      AppState.__autoCreatedProjectOnImport = false;
+    }
+    if (failedFiles.length) {
+      showNotification("warning", "部分文件未导入", `成功 ${successCount}/${files.length} 个；未导入：${failedFiles.join("、")}。请检查文件内容、编码或格式设置。`);
+    }
   } catch (error) {
     (loggers.app || console).error("处理文件时出错:", error);
     showNotification(
@@ -183,7 +195,7 @@ async function __completeFileProcessingImpl(files, newItems, warnings = []) {
       showNotification(
         "warning",
         "编码异常提示",
-        `检测到 ${byType.encoding.length} 个文件存在编码异常（共 ${count || "?"} 个替换字符）`
+        byType.encoding.map(w => w.encoding ? `${w.file}：尝试使用 ${w.encoding}，请核对原文` : w.message).join('；') + (count ? `（${count} 个替换字符）` : '')
       );
     }
     if (byType.control) {

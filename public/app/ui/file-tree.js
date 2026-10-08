@@ -135,7 +135,7 @@ function updateFileTree(files) {
       if (!fn) continue;
       if (!fileProgress[fn]) fileProgress[fn] = { total: 0, translated: 0 };
       fileProgress[fn].total++;
-      if (it.targetText && String(it.targetText).trim()) {
+      if (it.targetText && String(it.targetText).trim() && (!it.status || ['translated', 'edited', 'approved'].includes(it.status))) {
         fileProgress[fn].translated++;
       }
     }

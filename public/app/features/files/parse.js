@@ -30,6 +30,7 @@ async function __parseFileAsyncImpl(file, options) {
   const opts = options || {};
   const silent = !!opts.silent;
   const skipPersist = !!opts.skipPersist;
+  const warnings = [];
   try {
     // 显示处理提示（源文件重解析等场景可 silent，避免叠 toast）
     if (!silent) {
@@ -43,17 +44,19 @@ async function __parseFileAsyncImpl(file, options) {
       const s = typeof SettingsCache !== "undefined" && SettingsCache.get ? SettingsCache.get() : {};
       const extFormatKey = {
         xml: "xml", xlf: "xliff", xliff: "xliff", ts: "ts", resx: "resx",
-        strings: "strings", po: "po", json: "json",
+        strings: "strings", po: "po", pot: "po", json: "json",
+        yaml: "yaml", yml: "yaml", csv: "csv", tsv: "csv",
       }[fileExtension];
       if (extFormatKey) {
-        const enabled = s["format" + (extFormatKey === "strings" ? "IOSStrings" : extFormatKey === "ts" ? "QtTS" : extFormatKey === "xml" ? "XML" : extFormatKey === "xliff" ? "XLIFF" : extFormatKey === "resx" ? "RESX" : extFormatKey === "po" ? "PO" : extFormatKey === "json" ? "JSON" : "")] !== false;
+        const settingKey = { strings: "IOSStrings", ts: "QtTS", xml: "XML", xliff: "XLIFF", resx: "RESX", po: "PO", json: "JSON", yaml: "YAML", csv: "CSV" }[extFormatKey];
+        const enabled = s["format" + settingKey] !== false;
         if (!enabled) {
           if (!silent) {
             showNotification("warning", "格式已禁用", "已在设置中禁用 " + fileExtension.toUpperCase() + " 格式解析（文件处理设置）");
           }
           return null;
         }
-      } else if (s.formatTextFallback === false) {
+      } else if (!ParserRegistry.getByExtension(fileExtension) && s.formatTextFallback === false) {
         // 未知扩展名走文本兜底，受 formatTextFallback 控制
         if (!silent) {
           showNotification("warning", "文本解析已禁用", "已在设置中禁用文本兜底解析（文件处理设置）");
@@ -64,13 +67,12 @@ async function __parseFileAsyncImpl(file, options) {
       (loggers.app || console).debug("format setting check:", e);
     }
 
-    const content = await __readFileAsyncImpl(file);
+    const content = await __readFileAsyncImpl(file, { encoding: opts.encoding, warnings });
 
     const normalizedContent = (typeof content === "string" ? content : "")
       .replace(/^\uFEFF/, "")
       .replace(/\r\n?/g, "\n");
 
-    const warnings = [];
     const addWarning = (type, message, detail, meta = {}) => {
       warnings.push({
         type,
@@ -112,28 +114,6 @@ async function __parseFileAsyncImpl(file, options) {
       }
     }
 
-    // 保存文件元数据（到 AppState）。skipPersist：仅解析条目，不覆盖导入缓存
-    if (!skipPersist) {
-      const projectId = AppState.project?.id || getOrCreateProjectId();
-      const contentKey = buildFileContentKey(projectId, file.name);
-      // 经 ProjectStore 写入（含 project.fileMetadata 派生引用维护）
-      ProjectStore.setFileMetadata(file.name, {
-        size: file.size,
-        lastModified: file.lastModified,
-        type: file.type || "text/xml",
-        originalContent: content, // 保存原始文件内容
-        contentKey,
-        extension: fileExtension,
-      });
-
-      try {
-        await idbPutFileContent(contentKey, content);
-      } catch (e) {
-        (loggers.storage || console).error("导入时写入IndexedDB失败:", e);
-        notifyIndexedDbFileContentErrorOnce(e, "导入时保存原始内容");
-      }
-    }
-
     (loggers.app || console).debug(
       `开始解析文件: ${file.name} (${fileExtension}), 大小: ${file.size} bytes`
     );
@@ -152,7 +132,7 @@ async function __parseFileAsyncImpl(file, options) {
     }
 
     try {
-      // XML 系格式：结构探测优先；结构未命中按扩展名提示；校验失败/0 条目均回退通用XML
+      // XML 系格式：结构探测优先；结构未命中按扩展名提示；校验失败回退通用XML。
       const parseXmlByDetectedFormat = () => {
         const warnFallback = (message) => {
           (loggers.app || console).warn(message);
@@ -212,15 +192,9 @@ async function __parseFileAsyncImpl(file, options) {
           }
         }
 
-        // 解析守卫：0 条目 → 回退通用XML
+        // 已识别格式的空结果合法，不能把禁译资源重新作为通用 XML 导入。
         const parsed = chosen.parse(normalizedContent, file.name);
-        if (!parsed || parsed.length === 0) {
-          warnFallback(
-            `${file.name} ${chosen.label}解析未找到可翻译项，已回退到通用XML解析。`
-          );
-          return parseGenericXML(normalizedContent, file.name);
-        }
-        return parsed;
+        return parsed || [];
       };
 
       const parser = ParserRegistry.getByExtension(fileExtension);
@@ -258,20 +232,18 @@ async function __parseFileAsyncImpl(file, options) {
           throw err;
         }
       }
-      // 其它解析器错误仍按原策略回退纯文本（例如扩展名与内容不符的普通文本文件）
-      (loggers.app || console).error(`特定解析器失败，使用备用方法:`, parseError);
-      items = parseTextFile(normalizedContent, file.name);
+      // 已知格式的语法错误必须保留为失败，不能把结构/指令当作翻译文本。
+      throw parseError;
     }
 
     if (items && items.length > 0) {
       const keyCounts = new Map();
-      const getKey = (item) =>
+      const getKey = (item) => item?.metadata?.identity ||
         String(
           item?.metadata?.resourceId ||
             item?.metadata?.key ||
             item?.metadata?.path ||
             item?.metadata?.unitId ||
-            item?.metadata?.contextName ||
             item?.id ||
             ""
         ).trim();
@@ -296,6 +268,22 @@ async function __parseFileAsyncImpl(file, options) {
       }
     }
 
+    // 成功解析后才替换缓存，失败重导入保留原文件与已有译文。
+    if (!skipPersist) {
+      const projectId = AppState.project?.id || getOrCreateProjectId();
+      const contentKey = buildFileContentKey(projectId, file.name);
+      ProjectStore.setFileMetadata(file.name, {
+        size: file.size, lastModified: file.lastModified,
+        type: file.type || "text/plain", originalContent: content,
+        contentKey, extension: fileExtension,
+      });
+      try {
+        await idbPutFileContent(contentKey, content);
+      } catch (e) {
+        (loggers.storage || console).error("导入时写入IndexedDB失败:", e);
+        notifyIndexedDbFileContentErrorOnce(e, "导入时保存原始内容");
+      }
+    }
     (loggers.app || console).info(`文件 ${file.name} 解析完成，找到 ${items.length} 个翻译项`);
     if (!silent) {
       showNotification(
@@ -316,26 +304,13 @@ async function __parseFileAsyncImpl(file, options) {
       );
     }
 
-    // 返回错误信息项
+    // 错误是文件诊断，不是可翻译资源。
     return {
       success: false,
-      items: [
-        {
-          id: `error-${Date.now()}`,
-          sourceText: `文件解析错误: ${file.name}`,
-          targetText: "",
-          context: error.message,
-          status: "pending",
-          qualityScore: 0,
-          issues: ["FILE_PARSE_ERROR"],
-          metadata: {
-            file: file.name,
-            position: "error",
-          },
-        },
-      ],
+      items: [],
+      error: error.message,
       fileName: file.name,
-      warnings: typeof warnings !== "undefined" ? warnings : [],
+      warnings,
     };
   }
 }

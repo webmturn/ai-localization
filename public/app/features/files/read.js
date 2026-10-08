@@ -1,4 +1,4 @@
-async function __readFileAsyncImpl(file) {
+async function __readFileAsyncImpl(file, options = {}) {
   // 文件大小限制（maxFileSize 设置项，MB，默认 10）
   try {
     const settings = SettingsCache.get() || {};
@@ -35,52 +35,6 @@ async function __readFileAsyncImpl(file) {
     }
   };
 
-  const __detectBomEncoding = typeof ParserUtils !== 'undefined'
-    ? ParserUtils.detectBom
-    : (bytes) => {
-        if (!bytes || bytes.length < 2) return "";
-        if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return "utf-8";
-        if (bytes[0] === 0xff && bytes[1] === 0xfe) return "utf-16le";
-        if (bytes[0] === 0xfe && bytes[1] === 0xff) return "utf-16be";
-        return "";
-      };
-
-  const __guessUtf16WithoutBom = (bytes) => {
-    if (!bytes || bytes.length < 4) return "";
-
-    const sampleLen = Math.min(bytes.length, 4096);
-    let evenNulls = 0;
-    let oddNulls = 0;
-    let evenCount = 0;
-    let oddCount = 0;
-
-    for (let i = 0; i < sampleLen; i++) {
-      if (i % 2 === 0) {
-        evenCount++;
-        if (bytes[i] === 0x00) evenNulls++;
-      } else {
-        oddCount++;
-        if (bytes[i] === 0x00) oddNulls++;
-      }
-    }
-
-    const evenRatio = evenCount ? evenNulls / evenCount : 0;
-    const oddRatio = oddCount ? oddNulls / oddCount : 0;
-
-    if (oddRatio > 0.3 && evenRatio < 0.05) return "utf-16le";
-    if (evenRatio > 0.3 && oddRatio < 0.05) return "utf-16be";
-    return "";
-  };
-
-  const __decode = (bytes, encoding, fatal) => {
-    try {
-      const decoder = new TextDecoder(encoding, { fatal: !!fatal });
-      return decoder.decode(bytes);
-    } catch (e) {
-      return null;
-    }
-  };
-
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -92,50 +46,16 @@ async function __readFileAsyncImpl(file) {
           return;
         }
 
-        const autoDetect = __getAutoDetectEncoding();
-        const bom = __detectBomEncoding(bytes);
-        const utf16Guess = !bom && autoDetect ? __guessUtf16WithoutBom(bytes) : "";
-
-        let text = null;
-        const primaryEncoding = bom || utf16Guess || "";
-        if (primaryEncoding) {
-          text = __decode(bytes, primaryEncoding, false);
+        const settings = (typeof SettingsCache !== 'undefined' ? SettingsCache.get() : {}) || {};
+        const decoded = ParserUtils.decodeFileBytes(bytes, {
+          encoding: options.encoding || settings.fileEncoding || 'auto',
+          autoDetect: __getAutoDetectEncoding(),
+        });
+        if (decoded.uncertain && Array.isArray(options.warnings)) {
+          options.warnings.push({ type: 'encoding', file: file.name, encoding: decoded.encoding,
+            message: '已尝试按 ' + decoded.encoding + ' 解码，请核对原文；如有乱码，请在文件处理设置中指定编码。' });
         }
-
-        if (text == null) {
-          if (!autoDetect) {
-            text = __decode(bytes, "utf-8", false);
-          } else {
-            const utf8 = __decode(bytes, "utf-8", true);
-            if (utf8 != null) {
-              text = utf8;
-            } else {
-              const fallbacks = [
-                "gb18030",
-                "gbk",
-                "shift_jis",
-                "big5",
-                "windows-1252",
-                "iso-8859-1",
-              ];
-              for (let i = 0; i < fallbacks.length; i++) {
-                const decoded = __decode(bytes, fallbacks[i], false);
-                if (decoded == null) continue;
-                text = decoded;
-                break;
-              }
-              if (text == null) {
-                text = __decode(bytes, "utf-8", false);
-              }
-            }
-          }
-        }
-
-        if (typeof text !== "string") {
-          reject(new Error(`读取文件 ${file.name} 失败`));
-          return;
-        }
-
+        const text = decoded.text;
         resolve(text);
       } catch (e) {
         reject(e);

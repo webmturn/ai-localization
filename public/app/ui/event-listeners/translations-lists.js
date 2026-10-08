@@ -4,11 +4,15 @@ function registerEventListenersTranslationLists(ctx) {
   const mobileCombinedList = ctx?.mobileCombinedList;
 
   if (sourceList) {
+    EventManager.add(sourceList, 'toggle', event => {
+      if (event.target.matches('.translation-resource-details')) syncTranslationHeights();
+    }, { capture: true, tag: 'translations', scope: 'list:source', label: 'sourceList:detailsToggle' });
     // 点击事件委托
     EventManager.add(
       sourceList,
       "click",
       function (e) {
+        if (e.target.closest('.translation-resource-details')) return;
         const item = e.target.closest(".responsive-translation-item");
         if (item && item.dataset.index) {
           const index = parseInt(item.dataset.index);
@@ -116,6 +120,8 @@ function registerEventListenersTranslationLists(ctx) {
         const rawTarget = e.target;
         const targetEl =
           rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement;
+
+        if (targetEl?.closest('.translation-resource-details')) return;
 
         const actionEl = targetEl ? targetEl.closest("[data-action]") : null;
         if (actionEl?.dataset.action === "toggle-reviewed") {

@@ -1758,6 +1758,12 @@ input[type="range"]::-moz-range-thumb {
 #sourceList .item-content, #targetList .item-content { padding: 6px 0; }
 .translation-target-content { display: flex; flex-direction: column; gap: 4px; }
 .translation-editor { display: block; min-height: 28px; padding: 0 6px; line-height: 1.5; background: #f8fafc; overflow-y: hidden; }
+.translation-inline-token { display: inline; padding: 1px 4px; margin: 0 2px; border-radius: 4px; background: #e0edff; color: #2455a4; font-size: .8em; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.translation-resource-details { margin-top: 4px; font-size: 12px; color: #64748b; white-space: normal; }
+.translation-resource-details summary { cursor: pointer; width: fit-content; }
+.translation-resource-details p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dark-mode .translation-inline-token { background: #203958; color: #93c5fd; }
+.dark-mode .translation-resource-details { color: #94a3b8; }
 .translation-editor:hover { background: #f1f5f9; }
 .translation-editor:focus { background: #fff; }
 .translation-row-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; padding: 0 6px; font-size: 11px; }

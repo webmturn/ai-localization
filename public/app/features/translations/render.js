@@ -83,6 +83,61 @@ var __targetItemTemplate = (function () {
   return div;
 })();
 
+// 标签始终使用安全文本节点，显示不改变模型中的 XML 原文。
+function createTranslationSourceContent(item, searchQuery) {
+  const text = item.sourceText || '';
+  if (!item.metadata?.inlineMarkup) return highlightTextWithTerms(text, searchQuery);
+  const fragment = document.createDocumentFragment();
+  const decode = value => value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (all, entity) => {
+    if (entity[0] === '#') {
+      const code = entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+      return code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : all;
+    }
+    return ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[entity.toLowerCase()] || all;
+  });
+  const tokens = /<!\[CDATA\[([\s\S]*?)\]\]>|<\/?[\w:.-]+(?:\s+[^<>]*?)?\s*\/?>/g;
+  let start = 0, match;
+  while ((match = tokens.exec(text))) {
+    fragment.appendChild(highlightTextWithTerms(decode(text.slice(start, match.index)), searchQuery));
+    if (match[1] !== undefined) fragment.appendChild(highlightTextWithTerms(match[1], searchQuery));
+    else {
+      const token = document.createElement('span');
+      token.className = 'translation-inline-token';
+      const name = match[0].match(/^<(\/?[\w:.-]+)/)?.[1] || '';
+      const id = match[0].match(/\bid\s*=\s*["']([^"']+)["']/)?.[1];
+      token.textContent = '<' + name + (id ? ' #' + id : '') + (match[0].endsWith('/>') ? '/>' : '>');
+      token.title = match[0];
+      token.dataset.inlineToken = 'true';
+      fragment.appendChild(token);
+    }
+    start = tokens.lastIndex;
+  }
+  fragment.appendChild(highlightTextWithTerms(decode(text.slice(start)), searchQuery));
+  return fragment;
+}
+
+function appendTranslationResourceDetails(container, item) {
+  const metadata = item.metadata || {};
+  const fields = [
+    ['说明', metadata.comment],
+    ['引用位置', (metadata.references || []).join('\n')],
+    ['原始状态', metadata.originalState],
+    ['复数形式', Number.isInteger(metadata.pluralIndex) ? String(metadata.pluralIndex) : ''],
+  ].filter(([, value]) => value);
+  if (!fields.length) return;
+  const details = document.createElement('details');
+  details.className = 'translation-resource-details';
+  const summary = document.createElement('summary');
+  summary.textContent = '资源详情';
+  details.appendChild(summary);
+  for (const [label, value] of fields) {
+    const line = document.createElement('p');
+    line.textContent = label + '：' + value;
+    details.appendChild(line);
+  }
+  container.appendChild(details);
+}
+
 // 创建翻译项 DOM 元素（使用事件委托，不再单独绑定）
 function createTranslationItemElement(
   item,
@@ -134,7 +189,7 @@ function createTranslationItemElement(
     const clone = __sourceItemTemplate.cloneNode(true);
     const p = clone.querySelector("p");
     // 搜索高亮 + 术语高亮（highlightTerms 设置项）
-    p.appendChild(highlightTextWithTerms(sourceText, searchQuery));
+    p.appendChild(createTranslationSourceContent(item, searchQuery));
 
     const contentEl = clone.querySelector(".item-content");
     // 次要信息（语境 + 资源 ID）合并成一行并截断：
@@ -151,6 +206,7 @@ function createTranslationItemElement(
       metaEl.title = metaParts.join(" · ");
       contentEl.appendChild(metaEl);
     }
+    appendTranslationResourceDetails(contentEl, item);
 
     div.appendChild(clone.firstElementChild);
   } else {
@@ -202,7 +258,7 @@ function createMobileCombinedTranslationItemElement(
   const context = item.context || "";
   const searchQuery = AppState.translations.searchQuery;
 
-  const hasExtraInfo = !!(context || item.metadata?.resourceId);
+  const hasExtraInfo = !!(context || item.metadata?.resourceId || item.metadata?.comment || item.metadata?.originalState);
 
   const top = document.createElement("div");
   top.className = "flex items-start justify-between gap-1.5";
@@ -214,7 +270,7 @@ function createMobileCombinedTranslationItemElement(
   p.className =
     "text-[13px] leading-snug font-medium break-words whitespace-pre-wrap text-gray-900 dark:text-gray-100";
   // 搜索高亮 + 术语高亮（highlightTerms 设置项）
-  p.appendChild(highlightTextWithTerms(sourceText, searchQuery));
+  p.appendChild(createTranslationSourceContent(item, searchQuery));
   left.appendChild(p);
 
   let extra = null;
@@ -235,6 +291,7 @@ function createMobileCombinedTranslationItemElement(
       extra.appendChild(metaEl);
     }
 
+    appendTranslationResourceDetails(extra, item);
     left.appendChild(extra);
   }
 

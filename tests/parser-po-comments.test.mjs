@@ -50,7 +50,7 @@ msgstr[1] "%n 个文件"
 describe("PO 导入：注释条目（P1 回归）", () => {
   it("标准 xgettext 风格文件（每条都带注释）能被完整解析", () => {
     const items = parsePO(XGETTEXT_STYLE, "demo.po");
-    expect(items.map((i) => i.sourceText)).toEqual(["Hello", "Open", "Legacy", "%n file"]);
+    expect(items.map((i) => i.sourceText)).toEqual(["Hello", "Open", "Legacy", "%n file", "%n files"]);
   });
 
   it("头部元数据条目（msgid 为空）仍被跳过", () => {

@@ -41,7 +41,7 @@ function generateOriginalFormatExport(fileName, items) {
     return { content, filename: `${baseName}-translated.resx` };
   }
 
-  if (extension === "po") {
+  if (extension === "po" || extension === "pot") {
     const content = generatePOFromOriginal(items, normalizedFileName);
     return { content, filename: `${baseName}-translated.po` };
   }
@@ -61,7 +61,8 @@ function generateOriginalFormatExport(fileName, items) {
 
 function __withXmlDeclarationAndDoctypeTs(serialized, originalContent) {
   const xmlDeclMatch = (originalContent || "").match(/^<\?xml[^>]*\?>/);
-  const xmlDecl = xmlDeclMatch ? xmlDeclMatch[0] : "";
+  // 导出下载使用 UTF-8，不能继续保留旧文件的其它编码声明。
+  const xmlDecl = xmlDeclMatch ? xmlDeclMatch[0].replace(/encoding\s*=\s*["'][^"']+["']/i, 'encoding="utf-8"') : "";
   const doctypeMatch = (originalContent || "").match(/<!DOCTYPE\s+TS[^>]*>/i);
   const doctype = doctypeMatch ? doctypeMatch[0] : "";
 
@@ -148,7 +149,11 @@ function generateQtTsFromOriginal(items, fileName) {
       if (!targetText || !targetText.trim()) continue;
 
       const numerusForms = transEl.getElementsByTagName("numerusform");
-      if (numerusForms && numerusForms.length > 0) {
+      const pluralIndex = item?.metadata?.pluralIndex;
+      if (Number.isInteger(pluralIndex)) {
+        if (!numerusForms[pluralIndex]) continue;
+        numerusForms[pluralIndex].textContent = targetText;
+      } else if (numerusForms && numerusForms.length > 0) {
         // 复数消息：解析时把各 <numerusform> 用 \n 连接成一个条目，因此导出必须按 \n 拆回。
         // 此前把整段拼接文本写进每一个形态，导致「只导出、不改动」也会破坏原有复数译文。
         //
@@ -180,7 +185,9 @@ function generateQtTsFromOriginal(items, fileName) {
         transEl.textContent = targetText;
       }
 
-      if (transEl.getAttribute("type") === "unfinished") {
+      const groupItems = items.filter(it => it.metadata?.position === item.metadata?.position);
+      const groupComplete = !Number.isInteger(pluralIndex) || (groupItems.length === numerusForms.length && groupItems.every(isTranslatedItem));
+      if (groupComplete && transEl.getAttribute("type") === "unfinished") {
         transEl.removeAttribute("type");
       }
 
@@ -253,17 +260,30 @@ function generateNewQtTsFromItems(items) {
     nameEl.textContent = ctxName;
     ctxEl.appendChild(nameEl);
 
-    for (let i = 0; i < ctxItems.length; i++) {
-      const item = ctxItems[i];
-      const msgEl = doc.createElement("message");
-      const sourceEl = doc.createElement("source");
-      sourceEl.textContent = item?.sourceText || "";
-      const transEl = doc.createElement("translation");
-      if (item?.targetText && item.targetText.trim()) {
-        transEl.textContent = item.targetText;
-      } else {
-        transEl.setAttribute("type", "unfinished");
-      }
+    const groups = new Map();
+    ctxItems.forEach((item, index) => {
+      const key = Number.isInteger(item.metadata?.pluralIndex) ? item.metadata.position || item.sourceText : 'single-' + index;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    });
+    for (const group of groups.values()) {
+      const item = group[0];
+      const msgEl = doc.createElement('message');
+      const sourceEl = doc.createElement('source');
+      sourceEl.textContent = item.sourceText || '';
+      const transEl = doc.createElement('translation');
+      if (Number.isInteger(item.metadata?.pluralIndex)) {
+        msgEl.setAttribute('numerus', 'yes');
+        const count = Number(item.metadata.targetNumerusCount) || group.length;
+        for (let n = 0; n < count; n++) {
+          const form = group.find(it => it.metadata.pluralIndex === n);
+          const formEl = doc.createElement('numerusform');
+          formEl.textContent = form?.targetText || '';
+          transEl.appendChild(formEl);
+        }
+        if (group.length < count || group.some(it => !it.targetText?.trim() || it.status === 'pending')) transEl.setAttribute('type', 'unfinished');
+      } else if (item.targetText?.trim()) transEl.textContent = item.targetText;
+      else transEl.setAttribute('type', 'unfinished');
       msgEl.appendChild(sourceEl);
       msgEl.appendChild(transEl);
       ctxEl.appendChild(msgEl);
@@ -425,7 +445,7 @@ function generatePOFromOriginal(items, fileName) {
   }
 
   try {
-    return __replacePoMsgstr(originalContent, items);
+    return __replacePoMsgstr(originalContent, items).replace(/(Content-Type:[^"\r\n]*charset\s*=\s*)[\w-]+/i, '$1UTF-8');
   } catch (e) {
     (loggers.app || console).error("更新PO失败:", e);
     return generateCSV(items, true);
@@ -551,23 +571,50 @@ function __poReplaceMsgstrBlock(content, msgid, msgstr) {
 
 // PO 导出：按 msgid 精确匹配（支持续行拼接与转义），并按需重建复数形式
 function __replacePoMsgstr(content, items) {
-  let result = content;
-  for (const item of items || []) {
-    const msgid = item?.sourceText;
-    const msgstr = item?.targetText;
-    if (!msgid || !String(msgid).trim()) continue;
-    if (!msgstr || !String(msgstr).trim()) continue;
-
-    const replaced = __poReplaceMsgstrBlock(result, msgid, msgstr);
-    if (replaced != null) result = replaced;
-
-    const plural = item?.metadata?.pluralTarget;
-    if (plural != null && String(plural).trim()) {
-      const replacedPlural = __poReplaceMsgstrBlockWithIndex(result, msgid, 1, plural);
-      if (replacedPlural != null) result = replacedPlural;
+  const pieces = String(content).split(/(\n\s*\n)/);
+  const literal = (block, field) => {
+    const lines = block.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (!new RegExp('^' + field + '\\s+').test(lines[i].trim())) continue;
+      let out = (lines[i].match(/"((?:\\.|[^"\\])*)"/g) || []).map(x => x.slice(1, -1)).join('');
+      while (i + 1 < lines.length && /^\s*"/.test(lines[i + 1])) out += lines[++i].trim().slice(1, -1);
+      return out;
     }
+    return '';
+  };
+  for (const item of items || []) {
+    const msgid = item.metadata?.msgid || item.sourceText;
+    if (!msgid || !item.targetText?.trim()) continue;
+    const context = item.metadata?.msgctxt;
+    const expectedId = __poEscape(msgid);
+    const matches = [];
+    for (let i = 0; i < pieces.length; i += 2) {
+      if (literal(pieces[i], 'msgid') === expectedId && (context == null || literal(pieces[i], 'msgctxt') === __poEscape(context))) matches.push(i);
+    }
+    const entryPiece = Number(item.metadata?.entryId) > 0 ? (item.metadata.entryId - 1) * 2 : -1;
+    const index = matches.includes(entryPiece) ? entryPiece : matches.length === 1 ? matches[0] : -1;
+    if (index < 0) continue; // 无法确定语境时不把同文的其它条目一起覆盖
+    let block = pieces[index];
+    const replaceForm = (source, index, value) => {
+      const lines = source.split('\n');
+      for (let n = 0; n < lines.length; n++) {
+        const match = lines[n].match(/^([ \t]*msgstr(?:\[(\d+)\])?[ \t]+)"(?:\\.|[^"\\])*"/);
+        if (!match || (index != null && Number(match[2] || 0) !== index)) continue;
+        let end = n + 1;
+        while (end < lines.length && /^\s*"/.test(lines[end])) end++;
+        const parts = __poSplitLines(__poEscape(value));
+        const replacement = [match[1] + '"' + parts[0] + '"', ...parts.slice(1).map(part => '"' + part + '"')];
+        lines.splice(n, end - n, ...replacement);
+        return lines.join('\n');
+      }
+      return index == null ? source : source + '\nmsgstr[' + index + '] "' + __poEscape(value) + '"';
+    };
+    const pluralIndex = item.metadata?.pluralIndex;
+    block = replaceForm(block, Number.isInteger(pluralIndex) ? pluralIndex : null, item.targetText);
+    if (!Number.isInteger(pluralIndex) && item.metadata?.pluralTarget?.trim()) block = replaceForm(block, 1, item.metadata.pluralTarget);
+    pieces[index] = block;
   }
-  return result;
+  return pieces.join('');
 }
 
 // 替换 msgstr[N] 形式（复数），语义同 __poReplaceMsgstrBlock

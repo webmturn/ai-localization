@@ -263,6 +263,12 @@ async function loadSettings({ applyRuntime = true } = {}) {
       }
 
       // 加载文件处理设置
+      for (const key of ['formatYAML', 'formatCSV']) {
+        const input = DOMCache.get(key);
+        if (input) input.checked = settings[key] !== false;
+      }
+      const encodingInput = DOMCache.get('fileEncoding');
+      if (encodingInput) encodingInput.value = settings.fileEncoding || 'auto';
       if (settings.maxFileSize) {
         const maxSize = DOMCache.get("maxFileSize");
         if (maxSize) maxSize.value = settings.maxFileSize;

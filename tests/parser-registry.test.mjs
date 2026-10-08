@@ -177,7 +177,7 @@ describe("端到端分发冒烟（__parseFileAsyncImpl → 注册表 → 解析�
 
   it("JSON 扩展名直配 parseJSON", async () => {
     const result = await parseFile('{"app.title": "Hello"}', "t.json", "application/json");
-    expect(result.success).toBe(true);
+    expect(result.success, result.error).toBe(true);
     expect(result.items.length).toBe(1);
     expect(result.items[0].sourceText).toBe("Hello");
   });
@@ -267,10 +267,8 @@ describe("畸形 XML 不再退化为纯文本（回归）", () => {
   it("损坏的 .xlf 返回失败而不是垃圾条目", async () => {
     const result = await parseFile("<xliff><file><body><unclosed>", "broken.xlf", "application/xml");
     expect(result.success).toBe(false);
-    // 失败时返回单个「文件解析错误」占位项，真实原因在 context
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].issues).toContain("FILE_PARSE_ERROR");
-    expect(result.items[0].context).toMatch(/XML/i);
+    expect(result.items).toHaveLength(0);
+    expect(result.error).toMatch(/XML/i);
   });
 
   it("损坏的 .xml 返回失败", async () => {

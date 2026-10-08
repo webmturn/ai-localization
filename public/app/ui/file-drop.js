@@ -55,15 +55,15 @@ function handleDrop(e) {
     // 将 FileList 转换为数组，保持一致性
     const filesArray = Array.from(e.dataTransfer.files);
 
-    // 验证文件大小（10MB限制），与 handleFileSelect 保持一致
+    const maxMB = ParserUtils.getMaxFileSizeMB();
     const invalidFiles = filesArray.filter(
-      (file) => !securityUtils.validateFileSize(file.size, 10)
+      (file) => !securityUtils.validateFileSize(file.size, maxMB)
     );
     if (invalidFiles.length > 0) {
       showNotification(
         "error",
         "文件过大",
-        `以下文件超过10MB限制：${invalidFiles.map((f) => f.name).join(", ")}`
+        `以下文件超过${maxMB}MB限制：${invalidFiles.map((f) => f.name).join(", ")}`
       );
       return;
     }
@@ -77,15 +77,15 @@ function handleFileSelect(e) {
     // 先将 FileList 转换为数组，防止清空输入框后 files 被清空
     const filesArray = Array.from(e.target.files);
 
-    // 验证文件大小（10MB限制）
+    const maxMB = ParserUtils.getMaxFileSizeMB();
     const invalidFiles = filesArray.filter(
-      (file) => !securityUtils.validateFileSize(file.size, 10)
+      (file) => !securityUtils.validateFileSize(file.size, maxMB)
     );
     if (invalidFiles.length > 0) {
       showNotification(
         "error",
         "文件过大",
-        `以下文件超过10MB限制：${invalidFiles.map((f) => f.name).join(", ")}`
+        `以下文件超过${maxMB}MB限制：${invalidFiles.map((f) => f.name).join(", ")}`
       );
       e.target.value = "";
       return;

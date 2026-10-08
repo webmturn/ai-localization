@@ -454,6 +454,8 @@ function registerEventListenersSettings(ctx) {
           formatXML: DOMCache.get("formatXML")?.checked ?? true,
           formatXLIFF: DOMCache.get("formatXLIFF")?.checked ?? true,
           formatJSON: DOMCache.get("formatJSON")?.checked ?? true,
+          formatYAML: DOMCache.get("formatYAML")?.checked ?? true,
+          formatCSV: DOMCache.get("formatCSV")?.checked ?? true,
           formatPO: DOMCache.get("formatPO")?.checked ?? true,
           formatRESX: DOMCache.get("formatRESX")?.checked ?? true,
           formatIOSStrings:
@@ -463,6 +465,7 @@ function registerEventListenersSettings(ctx) {
             DOMCache.get("formatTextFallback")?.checked ?? true,
           autoDetectEncoding:
             DOMCache.get("autoDetectEncoding")?.checked ?? true,
+          fileEncoding: DOMCache.get("fileEncoding")?.value || 'auto',
           autoTranslateOnImport:
             DOMCache.get("autoTranslateOnImport")?.checked || false,
 

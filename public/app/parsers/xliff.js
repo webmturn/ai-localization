@@ -17,6 +17,11 @@ function parseXLIFF(content, fileName) {
   }
 
   const serializer = new XMLSerializer();
+  const fileIdentity = unit => {
+    let file = unit.parentElement;
+    while (file && file.localName !== 'file') file = file.parentElement;
+    return file ? ([...xmlDoc.getElementsByTagNameNS('*', 'file')].indexOf(file)) : 0;
+  };
   function serializeChildren(element) {
     if (!element) return "";
     let out = "";
@@ -35,6 +40,7 @@ function parseXLIFF(content, fileName) {
   if (transUnits && transUnits.length > 0) {
     for (let i = 0; i < transUnits.length; i++) {
       const unit = transUnits[i];
+      if (unit.getAttribute('translate') === 'no') continue;
       const id = unit.getAttribute("id") || `unit-${i + 1}`;
 
       const sourceElement = unit.getElementsByTagNameNS("*", "source")[0];
@@ -42,6 +48,8 @@ function parseXLIFF(content, fileName) {
 
       const sourceText = serializeChildren(sourceElement);
       const targetText = serializeChildren(targetElement);
+      const originalState = targetElement?.getAttribute('state') || '';
+      const needsReview = /^(?:new|needs-|initial)/.test(originalState);
 
       if (sourceText) {
         items.push({
@@ -49,12 +57,16 @@ function parseXLIFF(content, fileName) {
           sourceText: sourceText,
           targetText: targetText,
           context: `XLIFF unit: ${id}`,
-          status: targetText ? "translated" : "pending",
+          status: targetText && !needsReview ? "translated" : "pending",
           qualityScore: targetText ? 85 : 0,
           issues: [],
           metadata: {
             file: fileName,
             unitId: id,
+            identity: JSON.stringify(['xliff12', fileIdentity(unit), id]),
+            inlineMarkup: true,
+            originalState,
+            comment: [...unit.getElementsByTagNameNS('*', 'note')].map(n => n.textContent).join('\n'),
             position: `unit-${i + 1}`,
           },
         });
@@ -66,6 +78,7 @@ function parseXLIFF(content, fileName) {
   const units = xmlDoc.getElementsByTagNameNS("*", "unit");
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
+    if (unit.getAttribute('translate') === 'no') continue;
     const unitId = unit.getAttribute("id") || `unit-${i + 1}`;
     const segments = unit.getElementsByTagNameNS("*", "segment");
     if (segments && segments.length > 0) {
@@ -75,19 +88,26 @@ function parseXLIFF(content, fileName) {
         const targetElement = seg.getElementsByTagNameNS("*", "target")[0];
         const sourceText = serializeChildren(sourceElement);
         const targetText = serializeChildren(targetElement);
+        const segmentId = seg.getAttribute('id') || String(s + 1);
+        const originalState = seg.getAttribute('state') || '';
         if (!sourceText) continue;
 
         items.push({
           id: `xliff-${items.length + 1}`,
           sourceText: sourceText,
           targetText: targetText,
-          context: `XLIFF unit: ${unitId}`,
-          status: targetText ? "translated" : "pending",
+          context: `XLIFF unit: ${unitId} · segment: ${segmentId}`,
+          status: targetText && originalState !== 'initial' ? "translated" : "pending",
           qualityScore: targetText ? 85 : 0,
           issues: [],
           metadata: {
             file: fileName,
             unitId: unitId,
+            segmentId,
+            identity: JSON.stringify(['xliff20', fileIdentity(unit), unitId, segmentId]),
+            inlineMarkup: true,
+            originalState,
+            comment: [...unit.getElementsByTagNameNS('*', 'note')].map(n => n.textContent).join('\n'),
             position: `unit-${i + 1}-segment-${s + 1}`,
           },
         });
@@ -109,6 +129,9 @@ function parseXLIFF(content, fileName) {
         metadata: {
           file: fileName,
           unitId: unitId,
+          identity: JSON.stringify(['xliff20', fileIdentity(unit), unitId]),
+          inlineMarkup: true,
+          comment: [...unit.getElementsByTagNameNS('*', 'note')].map(n => n.textContent).join('\n'),
           position: `unit-${i + 1}`,
         },
       });

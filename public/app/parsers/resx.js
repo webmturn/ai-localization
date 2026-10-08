@@ -1,6 +1,6 @@
 // 解析 RESX 文件。
 // - 提取 <data name="..."> 下的 <value> 文本作为源文本
-// - <value> 缺失或为空时，回退使用 name 作为源文本（避免丢项）
+// - 排除数值、二进制等非字符串资源及空值
 // - 若存在 <comment>，写入 metadata.comment 作为辅助信息
 function parseRESX(content, fileName) {
   const items = [];
@@ -17,6 +17,8 @@ function parseRESX(content, fileName) {
   const dataElements = xmlDoc.getElementsByTagName("data");
   for (let i = 0; i < dataElements.length; i++) {
     const data = dataElements[i];
+    const resourceType = data.getAttribute("type") || "";
+    if (data.getAttribute("mimetype") || (resourceType && !/^System\.String(?:\s*,|$)/i.test(resourceType))) continue;
     const name = data.getAttribute("name");
 
     // 查找value子元素
@@ -26,8 +28,8 @@ function parseRESX(content, fileName) {
     const commentElement = data.getElementsByTagName("comment")[0];
     const commentText = commentElement ? commentElement.textContent : "";
 
-    if (name) {
-      const sourceText = valueText && valueText.trim() ? valueText : name;
+    if (name && valueText.trim()) {
+      const sourceText = valueText;
       items.push({
         id: `resx-${i + 1}`,
         sourceText: sourceText,

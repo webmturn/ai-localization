@@ -17,7 +17,7 @@
 function parseCSV(content, fileName, options = {}) {
   const {
     delimiter = ',',
-    hasHeader = true,
+    hasHeader = 'auto',
     sourceColumn = 0,
     targetColumn = 1,
     idColumn = -1,
@@ -38,7 +38,14 @@ function parseCSV(content, fileName, options = {}) {
     let startRow = 0;
     let headers = [];
     
-    if (hasHeader && lines.length > 0) {
+    const normalizedHeaders = lines[0].map(h => h.toLowerCase().trim());
+    const srcNames = ['source', 'src', 'original', 'en', 'english', 'msgid', '原文', '源文'];
+    const tgtNames = ['target', 'tgt', 'translation', 'translated', 'zh', 'chinese', 'value', 'msgstr', '译文', '翻译'];
+    const isNamedColumn = (header, names) => names.some(n => header === n || header.startsWith(n + '_') || header.startsWith(n + '-') || header.startsWith(n + ' '));
+    const useHeader = hasHeader === true || (hasHeader === 'auto' &&
+      normalizedHeaders.some(h => isNamedColumn(h, srcNames) || h === 'key') &&
+      normalizedHeaders.some(h => isNamedColumn(h, tgtNames)));
+    if (useHeader && lines.length > 0) {
       headers = lines[0];
       startRow = 1;
     }
@@ -49,22 +56,20 @@ function parseCSV(content, fileName, options = {}) {
     let idCol = idColumn;
     let ctxCol = contextColumn;
     
-    if (hasHeader) {
+    if (useHeader) {
       const headerLower = headers.map(h => h.toLowerCase().trim());
       
       // 自动检测源语言列
-      const srcNames = ['source', 'src', 'original', 'en', 'english', 'key', 'msgid'];
-      for (let i = 0; i < headerLower.length; i++) {
-        if (srcNames.some(n => headerLower[i].includes(n))) {
-          srcCol = i;
-          break;
-        }
+      if (!Object.prototype.hasOwnProperty.call(options, 'sourceColumn')) {
+        const explicitSource = headerLower.findIndex(h => isNamedColumn(h, srcNames));
+        const keySource = headerLower.indexOf('key');
+        if (explicitSource >= 0) srcCol = explicitSource;
+        else if (keySource >= 0) srcCol = keySource;
       }
       
       // 自动检测目标语言列
-      const tgtNames = ['target', 'tgt', 'translation', 'translated', 'zh', 'chinese', 'value', 'msgstr'];
       for (let i = 0; i < headerLower.length; i++) {
-        if (tgtNames.some(n => headerLower[i].includes(n))) {
+        if (!Object.prototype.hasOwnProperty.call(options, 'targetColumn') && isNamedColumn(headerLower[i], tgtNames)) {
           tgtCol = i;
           break;
         }
@@ -98,13 +103,13 @@ function parseCSV(content, fileName, options = {}) {
         continue;
       }
       
-      const sourceText = row[srcCol]?.trim() || '';
-      const targetText = row[tgtCol]?.trim() || '';
+      const sourceText = row[srcCol] || '';
+      const targetText = row[tgtCol] || '';
       const id = idCol >= 0 ? row[idCol]?.trim() : '';
       const context = ctxCol >= 0 ? row[ctxCol]?.trim() : '';
       
       // 跳过空源文本
-      if (!sourceText) continue;
+      if (!sourceText.trim()) continue;
       
       items.push({
         id: id || `csv-${items.length + 1}`,
@@ -116,6 +121,7 @@ function parseCSV(content, fileName, options = {}) {
         issues: [],
         metadata: {
           file: fileName,
+          key: id || undefined,
           row: i + 1,
           sourceColumn: srcCol,
           targetColumn: tgtCol,
@@ -179,6 +185,7 @@ function parseCSVLines(content, delimiter = ',') {
     }
   }
   
+  if (inQuotes) throw new Error('CSV 引号未闭合');
   // 处理最后一个字段
   if (currentField || currentLine.length > 0) {
     currentLine.push(currentField);

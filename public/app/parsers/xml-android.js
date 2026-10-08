@@ -27,7 +27,7 @@ function parseAndroidStrings(content, fileName) {
     for (let i = 0; i < nodes.length; i++) {
       out += serializer.serializeToString(nodes[i]);
     }
-    return (out || element.textContent || "").trim();
+    return (out || element.textContent || "").replace(/\sxmlns(?:="[^"]*"|:[\w-]+="[^"]*")/g, "").trim();
   }
 
   function isTranslatable(element) {
@@ -45,8 +45,8 @@ function parseAndroidStrings(content, fileName) {
     const name = element.getAttribute("name");
     const text = serializeChildren(element);
 
-    if (name) {
-      const sourceText = text && text.trim() ? text : name;
+    if (name && text.trim()) {
+      const sourceText = text;
       items.push({
         id: `android-${i + 1}`,
         sourceText: sourceText,
@@ -58,6 +58,7 @@ function parseAndroidStrings(content, fileName) {
         metadata: {
           file: fileName,
           resourceId: name,
+          inlineMarkup: true,
           position: `line-${i + 1}`,
         },
       });
@@ -67,14 +68,15 @@ function parseAndroidStrings(content, fileName) {
   // 查找所有<string-array>元素
   const arrayElements = xmlDoc.getElementsByTagName("string-array");
   for (let i = 0; i < arrayElements.length; i++) {
+    if (!isTranslatable(arrayElements[i])) continue;
     const arrayName = arrayElements[i].getAttribute("name");
     const itemElements = arrayElements[i].getElementsByTagName("item");
 
     for (let j = 0; j < itemElements.length; j++) {
       const text = serializeChildren(itemElements[j]);
 
-      if (arrayName) {
-        const sourceText = text && text.trim() ? text : `${arrayName}[${j}]`;
+      if (arrayName && text.trim()) {
+        const sourceText = text;
         items.push({
           id: `android-array-${i + 1}-${j + 1}`,
           sourceText: sourceText,
@@ -91,6 +93,7 @@ function parseAndroidStrings(content, fileName) {
             resourceId: `${arrayName}:${j}`,
             arrayName: arrayName,
             arrayIndex: j,
+            inlineMarkup: true,
             position: `line-${i + 1}-${j + 1}`,
           },
         });
@@ -112,7 +115,8 @@ function parseAndroidStrings(content, fileName) {
       const quantity = itemEl.getAttribute("quantity") || String(j);
       const text = serializeChildren(itemEl);
       const sourceText =
-        text && text.trim() ? text : `${pluralsName}[${quantity}]`;
+        text;
+      if (!sourceText.trim()) continue;
 
       items.push({
         id: `android-plurals-${i + 1}-${j + 1}`,
@@ -125,6 +129,7 @@ function parseAndroidStrings(content, fileName) {
         metadata: {
           file: fileName,
           resourceId: `${pluralsName}[${quantity}]`,
+          inlineMarkup: true,
           position: `plurals-${i + 1}-${j + 1}`,
         },
       });

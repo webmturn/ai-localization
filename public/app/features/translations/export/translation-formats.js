@@ -121,6 +121,23 @@ function replaceXMLContent(items, originalContent) {
       return replaceXMLContentByText(items, originalContent);
     }
 
+    // 新解析条目按节点路径/属性精确回写，避免同文异译串位。
+    for (const item of items) {
+      const path = item.metadata?.xmlNodePath;
+      if (!Array.isArray(path) || !item.targetText) continue;
+      let node = xmlDoc.documentElement;
+      for (const index of path) node = node?.childNodes[index];
+      if (!node) continue;
+      const attribute = item.metadata.xmlAttribute;
+      if (attribute && node.nodeType === 1 && node.hasAttribute(attribute)) {
+        node.setAttribute(attribute, item.targetText);
+      } else if (node.nodeType === 3 || node.nodeType === 4) {
+        const original = node.nodeValue || '';
+        node.nodeValue = (original.match(/^\s*/)?.[0] || '') + item.targetText + (original.match(/\s*$/)?.[0] || '');
+      }
+    }
+    // 旧项目没有节点路径，保留按文本匹配的兼容回退。
+    const legacyItems = items.filter(item => !Array.isArray(item.metadata?.xmlNodePath));
     // 遍历所有文本节点
     const walker = document.createTreeWalker(
       xmlDoc.documentElement,
@@ -134,7 +151,7 @@ function replaceXMLContent(items, originalContent) {
       const text = node.textContent?.trim();
       if (text && text.length > 0) {
         // 查找匹配的翻译项
-        const item = items.find((item) => item.sourceText?.trim() === text);
+        const item = legacyItems.find((item) => item.sourceText?.trim() === text);
         if (item && item.targetText) {
           replacements.push({
             node: node,
@@ -601,10 +618,11 @@ function updateXLIFFContent(items, originalContent) {
 
     // 收集待更新的 (source, target) 对，兼容 XLIFF 1.2 <trans-unit> 与 2.0 <unit>/<segment>
     const pairs = [];
-    const pushPair = (unitEl, sourceEl, targetEl) => {
+    const pushPair = (unitEl, sourceEl, targetEl, position) => {
       if (!sourceEl) return;
       pairs.push({
         unitId: unitEl ? unitEl.getAttribute("id") : null,
+        position,
         sourceEl,
         targetEl,
         serialized: serializeChildren(sourceEl),
@@ -614,18 +632,18 @@ function updateXLIFFContent(items, originalContent) {
 
     const transUnits = nsAll(xmlDoc, "trans-unit");
     if (transUnits.length > 0) {
-      transUnits.forEach((tu) => {
-        pushPair(tu, nsAll(tu, "source")[0], nsAll(tu, "target")[0]);
+      transUnits.forEach((tu, index) => {
+        pushPair(tu, nsAll(tu, "source")[0], nsAll(tu, "target")[0], `unit-${index + 1}`);
       });
     } else {
-      nsAll(xmlDoc, "unit").forEach((unit) => {
+      nsAll(xmlDoc, "unit").forEach((unit, index) => {
         const segments = nsAll(unit, "segment");
         if (segments.length > 0) {
-          segments.forEach((seg) => {
-            pushPair(unit, nsAll(seg, "source")[0], nsAll(seg, "target")[0]);
+          segments.forEach((seg, segmentIndex) => {
+            pushPair(unit, nsAll(seg, "source")[0], nsAll(seg, "target")[0], `unit-${index + 1}-segment-${segmentIndex + 1}`);
           });
         } else {
-          pushPair(unit, nsAll(unit, "source")[0], nsAll(unit, "target")[0]);
+          pushPair(unit, nsAll(unit, "source")[0], nsAll(unit, "target")[0], `unit-${index + 1}`);
         }
       });
     }
@@ -635,11 +653,12 @@ function updateXLIFFContent(items, originalContent) {
     const translated = items.filter(
       (it) => it && it.targetText && String(it.targetText).trim()
     );
+    const legacyTranslated = translated.filter(it => !it.metadata?.position);
 
     // 按 unitId 建索引（XLIFF 1.2 每个 trans-unit 唯一；2.0 同 unit 的多个 segment 用队列顺序消费）。
     // 有了 id 定位，重复源文（"Open"/"Cancel"/"OK"）才不会全部写成同一条译文。
     const byUnitId = new Map();
-    translated.forEach((it) => {
+    legacyTranslated.forEach((it) => {
       const id = it?.metadata?.unitId;
       if (id == null) return;
       const key = String(id);
@@ -651,9 +670,9 @@ function updateXLIFFContent(items, originalContent) {
     const takenByUnitId = new Map();
 
     pairs.forEach((pair) => {
-      let item = null;
+      let item = translated.find(it => it.metadata?.position === pair.position) || null;
 
-      if (pair.unitId != null && byUnitId.has(String(pair.unitId))) {
+      if (!item && pair.unitId != null && byUnitId.has(String(pair.unitId))) {
         const queue = byUnitId.get(String(pair.unitId));
         const usedCount = takenByUnitId.get(String(pair.unitId)) || 0;
         if (usedCount < queue.length) {
@@ -666,10 +685,10 @@ function updateXLIFFContent(items, originalContent) {
         // 文本回退：优先按序列化形式精确匹配，再按规范化文本匹配。
         // find + used 集合：避免重复源文全部命中同一条（旧实现的另一个缺陷）。
         item =
-          translated.find(
+          legacyTranslated.find(
             (it) => !used.has(it) && serializeChildrenFromString(it.sourceText) === pair.serialized
           ) ||
-          translated.find(
+          legacyTranslated.find(
             (it) => !used.has(it) && normalize(it.sourceText) === pair.textContent
           ) ||
           null;

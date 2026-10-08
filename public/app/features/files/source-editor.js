@@ -12,40 +12,71 @@
   function __itemKey(item) {
     if (!item || !item.metadata) return "";
     var m = item.metadata;
+    if (m.identity) return String(m.identity);
     return String(
       m.key || m.resourceId || m.unitId || m.path || m.msgctxt || ""
     ).trim();
   }
 
-  function __indexOldItems(items) {
-    var map = new Map();
-    for (var i = 0; i < items.length; i++) {
-      var it = items[i];
-      var k = __itemKey(it);
-      var bucket = k ? "k:" + k : "s:" + String(it && it.sourceText);
-      if (!map.has(bucket)) map.set(bucket, []);
-      map.get(bucket).push(it);
+  function __legacyKey(item) {
+    const m = item.metadata || {};
+    return String(m.key || m.resourceId || m.unitId || m.path || m.msgctxt || '');
+  }
+
+  function __indexOldItems(items, parsedItems) {
+    const map = new Map();
+    map.used = new Set();
+    const add = item => {
+      const keys = new Set(['k:' + __itemKey(item), 'legacy:' + __legacyKey(item), 's:' + item.sourceText]);
+      for (const key of keys) {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      }
+    };
+    for (const item of items) {
+      const m = item.metadata || {};
+      if (!Number.isInteger(m.pluralIndex) && Number(m.targetNumerusCount) > 1) {
+        let parts = String(item.targetText || '').split('\n');
+        if (parts.length !== Number(m.targetNumerusCount) && item.targetText?.trim()) {
+          const forms = (parsedItems || []).filter(it => it.metadata?.position === m.position && it.sourceText === item.sourceText && Number.isInteger(it.metadata?.pluralIndex));
+          if (forms.length === Number(m.targetNumerusCount) && forms.map(it => it.targetText).join('\n') === item.targetText) parts = forms.map(it => it.targetText);
+          else throw new Error('旧项目的复数译文无法按形态安全拆分，已保留原项目内容。请先核对该条复数译文的换行。');
+        }
+        if (parts.length === Number(m.targetNumerusCount)) {
+          parts.forEach((targetText, form) => add({ ...item, id: item.id + '-plural-' + form, targetText, metadata: { ...m, pluralIndex: form } }));
+          continue;
+        }
+      }
+      if (!Number.isInteger(m.pluralIndex) && m.plural) {
+        add({ ...item, metadata: { ...m, pluralIndex: 0 } });
+        if (m.pluralTarget != null) add({ ...item, id: item.id + '-plural-1', sourceText: m.plural, targetText: m.pluralTarget, metadata: { ...m, pluralIndex: 1 } });
+        continue;
+      }
+      add(item);
     }
     return map;
   }
 
   function __takeOldItem(map, newItem) {
-    var k = __itemKey(newItem);
-    var list = k ? map.get("k:" + k) : null;
-    if (!list || !list.length) {
-      list = map.get("s:" + String(newItem && newItem.sourceText));
+    const metadata = newItem.metadata || {};
+    const matchesForm = old => {
+      const m = old.metadata || {};
+      if ((m.pluralIndex ?? null) !== (metadata.pluralIndex ?? null)) return false;
+      if ((m.documentIndex || 0) !== (metadata.documentIndex || 0)) return false;
+      if ((m.msgctxt || '') !== (metadata.msgctxt || '')) return false;
+      if ((m.contextName || '') !== (metadata.contextName || '')) return false;
+      return !map.used.has(old);
+    };
+    for (const key of ['k:' + __itemKey(newItem), 'legacy:' + __legacyKey(newItem), 's:' + newItem.sourceText]) {
+      // 没有定位字段时不能用空键把其它条目当作同一资源。
+      if (key === 'k:' || key === 'legacy:') continue;
+      const list = (map.get(key) || []).filter(matchesForm);
+      const item = list.find(old => old.sourceText === newItem.sourceText && old.metadata?.position === metadata.position)
+        || list.find(old => old.metadata?.position && old.metadata.position === metadata.position)
+        || list.find(old => old.sourceText === newItem.sourceText) || list[0];
+      if (item) { map.used.add(item); return item; }
     }
-    if (!list || !list.length) return null;
-    var src = String(newItem && newItem.sourceText);
-    var idx = -1;
-    for (var i = 0; i < list.length; i++) {
-      if (String(list[i].sourceText) === src) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) idx = 0;
-    return list.splice(idx, 1)[0];
+    return null;
   }
 
   function __mergePreservedFields(newItem, oldIt) {
@@ -96,7 +127,7 @@
           var ensure = window.App?.services?.ensureJsYaml;
           if (typeof ensure === "function") await ensure();
         }
-        if (typeof window.jsyaml !== "undefined") window.jsyaml.load(content);
+        if (typeof window.jsyaml !== "undefined") window.jsyaml.loadAll(content);
       } catch (e) {
         return "YAML 解析错误：" + e.message;
       }
@@ -187,20 +218,20 @@
       if (typeof parseFn !== "function") {
         throw new Error("未找到文件解析实现");
       }
-      var result = await parseFn(fileObj, { silent: true, skipPersist: true });
+      var result = await parseFn(fileObj, { silent: true, skipPersist: true, encoding: "utf-8" });
       if (!result) {
         throw new Error("解析被跳过（该格式可能已在设置中禁用）");
       }
       if (result.success === false) {
         var errItem = result.items && result.items[0];
-        throw new Error((errItem && errItem.context) || "解析失败");
+        throw new Error(result.error || (errItem && errItem.context) || "解析失败");
       }
       var newItems = Array.isArray(result.items) ? result.items : [];
 
       var oldFileItems = (AppState.project?.translationItems || []).filter(
         function (it) { return it?.metadata?.file === fileName; }
       );
-      var oldByKey = __indexOldItems(oldFileItems);
+      var oldByKey = __indexOldItems(oldFileItems, newItems);
       var keptCount = 0;
       var sourceChangedCount = 0;
       for (var ni = 0; ni < newItems.length; ni++) {

@@ -38,11 +38,13 @@ function parseQtTs(content, fileName) {
       const msg = messages[m];
       const sourceEl = msg.getElementsByTagName("source")[0];
       const transEl = msg.getElementsByTagName("translation")[0];
+      const transType = transEl?.getAttribute?.("type") || "";
+      if (transType === "obsolete" || transType === "vanished") continue;
 
       const sourceText = extractQtText(sourceEl);
       if (!sourceText) continue;
 
-      const targetText = extractQtText(transEl);
+      const targetForms = transEl ? [...transEl.getElementsByTagName("numerusform")] : [];
 
       // 复数形态数量：供导出端判断能否安全地按行拆分回各 <numerusform>。
       // 源语言与目标语言的复数形态数常常不同（如 en 2 种 vs ru 3 种），
@@ -54,8 +56,6 @@ function parseQtTs(content, fileName) {
       };
       const sourceNumerusCount = countNumerusForms(sourceEl);
       const targetNumerusCount = countNumerusForms(transEl);
-      const transType = transEl?.getAttribute?.("type") || "";
-      const isTranslated = !!(targetText && targetText.trim().length > 0);
 
       const locEls = msg.getElementsByTagName("location");
       const firstLoc = locEls && locEls.length > 0 ? locEls[0] : null;
@@ -67,25 +67,35 @@ function parseQtTs(content, fileName) {
         contextText += ` @ ${locFilename}${locLine ? ":" + locLine : ""}`;
       }
 
-      items.push({
-        id: `ts-${items.length + 1}`,
-        sourceText: sourceText,
-        targetText: targetText,
-        context: contextText,
-        status:
-          isTranslated && transType !== "unfinished" ? "translated" : "pending",
-        qualityScore: isTranslated ? 85 : 0,
-        issues: [],
-        metadata: {
-          file: fileName,
-          contextName: ctxName,
-          locationFilename: locFilename,
-          locationLine: locLine,
-          position: `context-${c + 1}-message-${m + 1}`,
-          sourceNumerusCount: sourceNumerusCount,
-          targetNumerusCount: targetNumerusCount,
-        },
-      });
+      const comment = [msg.getElementsByTagName("comment")[0]?.textContent, msg.getElementsByTagName("extracomment")[0]?.textContent].filter(Boolean).join('\n');
+      const formCount = Math.max(1, targetForms.length);
+      for (let form = 0; form < formCount; form++) {
+        const targetText = targetForms.length ? (targetForms[form].textContent || '') : extractQtText(transEl);
+        const isTranslated = !!targetText.trim();
+        items.push({
+          id: `ts-${items.length + 1}`,
+          sourceText: sourceText,
+          targetText: targetText,
+          context: contextText + (targetForms.length ? ` · 复数形式 ${form}` : ''),
+          status:
+            isTranslated && transType !== "unfinished" ? "translated" : "pending",
+          qualityScore: isTranslated ? 85 : 0,
+          issues: [],
+          metadata: {
+            file: fileName,
+            contextName: ctxName,
+            locationFilename: locFilename,
+            locationLine: locLine,
+            position: `context-${c + 1}-message-${m + 1}`,
+            sourceNumerusCount: sourceNumerusCount,
+            targetNumerusCount: targetNumerusCount,
+            pluralIndex: targetForms.length ? form : undefined,
+            comment: comment || undefined,
+            originalState: transType,
+            identity: JSON.stringify(['ts', ctxName, msg.getAttribute('id') || sourceText, msg.getElementsByTagName('comment')[0]?.textContent || '', targetForms.length ? form : null]),
+          },
+        });
+      }
     }
   }
 

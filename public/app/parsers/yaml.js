@@ -1,7 +1,7 @@
 // ==================== YAML 解析器（js-yaml 增强版） ====================
 // 使用 js-yaml 4.1.0（本地化 lib/js-yaml/js-yaml.min.js）提供完整 YAML 支持：
 // - 嵌套对象、数组、多行块（| / >）、锚点/别名、多文档
-// - js-yaml 不可用（加载失败）时自动降级为内置简单解析器（仅基础格式）
+// - 完整解析库不可用时明确报错，避免复杂 YAML 被静默误解析
 // 支持格式：Rails i18n、扁平键值对、嵌套对象
 
 // ==================== 降级：内置简单解析器（js-yaml 不可用时） ====================
@@ -85,56 +85,66 @@ async function parseYAML(content, fileName) {
       }
     }
   } catch (e) {
-    (window.loggers?.app || console).warn('js-yaml 加载失败，使用内置简单解析器:', e);
-    return __parseYAMLSimple(content, fileName);
+    throw new Error('YAML 解析库加载失败：' + e.message);
   }
 
   if (typeof window === 'undefined' || typeof window.jsyaml === 'undefined') {
-    return __parseYAMLSimple(content, fileName);
+    throw new Error('YAML 解析库不可用，请重试加载页面');
   }
 
   const items = [];
   try {
-    const data = window.jsyaml.load(content);
-    if (data === null || data === undefined) return items;
+    const documents = window.jsyaml.loadAll(content);
+    const ancestors = new Set();
 
     // 递归提取字符串值
-    function traverse(value, path, lineHint) {
+    function traverse(value, path, tokens, documentIndex) {
       if (typeof value === 'string') {
+        if (!value.trim()) return;
         items.push({
           id: 'yaml-' + (items.length + 1),
           sourceText: value,
           targetText: '',
-          context: 'YAML path: ' + path,
+          context: (documents.length > 1 ? 'YAML document ' + (documentIndex + 1) + ' · ' : 'YAML path: ') + (path || '$'),
           status: 'pending',
           qualityScore: 0,
           issues: [],
           metadata: {
             file: fileName,
             path: path,
-            position: 'path-' + path,
+            pathTokens: tokens,
+            documentIndex,
+            documentCount: documents.length,
+            identity: JSON.stringify(['yaml', documentIndex, tokens]),
+            position: 'document-' + (documentIndex + 1) + '-path-' + path,
           },
         });
         return;
       }
       if (value === null || value === undefined) return;
       if (typeof value === 'number' || typeof value === 'boolean') return;
+      if (typeof value === 'object') {
+        if (ancestors.has(value)) throw new Error('不支持循环引用的 YAML 锚点');
+        ancestors.add(value);
+      }
 
       if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) {
-          traverse(value[i], path + '[' + i + ']', lineHint);
+          traverse(value[i], path + '[' + i + ']', tokens.concat(i), documentIndex);
         }
+        ancestors.delete(value);
         return;
       }
       if (typeof value === 'object') {
         for (const k of Object.keys(value)) {
           const nextPath = path ? path + '.' + k : k;
-          traverse(value[k], nextPath, lineHint);
+          traverse(value[k], nextPath, tokens.concat(k), documentIndex);
         }
+        ancestors.delete(value);
       }
     }
 
-    traverse(data, '', 0);
+    documents.forEach((data, i) => traverse(data, '', [], i));
   } catch (error) {
     throw new Error('YAML解析错误: ' + error.message);
   }
@@ -179,15 +189,16 @@ async function exportYAML(items, options = {}) {
   for (const item of items) {
     const rawTokens = item.metadata?.pathTokens;
     const tokens =
-      Array.isArray(rawTokens) && rawTokens.length > 0
+      Array.isArray(rawTokens)
         ? rawTokens.map((t) => (typeof t === 'number' ? t : String(t)))
         : null;
     const path = item.metadata?.path || '';
     if (!tokens && !path) continue;
     const value = item.targetText || item.sourceText;
     if (!value) continue;
-    const key = tokens ? 'T:' + JSON.stringify(tokens) : 'P:' + path;
-    processed.set(key, { tokens, path, value });
+    const documentIndex = Number.isInteger(item.metadata?.documentIndex) ? item.metadata.documentIndex : 0;
+    const key = documentIndex + ':' + (tokens ? 'T:' + JSON.stringify(tokens) : 'P:' + path);
+    processed.set(key, { tokens, path, value, documentIndex });
   }
 
   // 没有任何条目带路径信息时，直接报错而不是导出空对象 {}。
@@ -239,14 +250,26 @@ async function exportYAML(items, options = {}) {
 
   // 构建嵌套结构（支持数组下标；根级数组需要容器本身是数组，因此先探测）
   const entries = [...processed.values()];
-  const hasRootArray = entries.some((e) =>
-    e.tokens ? typeof e.tokens[0] === 'number' : /^\$\[\d+\]/.test(String(e.path))
-  );
-  const result = hasRootArray ? [] : {};
+  const documentCount = Math.max(1, ...items.map(item => Number(item.metadata?.documentCount) || 1), ...entries.map(e => e.documentIndex + 1));
+  const documents = Array.from({ length: documentCount }, (_, index) => entries.some(e => e.documentIndex === index &&
+    (e.tokens ? typeof e.tokens[0] === 'number' : /^\$\[\d+\]/.test(String(e.path)))) ? [] : {});
   const isIndexPart = (p) => /^\[?\d+\]?$/.test(String(p == null ? '' : p).trim());
 
   for (const entry of entries) {
     const value = entry.value;
+    const result = documents[entry.documentIndex];
+    if (entry.tokens) {
+      if (!entry.tokens.length) { documents[entry.documentIndex] = value; continue; }
+      let current = result;
+      entry.tokens.forEach((part, index) => {
+        if (index === entry.tokens.length - 1) Object.defineProperty(current, part, { value, writable: true, enumerable: true, configurable: true });
+        else {
+          if (!Object.prototype.hasOwnProperty.call(current, part)) Object.defineProperty(current, part, { value: typeof entry.tokens[index + 1] === 'number' ? [] : {}, writable: true, enumerable: true, configurable: true });
+          current = current[part];
+        }
+      });
+      continue;
+    }
     // 有 pathTokens 时直接用真实键/下标（无歧义）；否则回退到路径字符串解析
     const parts = entry.tokens
       ? entry.tokens.map((t) => (typeof t === 'number' ? `[${t}]` : String(t)))
@@ -296,7 +319,7 @@ async function exportYAML(items, options = {}) {
   const indentStr = ' '.repeat(indent);
   const options2 = { indent: indent };
   if (useQuotes) options2.forceQuotes = true;
-  return window.jsyaml.dump(result, options2);
+  return documents.map(result => window.jsyaml.dump(result, options2)).join('---\n');
 }
 
 // 暴露到全局（同步兼容包装：老调用方仍可调用，返回 Promise 时需 await）

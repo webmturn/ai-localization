@@ -43,6 +43,27 @@ beforeEach(() => {
 });
 
 describe('校对视图行为回归', () => {
+  it('XML 标记安全显示、实体可读，模型内容保持完整', () => {
+    const item = makeItem(0);
+    item.sourceText = 'Hello &amp; <g id="name">world</g><script>test</script>';
+    item.metadata.inlineMarkup = true;
+    const row = createTranslationItemElement(item, 0, false, true);
+    expect(row.querySelector('p').textContent).toBe('Hello & <g #name>world</g><script>test</script>');
+    expect(row.querySelectorAll('.translation-inline-token')).toHaveLength(4);
+    expect(row.querySelectorAll('g, script')).toHaveLength(0);
+    expect(item.sourceText).toBe('Hello &amp; <g id="name">world</g><script>test</script>');
+  });
+  it('桌面与移动端显示注释、引用和原始状态详情', () => {
+    const item = makeItem(0);
+    item.metadata.comment = 'Counter hint'; item.metadata.references = ['main.c:12']; item.metadata.originalState = 'fuzzy'; item.metadata.pluralIndex = 0;
+    const desktop = createTranslationItemElement(item, 0, false, true);
+    const mobile = createMobileCombinedTranslationItemElement(item, 0, false);
+    for (const row of [desktop, mobile]) {
+      const details = row.querySelector('.translation-resource-details');
+      expect(details.textContent).toContain('Counter hint'); expect(details.textContent).toContain('main.c:12');
+      expect(details.textContent).toContain('fuzzy'); expect(details.textContent).toContain('复数形式：0');
+    }
+  });
   it('分页显示总页数及末页范围，单页和空结果保留统计', () => {
     TranslationViewStore.setPage(2);
     updateTranslationLists();

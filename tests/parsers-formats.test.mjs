@@ -94,6 +94,7 @@ describe("YAML 解析器（js-yaml 增强）", () => {
   });
 
   it("parseYAML 返回 Promise（异步加载 js-yaml）", async () => {
+    loadSource('public/lib/js-yaml/js-yaml.min.js');
     const yaml = 'app:\n  title: Hello';
     const result = parseYAML(yaml, "t.yml");
     expect(result).toBeInstanceOf(Promise);

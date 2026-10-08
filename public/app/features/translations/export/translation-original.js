@@ -12,8 +12,11 @@ function generateOriginalFormatExport(fileName, items) {
     ? normalizedFileName.substring(0, normalizedFileName.lastIndexOf("."))
     : normalizedFileName;
   const originalContent = meta.originalContent;
+  const isTextFormat = extension === 'txt' || meta.parserId === 'text' ||
+    (items.length > 0 && items.every(item => item.metadata?.textMode ||
+      (/^Text (key|line):?/.test(item.context || '') && /^line-\d+$/.test(item.metadata?.position || ''))));
 
-  if (!extension) {
+  if (!extension && !isTextFormat) {
     return null;
   }
 
@@ -68,7 +71,66 @@ function generateOriginalFormatExport(fileName, items) {
     return { content, filename: `${baseName}-translated.ts` };
   }
 
+  if (isTextFormat) {
+    const content = generateTextFromOriginal(items, normalizedFileName);
+    const filename = extFromName ? `${baseName}-translated.${extFromName}` : `${normalizedFileName}-translated`;
+    return { content, filename };
+  }
+
   return null;
+}
+
+function generateTextFromOriginal(items, fileName) {
+  const meta = AppState.fileMetadata?.[fileName] || {};
+  const original = meta.originalContent;
+  if (typeof original !== 'string') throw new Error('文本原格式导出需要原始内容，请重新导入文件或改用 JSON/CSV 导出');
+  const editedItems = items.filter(item => item.targetText?.trim());
+  if (!editedItems.length) return original;
+  const requestedMode = meta.textParseMode || items.find(item => item.metadata?.textMode)?.metadata.textMode || 'legacy';
+  const mode = ['auto', 'plain', 'keyValue', 'legacy'].includes(requestedMode) ? requestedMode : 'auto';
+  const parsedItems = parseTextFile(original, fileName, { mode });
+  const parsedByLine = new Map(parsedItems.map(item => [item.metadata.position, item]));
+  const bom = original.startsWith('\uFEFF') ? '\uFEFF' : '';
+  const parts = original.slice(bom.length).split(/(\r\n|\r|\n)/);
+  const lines = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    if (i === parts.length - 1 && i > 0 && !parts[i]) break;
+    lines.push({ text: parts[i], newline: parts[i + 1] || '' });
+  }
+  const newline = lines.find(line => line.newline)?.newline || '\n';
+  const replacements = [];
+  for (const item of editedItems) {
+    const parsed = parsedByLine.get(item.metadata?.position);
+    const m = parsed?.metadata;
+    if (!parsed || parsed.sourceText !== item.sourceText ||
+        (item.metadata?.resourceId || '') !== (m.resourceId || '') ||
+        (item.metadata?.textKind && item.metadata.textKind !== m.textKind) ||
+        (item.metadata?.textSection != null && item.metadata.textSection !== m.textSection) ||
+        m.textLineStart < 1 || m.textLineEnd > lines.length) {
+      throw new Error('文本原文或行位置已变化，请重新导入源文件后导出');
+    }
+    let value = item.targetText;
+    if (m.textKind === 'keyValue') {
+      if (/[\r\n]/.test(value)) throw new Error('键值文本译文不能包含实际换行，请将该译文改为单行后导出');
+      // 包裹有意义的空格、字面引号和尾随反斜杠，避免变成格式或续行。
+      const needsQuote = value.trim() !== value || /^(["']).*\1$/s.test(value) || /\\$/.test(value);
+      const quote = m.textQuote || (needsQuote ? '"' : '');
+      value = m.textPrefix + quote + value + quote + m.textSuffix;
+    } else {
+      value = m.textPrefix + value.replace(/\r\n?|\n/g, newline) + m.textSuffix;
+      if (mode === 'legacy' && /\\$/.test(value)) value += ' ';
+    }
+    replacements.push({ start: m.textLineStart - 1, end: m.textLineEnd - 1, value });
+  }
+  replacements.sort((a, b) => b.start - a.start);
+  let nextStart = lines.length;
+  for (const replacement of replacements) {
+    if (replacement.end >= nextStart) throw new Error('文本条目的行范围重叠，请重新导入源文件后导出');
+    const tail = lines[replacement.end].newline;
+    lines.splice(replacement.start, replacement.end - replacement.start + 1, { text: replacement.value, newline: tail });
+    nextStart = replacement.start;
+  }
+  return bom + lines.map(line => line.text + line.newline).join('');
 }
 
 function generateDelimitedFromOriginal(items, fileName, delimiter) {

@@ -65,6 +65,7 @@
       if ((m.documentIndex || 0) !== (metadata.documentIndex || 0)) return false;
       if ((m.msgctxt || '') !== (metadata.msgctxt || '')) return false;
       if ((m.contextName || '') !== (metadata.contextName || '')) return false;
+      if (m.textSection != null && metadata.textSection != null && m.textSection !== metadata.textSection) return false;
       return !map.used.has(old);
     };
     for (const key of ['k:' + __itemKey(newItem), 'legacy:' + __legacyKey(newItem), 's:' + newItem.sourceText]) {
@@ -218,7 +219,11 @@
       if (typeof parseFn !== "function") {
         throw new Error("未找到文件解析实现");
       }
-      var result = await parseFn(fileObj, { silent: true, skipPersist: true, encoding: "utf-8" });
+      var oldFileItems = (AppState.project?.translationItems || []).filter(it => it?.metadata?.file === fileName);
+      var fileMeta = AppState.fileMetadata?.[fileName] || {};
+      var textParseMode = fileMeta.textParseMode || oldFileItems.find(it => it.metadata?.textMode)?.metadata.textMode;
+      if (!textParseMode && oldFileItems.some(it => /^Text (key|line):?/.test(it.context || '') && /^line-\d+$/.test(it.metadata?.position || ''))) textParseMode = 'legacy';
+      var result = await parseFn(fileObj, { silent: true, skipPersist: true, encoding: "utf-8", textParseMode });
       if (!result) {
         throw new Error("解析被跳过（该格式可能已在设置中禁用）");
       }
@@ -228,9 +233,6 @@
       }
       var newItems = Array.isArray(result.items) ? result.items : [];
 
-      var oldFileItems = (AppState.project?.translationItems || []).filter(
-        function (it) { return it?.metadata?.file === fileName; }
-      );
       var oldByKey = __indexOldItems(oldFileItems, newItems);
       var keptCount = 0;
       var sourceChangedCount = 0;
@@ -249,6 +251,7 @@
       meta.originalContent = newContent;
       meta.size = new Blob([newContent]).size;
       meta.updatedAt = new Date().toISOString();
+      if (result.textParseMode) { meta.textParseMode = result.textParseMode; meta.parserId = 'text'; }
       if (!meta.type) meta.type = fileObj.type || "text/plain";
       if (!meta.extension) {
         meta.extension = String(fileName).split(".").pop().toLowerCase();

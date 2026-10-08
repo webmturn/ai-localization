@@ -466,6 +466,7 @@ function registerEventListenersSettings(ctx) {
           autoDetectEncoding:
             DOMCache.get("autoDetectEncoding")?.checked ?? true,
           fileEncoding: DOMCache.get("fileEncoding")?.value || 'auto',
+          textParseMode: DOMCache.get('textParseMode')?.value || 'auto',
           autoTranslateOnImport:
             DOMCache.get("autoTranslateOnImport")?.checked || false,
 

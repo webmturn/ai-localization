@@ -269,6 +269,8 @@ async function loadSettings({ applyRuntime = true } = {}) {
       }
       const encodingInput = DOMCache.get('fileEncoding');
       if (encodingInput) encodingInput.value = settings.fileEncoding || 'auto';
+      const textModeInput = DOMCache.get('textParseMode');
+      if (textModeInput) textModeInput.value = ['auto', 'plain', 'keyValue'].includes(settings.textParseMode) ? settings.textParseMode : 'auto';
       if (settings.maxFileSize) {
         const maxSize = DOMCache.get("maxFileSize");
         if (maxSize) maxSize.value = settings.maxFileSize;

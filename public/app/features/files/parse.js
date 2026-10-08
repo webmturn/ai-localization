@@ -120,6 +120,7 @@ async function __parseFileAsyncImpl(file, options) {
 
     // 根据文件类型解析内容：XML 系扩展名走结构探测，其余经注册表扩展名直配
     let items = [];
+    let textParseMode;
 
     // 标记「XML 本身损坏」这类错误：必须向上抛出，绝不能再退化成纯文本解析。
     // 否则畸形 XML 会被逐行当成文本条目导入（垃圾数据），而界面还提示导入成功。
@@ -206,7 +207,9 @@ async function __parseFileAsyncImpl(file, options) {
         items = await parser.parse(normalizedContent, file.name);
       } else {
         (loggers.app || console).debug("使用文本文件解析器");
-        items = parseTextFile(normalizedContent, file.name);
+        const requestedMode = opts.textParseMode || (typeof SettingsCache !== 'undefined' ? SettingsCache.get()?.textParseMode : '') || 'auto';
+        textParseMode = ['auto', 'plain', 'keyValue', 'legacy'].includes(requestedMode) ? requestedMode : 'auto';
+        items = parseTextFile(normalizedContent, file.name, { mode: textParseMode });
       }
     } catch (parseError) {
       // 畸形 XML 必须直接失败：退化为纯文本会产生垃圾条目并谎报成功
@@ -276,6 +279,7 @@ async function __parseFileAsyncImpl(file, options) {
         size: file.size, lastModified: file.lastModified,
         type: file.type || "text/plain", originalContent: content,
         contentKey, extension: fileExtension,
+        ...(textParseMode ? { parserId: 'text', textParseMode } : {}),
       });
       try {
         await idbPutFileContent(contentKey, content);
@@ -293,7 +297,7 @@ async function __parseFileAsyncImpl(file, options) {
       );
     }
 
-    return { success: true, items, fileName: file.name, warnings };
+    return { success: true, items, fileName: file.name, warnings, ...(textParseMode ? { textParseMode } : {}) };
   } catch (error) {
     (loggers.app || console).error(`解析文件 ${file.name} 时出错:`, error);
     if (!silent) {

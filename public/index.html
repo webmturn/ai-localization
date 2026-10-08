@@ -2076,6 +2076,15 @@
                                     </div>
                                 </div>
                                 <div>
+                                    <label for="textParseMode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">文本解析方式</label>
+                                    <select id="textParseMode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" aria-describedby="textParseModeHint">
+                                        <option value="auto">自动（仅识别明确的 key=value）</option>
+                                        <option value="plain">逐行文本（保留整行内容）</option>
+                                        <option value="keyValue">键值文本（=、冒号、Tab、逗号）</option>
+                                    </select>
+                                    <p id="textParseModeHint" class="text-xs text-gray-500 dark:text-gray-400 mt-1">用于 TXT 和文本兜底导入。含冒号、逗号的正文选择自动或逐行文本；更改后重新导入，源文件编辑器沿用该文件的原模式。</p>
+                                </div>
+                                <div>
                                     <label for="fileEncoding" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">导入文件编码</label>
                                     <select id="fileEncoding" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
                                         <option value="auto">自动识别</option>

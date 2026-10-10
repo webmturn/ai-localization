@@ -14,19 +14,21 @@ beforeAll(() => {
   globalThis.highlightTextWithTerms = (text) => document.createTextNode(text);
   globalThis.searchCache = new Map();
   globalThis.isDevelopment = false;
+  HTMLElement.prototype.scrollIntoView = vi.fn();
   loadSource('public/app/core/translation-view-store.js');
   loadSource('public/app/core/project-store.js');
   loadSource('public/app/features/translations/status.js');
   loadSource('public/app/features/translations/search.js');
   loadSource('public/app/features/translations/selection.js');
   loadSource('public/app/features/translations/render.js');
+  loadSource('public/app/ui/file-tree.js');
   loadSource('public/app/ui/translation-workspace.js');
 });
 
 const makeItem = (id, file = 'a.json', targetText = '', status = 'pending') => ({id, sourceText: `Source ${id}`, targetText, status, context: '', metadata: {file}});
 beforeEach(() => {
   BatchProgressStore.isBatchInProgress = () => false;
-  document.body.innerHTML = `<div id="sourceList"></div><div id="targetList"></div><div id="mobileCombinedList"></div><span id="sourceCount"></span><span id="targetCount"></span>
+  document.body.innerHTML = `<ul id="fileTree"></ul><div id="sourceList"></div><div id="targetList"></div><div id="mobileCombinedList"></div><span id="sourceCount"></span><span id="targetCount"></span>
     <div id="translationScrollWrapper"></div>
     <div id="paginationContainer"><span id="sourceStartRange"></span><span id="sourceEndRange"></span><span id="sourceTotalItems"></span><span id="paginationFilterHint"></span>
       <select id="paginationPageSize"><option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option></select>
@@ -230,5 +232,28 @@ describe('校对视图行为回归', () => {
     TranslationViewStore.setStatusFilter('reviewed');
     ProjectStore.loadProject({id: 'next', translationItems: [makeItem(40)]});
     expect(AppState.translations.statusFilter).toBe('all');
+  });
+
+  it('修订带有旧译文的待翻译资源时，文件进度立即同步', () => {
+    ProjectStore.setTranslationItems([makeItem(1, 'a.json', '模糊译文', 'pending'), makeItem(2, 'a.json', '', 'pending')]);
+    updateFileTree();
+    expect(document.querySelector('#fileTree [title="0/2 已翻译"]').textContent).toBe('0%');
+    updateTranslationItem(0, '确认译文');
+    expect(document.querySelector('#fileTree [title="1/2 已翻译"]').textContent).toBe('50%');
+    expect(document.querySelector('#fileTree [data-filename="a.json"]').classList.contains('bg-blue-50')).toBe(true);
+    updateTranslationItem(0, '');
+    expect(document.querySelector('#fileTree [title="0/2 已翻译"]').textContent).toBe('0%');
+    TranslationViewStore.setSelectedFile(null);
+    updateFileTree();
+    expect(document.querySelector('#fileTree [data-filename="a.json"]').classList.contains('bg-blue-50')).toBe(false);
+  });
+
+  it('直接确认已有译文的待翻译资源时，文件进度同步校对状态', () => {
+    ProjectStore.setTranslationItems([makeItem(1, 'a.json', '已确认译文', 'pending')]);
+    invalidateSearchCache(); applySearchFilter(); updateTranslationLists(); updateFileTree();
+    App.ui.translationWorkspace.toggleReviewed(0);
+    expect(document.querySelector('#fileTree [title="1/1 已翻译"]').textContent).toBe('100%');
+    expect(document.querySelector('#fileTree [data-filename="a.json"]').classList.contains('bg-blue-50')).toBe(true);
+    expect(AppState.project.translationItems[0].status).toBe('approved');
   });
 });

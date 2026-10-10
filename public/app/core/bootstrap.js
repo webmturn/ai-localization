@@ -623,6 +623,13 @@ async function initializeProjectData() {
       // 经 ProjectStore 统一载入恢复项目（含 translations 视图同步、fileMetadata、contentKey 水合）
       ProjectStore.loadProject(restoredProject);
 
+      // 术语初始化可能早于异步项目恢复；此时项目快照必须重新成为运行时数据。
+      // 空数组也要载入，避免已清空的项目术语被全局或示例术语替代。
+      if (Array.isArray(restoredProject.terminologyList)) {
+        TerminologyStore.loadTerminology(restoredProject.terminologyList);
+        if (typeof updateTerminologyList === 'function') updateTerminologyList();
+      }
+
       // 设置语言选择器
       const sourceLanguageEl = DOMCache.get("sourceLanguage");
       const targetLanguageEl = DOMCache.get("targetLanguage");

@@ -278,7 +278,21 @@
   }
 
   async function __exportProjectById(projectId) {
-    const project = await storageManager.loadProjectById(projectId);
+    let project;
+    try {
+      const current = AppState.project;
+      const source = current?.id === projectId ? {
+        ...current,
+        translationItems: TranslationViewStore.getViewItems(),
+        terminologyList: TerminologyStore.getList(),
+        fileMetadata: AppState.fileMetadata || {},
+      } : await storageManager.loadProjectById(projectId);
+      if (source) project = await App.features.translations.export.buildPortableProject(source);
+    } catch (error) {
+      (loggers.storage || console).error("导出完整项目失败:", error);
+      showNotification("error", "项目导出失败", error.message || "无法读取项目原始内容");
+      return;
+    }
     if (!project) {
       showNotification("warning", "无数据", "未找到可导出的项目");
       return;

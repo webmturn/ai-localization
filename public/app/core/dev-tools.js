@@ -1,6 +1,6 @@
 /**
  * 开发环境检测
- * 通过 URL 参数、localStorage 或 hostname 判断
+ * 显式调试优先，其次使用发布包标记和 hostname 判断
  */
 const isDevelopment = (() => {
   // 方法1：检查 URL 参数 ?debug=true
@@ -9,6 +9,9 @@ const isDevelopment = (() => {
 
   // 方法2：检查 localStorage
   if (localStorage.getItem("debugMode") === "true") return true;
+
+  // 发布包也支持直接 file:// 打开；空 hostname 不应覆盖明确的生产环境标记。
+  if (window.isProduction === true) return false;
 
   // 方法3：检查是否为本地开发环境
   const hostname = window.location.hostname;

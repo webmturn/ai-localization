@@ -443,8 +443,10 @@ class StorageManager {
     return null;
   }
 
-  async saveProject(project) {
+  async saveProject(project, options = {}) {
     const normalized = this.__normalizeProjectId(project);
+    const shouldSetActive = () => options.setActive !== false &&
+      (typeof options.shouldSetActive !== "function" || options.shouldSetActive());
     const key = this.__buildProjectStorageKey(normalized.id);
     const { preferred } = await this.__withBackends();
 
@@ -453,16 +455,20 @@ class StorageManager {
     normalized.createdAt = normalized.createdAt || nowIso;
 
     await this.__saveJsonToBackend(preferred, key, normalized);
-    await this.__saveJsonToBackend(
-      preferred,
-      this.__legacyCurrentProjectKey,
-      normalized
-    );
-    await this.__saveJsonToBackend(
-      preferred,
-      this.__metaActiveProjectIdKey,
-      normalized.id
-    );
+    if (shouldSetActive()) {
+      await this.__saveJsonToBackend(
+        preferred,
+        this.__legacyCurrentProjectKey,
+        normalized
+      );
+    }
+    if (shouldSetActive()) {
+      await this.__saveJsonToBackend(
+        preferred,
+        this.__metaActiveProjectIdKey,
+        normalized.id
+      );
+    }
 
     const idx = await this.loadProjectsIndex();
     const next = Array.isArray(idx) ? idx.slice() : [];
@@ -484,8 +490,12 @@ class StorageManager {
       if (durableFallback) {
         try {
           await this.__saveJsonToBackend(durableFallback, key, normalized);
-          await this.__saveJsonToBackend(durableFallback, this.__legacyCurrentProjectKey, normalized);
-          await this.__saveJsonToBackend(durableFallback, this.__metaActiveProjectIdKey, normalized.id);
+          if (shouldSetActive()) {
+            await this.__saveJsonToBackend(durableFallback, this.__legacyCurrentProjectKey, normalized);
+          }
+          if (shouldSetActive()) {
+            await this.__saveJsonToBackend(durableFallback, this.__metaActiveProjectIdKey, normalized.id);
+          }
           await this.__saveJsonToBackend(durableFallback, this.__metaProjectsIndexKey, next);
         } catch (e) {
           (loggers.storage || console).debug("saveProject durable fallback sync failed:", e);
@@ -1000,12 +1010,12 @@ class StorageManager {
     return null;
   }
 
-  async saveCurrentProject(project) {
+  async saveCurrentProject(project, options = {}) {
     await this.ensureBackendAvailable();
     const preferred = this.getPreferredBackend();
 
     try {
-      return await this.saveProject(project);
+      return await this.saveProject(project, options);
     } catch (e) {
       (loggers.storage || console).warn("保存 currentProject 失败:", preferred.backendId, e);
 
@@ -1021,7 +1031,7 @@ class StorageManager {
           this.__idbAvailabilityChecked = true;
           this.__persistPreferredBackend("localStorage");
 
-          const ok = await this.saveProject(project);
+          const ok = await this.saveProject(project, options);
 
           if (
             !this.__notifiedSaveFallback &&

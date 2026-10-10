@@ -5,7 +5,7 @@
 AI-assisted workspace for translating, reviewing and exporting localization resources.
 
 **仓库**：[https://github.com/webmturn/ai-localization](https://github.com/webmturn/ai-localization)  
-**当前版本**：v1.4.0 | [版本说明](docs/RELEASE-v1.4.0.md) | [下载与发布](https://github.com/webmturn/ai-localization/releases) | [更新日志](CHANGELOG.md)
+**当前版本**：v1.4.1 | [版本说明](docs/RELEASE-v1.4.1.md) | [下载与发布](https://github.com/webmturn/ai-localization/releases) | [更新日志](CHANGELOG.md)
 
 **常用流程**：打开文件 → 配置引擎 → 批量翻译 → 逐条校对 → 质量检查 → 导出交付。
 
@@ -15,21 +15,21 @@ AI-assisted workspace for translating, reviewing and exporting localization reso
 
 - **校对工作区**：校对优先与经典三栏可切换，支持面板默认状态、列表密度、主题和字体设置。
 - **翻译与校对**：当前文件或选中条目翻译，待翻译 / 待校对 / 已校对筛选，连续编辑、分页和批量查找替换。
-- **多格式资源**：JSON、XML、Android strings.xml、XLIFF、YAML、CSV / TSV、PO、RESX、iOS Strings、Qt TS 和文本。
+- **多格式资源**：JSON、XML、Android strings.xml、XLIFF、YAML / YML、CSV / TSV、PO / POT、RESX、iOS Strings、Qt TS 和文本；显示资源身份、复数形态与原始状态。
 - **内置与自定义引擎**：DeepSeek、OpenAI、Gemini、Claude、Google 翻译，以及 OpenAI 兼容端点；支持模型获取和连接测试。
 - **AI 语境增强**：相邻上下文、Key 参考、Priming 原文样本、多轮会话记忆和项目 Prompt 模板。
 - **术语与翻译记忆**：统一固定译名，自动复用精确匹配，管理记忆记录并导出 TMX。
 - **质量检查**：按项目或文件检查术语、占位符、变量、数字、标点、长度、空译文与重复，定位问题并导出报告。
-- **项目与交付**：多项目管理，编辑源文件后重新解析，按原资源格式或通用格式导出；自动保存、备份与文件夹存储。
+- **项目与交付**：多项目管理，编辑源文件后重新解析，按原资源格式或通用格式导出；项目 JSON 与数据备份携带原始文件，保留当前编辑，便于恢复后继续校对和导出。
 - **请求控制**：暂停、继续、取消、失败重试、进度日志和预计时间；可配置并发、超时和短期缓存。
 - **帮助与移动端**：13 个帮助栏目、61 条说明及当前快捷键；手机主题导航、底部工具栏、抽屉与深色模式。
 
 ## 📸 截图预览
 
-以下截图来自 v1.4.0 当前界面，使用虚构的应用文案演示数据。
+以下截图来自 v1.4.1 当前界面，使用虚构的应用文案演示数据。
 
 ### 桌面工作区 — 文件、翻译与逐条校对
-![v1.4.0 桌面校对工作区](docs/screenshots/01-main-interface.png)
+![v1.4.1 桌面校对工作区](docs/screenshots/01-main-interface.png)
 
 ### 帮助中心 — 功能总览与说明入口
 ![帮助中心功能总览](docs/screenshots/07-help-center.png)
@@ -54,6 +54,12 @@ AI-assisted workspace for translating, reviewing and exporting localization reso
 
 ### 设置 — 数据管理
 ![数据管理](docs/screenshots/05-settings-data.png)
+
+### 复数资源 — 注释、引用与原始状态
+![PO 复数资源与校对详情](docs/screenshots/10-resource-details.png)
+
+### 文件解析 — 编码与文本模式
+![文件解析设置](docs/screenshots/11-file-parsing-settings.png)
 
 ### 手机工作区
 ![手机翻译与校对](docs/screenshots/09-mobile-workspace.png)
@@ -161,7 +167,7 @@ npm run update-cdn
 ## 📚 文档
 
 ### 必读入口
-- [v1.4.0 发布说明](docs/RELEASE-v1.4.0.md)
+- [v1.4.1 发布说明](docs/RELEASE-v1.4.1.md)
 - [快速开始](docs/QUICK-START.md)
 - [文档索引（全部文档）](docs/INDEX.md)
 - [更新日志](CHANGELOG.md)
@@ -179,11 +185,30 @@ npm run update-cdn
 - **源文件编辑**: 文件树内编辑原始文件，重解析后自动保留既有译文
 - **术语库**: 自定义术语库，提高翻译一致性
 - **翻译记忆**: 精确命中复用译文，支持记录查询和 TMX 导出
-- **导出功能**: 支持多种格式导出
+- **导出功能**: 按原格式回写译文，支持部分条目导出；单文件失败显示原因并继续处理其他文件
 - **搜索功能**: 快速搜索翻译项并跳转定位（跨页自动翻页）
 - **分页显示**: 大量数据的分页管理
 - **查找替换**: 批量修改翻译内容
 - **翻译质量检查**: 占位符、术语、标点等自动检查（项目级/单文件级范围可选）
+
+### 📄 资源解析与原格式导出
+
+| 格式 | 解析与校对 | 原格式导出 |
+|------|------------|------------|
+| JSON | 嵌套对象、数组和根字符串；使用真实路径区分资源 | 按原路径回写选中译文，保留其他数据 |
+| CSV / TSV | 自动识别常见表头或无表头数据，优先使用 source / original 列 | 按行列定位，保留额外列、未选中内容与行尾；字段引号写法可能规范化 |
+| YAML / YML | 多文档、数组、别名及字符串路径；循环引用明确报错 | 保留非文本值、文档结构和未选中内容；重新生成文本，不保留原注释、缩进及锚点写法 |
+| PO / POT、Qt TS | 已存在的复数形态分别校对，查看注释与 fuzzy / unfinished 等状态 | 按复数形态回写，保留其他形态 |
+| Android XML、RESX | 区分字符串、数组与复数；过滤禁译和非文本资源 | 按对应资源回写译文 |
+| XLIFF、通用 XML | 分段身份、内联标签、CDATA、短文本及常见可翻译属性 | 按分段或节点路径定位，支持同文异译 |
+| iOS Strings | 资源键、字符串及 Unicode 转义；损坏引号明确报错 | 按资源键回写译文 |
+| TXT 与文本兜底 | 自动、逐行文本、简单键值三种模式；文件记住导入时的模式 | 保留原文件名、未选中行、分隔符、缩进、BOM 与行尾 |
+
+「偏好 → 文件处理」可设置编码、大小限制、格式开关与文本解析模式。已知格式解析失败会显示诊断，保留同名文件的既有内容与译文；旧编码自动识别有歧义时，可手动指定编码。
+
+文本默认自动模式仅识别明确的 `key=value`，正文中的冒号、逗号和 URL 保留整行。简单键值模式还可使用冒号、Tab、逗号与续行，反斜杠转义按字面保留，不实现完整 INI / Java properties 语义。选中的键值续行导出时合并为一行，键值译文中的实际换行需先改为单行。资源下载使用 UTF-8，不恢复源文件的旧字节编码。
+
+项目 JSON 和「偏好 → 数据管理」备份包含原始文件及当前编辑；读取原文或项目失败时停止备份并显示原因，避免导出不完整的备份。恢复旧项目时，未保存的原始文件仍需重新导入。资源导入不包含 Excel、Word 或 PDF 的专用解析器。
 
 ### 🔄 多引擎翻译
 

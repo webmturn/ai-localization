@@ -380,7 +380,9 @@ function updateTranslationItem(index, targetText) {
 
     // 更新计数器
     updateCounters();
-    if (!!String(oldTargetText).trim() !== !!String(targetText || "").trim()) {
+    const isComplete = (text, status) => !!String(text || "").trim() &&
+      (!status || ["translated", "edited", "approved"].includes(status));
+    if (isComplete(oldTargetText, oldStatus) !== isComplete(targetText, item.status)) {
       updateFileTree();
     }
 

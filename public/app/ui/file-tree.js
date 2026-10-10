@@ -163,6 +163,11 @@ function updateFileTree(files) {
     row.className =
       "flex items-center p-2 pr-8 sm:pr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer group relative overflow-hidden";
     row.dataset.filename = filename;
+    if (AppState.translations.selectedFile === filename) {
+      row.classList.add(
+        "bg-blue-50", "dark:bg-blue-900/20", "ring-1", "ring-blue-200", "dark:ring-blue-800"
+      );
+    }
 
     const iconEl = document.createElement("i");
     iconEl.className = `fa ${icon} text-gray-500 dark:text-gray-400 mr-2`;
@@ -211,7 +216,7 @@ function updateFileTree(files) {
       "transition-all duration-150 ease-out";
     actionsEl.dataset.fileActions = "true";
 
-    // 编辑源文件：仅在有原始内容或 IndexedDB 引用时显示（示例项目无源文件）
+    // 编辑源文件：仅在有原始内容或 IndexedDB 引用时显示
     const fileMeta =
       (AppState.fileMetadata && AppState.fileMetadata[filename]) ||
       (AppState.project &&

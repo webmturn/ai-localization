@@ -1,6 +1,6 @@
 {
   "name": "translation-tool",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "面向本地化资源的 AI 翻译与校对工作台，支持批量翻译、自定义引擎、术语、翻译记忆与质量检查",
   "scripts": {
     "build-css": "node scripts/build-css.mjs",

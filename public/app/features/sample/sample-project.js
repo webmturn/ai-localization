@@ -1,13 +1,13 @@
 function loadSampleProject() {
   // 模拟项目数据（经 ProjectStore 统一载入：同步 translations 视图与 fileMetadata 别名）
-  // fileMetadata 重置避免沿用上一项目残留文件；示例无原始内容，不设 contentKey
-  ProjectStore.loadProject({
+  // 示例也提供真实源文件，保存、重新解析和原格式导出使用相同资源结构。
+  const project = {
     __isSampleProject: true,
     id: "sample-project-1",
     name: "示例项目",
     sourceLanguage: "en",
     targetLanguage: "zh",
-    fileFormat: "xml",
+    fileFormat: "json",
     translationItems: [
       {
         id: "item-1",
@@ -72,14 +72,33 @@ function loadSampleProject() {
     ],
     fileMetadata: {
       "sample-project.json": {
-        size: 1024,
         type: "application/json",
         extension: "json",
+        parserId: "json",
       },
     },
     createdAt: new Date(),
     updatedAt: new Date(),
+  };
+  const resources = {};
+  project.translationItems.forEach((item, index) => {
+    const tokens = item.metadata.position.split(".");
+    let parent = resources;
+    for (const token of tokens.slice(0, -1)) {
+      parent[token] = parent[token] || {};
+      parent = parent[token];
+    }
+    parent[tokens[tokens.length - 1]] = item.sourceText;
+    Object.assign(item.metadata, {
+      pathTokens: tokens,
+      path: "$." + tokens.join("."),
+      position: "key-" + (index + 1),
+    });
   });
+  const meta = project.fileMetadata["sample-project.json"];
+  meta.originalContent = JSON.stringify(resources, null, 2);
+  meta.size = new Blob([meta.originalContent]).size;
+  ProjectStore.loadProject(project);
 
   // 更新UI
   updateFileTree();

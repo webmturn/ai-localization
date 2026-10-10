@@ -16,6 +16,7 @@ class AutoSaveManager {
     this.isPaused = false;        // 是否暂停自动保存
     this.isSaving = false;        // 是否正在保存
     this.minSaveInterval = 2000;  // 最小保存间隔(ms)
+    this.changeVersion = 0;      // 异步保存期间的新编辑不能被标记为已保存
   }
 
   // 启动自动保存
@@ -87,6 +88,7 @@ class AutoSaveManager {
 
   // 标记为已修改
   markDirty() {
+    this.changeVersion++;
     this.isDirty = true;
     if (!this.isPaused) {
       this.requestQuickSave();
@@ -129,18 +131,30 @@ class AutoSaveManager {
     }
 
     this.isSaving = true;
+    const sourceProject = AppState.project;
+    const saveVersion = this.changeVersion;
 
     try {
+      // 先固定项目和编辑快照，避免等待原文写入时切换项目或混入新编辑。
+      const payload = JSON.parse(JSON.stringify({
+        ...sourceProject,
+        translationItems: TranslationViewStore.getViewItems(),
+        terminologyList: TerminologyStore.getList(),
+        fileMetadata: AppState.fileMetadata || {},
+      }));
       const safeFileMetadata = {};
-      const fileMetadata = AppState.fileMetadata || {};
+      const fileMetadata = payload.fileMetadata;
       for (const fileName of Object.keys(fileMetadata)) {
         const meta = fileMetadata[fileName] || {};
         const cloned = { ...meta };
 
         let shouldKeepOriginalContent = false;
 
-        if (!cloned.contentKey && cloned.originalContent) {
-          const key = ensureFileContentKey(cloned, fileName);
+        // contentKey 只表示引用地址，不能证明导入时的 IndexedDB 写入已成功。
+        // 每次重试内存原文；空文件也是有效原文。只有写入成功才移除内联副本。
+        if (typeof cloned.originalContent === "string") {
+          const key = cloned.contentKey || buildFileContentKey(payload.id, fileName);
+          cloned.contentKey = key;
           try {
             await idbPutFileContent(key, cloned.originalContent);
           } catch (e) {
@@ -160,74 +174,29 @@ class AutoSaveManager {
         safeFileMetadata[fileName] = cloned;
       }
 
-      const payload = {
-        ...AppState.project,
-        // 持久化读视图稳定引用（swap 窗口期间仍为全量，与旧别名行为一致）
-        translationItems: TranslationViewStore.getViewItems(),
-        // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
-        terminologyList: TerminologyStore.getList(),
-        fileMetadata: safeFileMetadata,
-      };
-      await storageManager.saveCurrentProject(payload);
+      payload.fileMetadata = safeFileMetadata;
+      // 保留存储降级，并在存储异步操作期间持续确认这是当前项目。
+      await storageManager.saveCurrentProject(payload, {
+        shouldSetActive: () => AppState.project === sourceProject,
+      });
 
-      this.isDirty = false;
+      this.isDirty = !!AppState.project &&
+        (AppState.project !== sourceProject || this.changeVersion !== saveVersion);
       this.lastSaveTime = Date.now();
       this.saveCount++;
-      this.isSaving = false;
 
       (loggers.storage || console).debug("自动保存成功:", new Date().toLocaleTimeString(), `(第${this.saveCount}次)`);
 
       scheduleIdbGarbageCollection();
 
       // 显示保存指示器（可选）
-      this.showSaveIndicator();
+      if (!this.isDirty) this.showSaveIndicator();
     } catch (error) {
-      this.isSaving = false;
+      this.isDirty = !!AppState.project;
       const isQuotaExceeded =
         error?.name === "QuotaExceededError" ||
         error?.code === 22 ||
         error?.code === 1014;
-
-      if (isQuotaExceeded) {
-        try {
-          const slimFileMetadata = {};
-          const fileMetadata = AppState.fileMetadata || {};
-          Object.keys(fileMetadata).forEach((fileName) => {
-            const meta = fileMetadata[fileName] || {};
-            const cloned = { ...meta };
-            delete cloned.originalContent;
-            slimFileMetadata[fileName] = cloned;
-          });
-
-          const slimPayload = {
-            ...AppState.project,
-            // 持久化读视图稳定引用（swap 窗口期间仍为全量，与旧别名行为一致）
-            translationItems: TranslationViewStore.getViewItems(),
-            // 运行时唯一数据源：TerminologyStore getter（消灭双源兜底读）
-            terminologyList: TerminologyStore.getList(),
-            fileMetadata: slimFileMetadata,
-          };
-          await storageManager.saveCurrentProject(slimPayload);
-
-          this.isDirty = false;
-          this.lastSaveTime = Date.now();
-          (loggers.storage || console).warn(
-            "自动保存降级：由于 localStorage 空间不足，已跳过保存原始文件内容"
-          );
-        } catch (fallbackError) {
-          this.errorCount++;
-          this.lastError = { timestamp: Date.now(), message: fallbackError?.message };
-          (loggers.storage || console).error("自动保存失败（降级后仍失败）:", fallbackError);
-          if (typeof showNotification === "function") {
-            showNotification(
-              "error",
-              "自动保存失败",
-              "本地存储空间不足，已无法继续自动保存。建议：清理浏览器缓存 / 导出项目 / 后续切换到 IndexedDB 或文件存储。"
-            );
-          }
-        }
-        return;
-      }
 
       this.errorCount++;
       this.lastError = { timestamp: Date.now(), message: error?.message };
@@ -236,8 +205,15 @@ class AutoSaveManager {
         showNotification(
           "error",
           "自动保存失败",
-          error?.message || "自动保存失败，请打开控制台查看详细错误"
+          isQuotaExceeded
+            ? "本地存储空间不足，未保存本次修改。请先导出项目备份，再清理不需要的历史项目；原文仍保留在当前页面，请勿关闭。"
+            : error?.message || "自动保存失败，请打开控制台查看详细错误"
         );
+      }
+    } finally {
+      this.isSaving = false;
+      if (this.isDirty && AppState.project && !this.isPaused) {
+        this.requestQuickSave();
       }
     }
   }
@@ -282,6 +258,7 @@ class AutoSaveManager {
       this.quickSaveTimerId = null;
     }
     
+    this.changeVersion++;
     this.isDirty = true;
     await this.saveProject();
     return !this.isDirty; // 返回是否保存成功

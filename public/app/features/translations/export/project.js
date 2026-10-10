@@ -161,49 +161,94 @@ function openProject() {
   input.click();
 }
 
+// 下载和迁移必须自带原文件，不能依赖另一浏览器无法访问的 IndexedDB 引用。
+App.features.translations = App.features.translations || {};
+App.features.translations.export = App.features.translations.export || {};
+App.features.translations.export.buildPortableProject = async function (project) {
+  if (!project || typeof project !== "object") throw new Error("没有可导出的项目");
+  // 在第一次等待前固定快照，避免期间编辑或切换项目混入下载的数据。
+  const snapshot = JSON.parse(JSON.stringify(project));
+  const fileMetadata = snapshot.fileMetadata || {};
+  const missingFiles = [];
+  await Promise.all(Object.keys(fileMetadata).map(async (fileName) => {
+    const meta = fileMetadata[fileName];
+    if (meta && typeof meta.originalContent === "string") return;
+    try {
+      if (meta?.contentKey && typeof idbGetFileContent === "function") {
+        const content = await idbGetFileContent(meta.contentKey);
+        if (typeof content === "string") {
+          meta.originalContent = content;
+          return;
+        }
+      }
+    } catch (e) {
+      (loggers.storage || console).error(`导出项目时读取 ${fileName} 原始内容失败:`, e);
+    }
+    missingFiles.push(fileName);
+  }));
+  if (missingFiles.length) {
+    throw new Error(`以下文件缺少原始内容：${missingFiles.join("、")}。请先导出译文副本，再重新导入原文件后重试，避免同名导入覆盖当前校对结果。`);
+  }
+  return snapshot;
+};
+
 // 保存项目
 async function saveProject() {
   if (!AppState.project) {
     showNotification("warning", "无项目", "请先创建或打开项目");
     return;
   }
+  const sourceProject = AppState.project;
 
   // 更新项目数据（视图条目引用与 project.translationItems 由 ProjectStore 维持同步，无需重同步）
   ProjectStore.touchProject();
   // 术语快照由 TerminologyStore 在每次变更时经 ProjectStore 同步；此处兜底对齐
   ProjectStore.setTerminologyList(TerminologyStore.getList());
 
-  // 保存原始内容到IndexedDB，项目文件仅保存引用（contentKey）
-  hydrateFileMetadataContentKeys(AppState.project?.id);
-  const safeFileMetadata = {};
-  const fileMetadata = AppState.fileMetadata || {};
-  Object.keys(fileMetadata).forEach((fileName) => {
-    const meta = fileMetadata[fileName] || {};
-    const cloned = { ...meta };
-    delete cloned.originalContent;
-    safeFileMetadata[fileName] = cloned;
-  });
+  // 项目文件包含原文件，内部保存仍以 contentKey 为主。
+  let projectData;
+  try {
+    projectData = await App.features.translations.export.buildPortableProject({
+      ...AppState.project,
+      fileFormat: AppState.project.fileFormat || "mixed",
+      // 持久化读视图稳定引用（质量检查 swap 窗口期间仍为全量，与旧别名行为一致）
+      translationItems: TranslationViewStore.getViewItems(),
+      terminologyList: TerminologyStore.getList(),
+      promptTemplate: AppState.project.promptTemplate,
+      fileMetadata: AppState.fileMetadata || {},
+      version: "1.1.0",
+    });
+  } catch (e) {
+    (loggers.storage || console).error("打包完整项目失败:", e);
+    showNotification("error", "项目保存失败", e.message || "无法读取原始文件内容");
+    return;
+  }
 
-  // 创建项目数据对象
-  const projectData = {
-    id: AppState.project.id,
-    name: AppState.project.name,
-    sourceLanguage: AppState.project.sourceLanguage,
-    targetLanguage: AppState.project.targetLanguage,
-    fileFormat: AppState.project.fileFormat || "mixed",
-    // 持久化读视图稳定引用（质量检查 swap 窗口期间仍为全量，与旧别名行为一致）
-    translationItems: TranslationViewStore.getViewItems(),
-    terminologyList: TerminologyStore.getList(),
-    promptTemplate: AppState.project.promptTemplate,
-    fileMetadata: safeFileMetadata,
-    createdAt: AppState.project.createdAt,
-    updatedAt: AppState.project.updatedAt,
-    version: "1.1.0",
-  };
+  const safeFileMetadata = {};
+  for (const [fileName, meta] of Object.entries(projectData.fileMetadata || {})) {
+    const cloned = { ...meta };
+    const key = cloned.contentKey || buildFileContentKey(projectData.id, fileName);
+    cloned.contentKey = key;
+    try {
+      await idbPutFileContent(key, cloned.originalContent);
+      delete cloned.originalContent;
+    } catch (e) {
+      // 引用存在不代表缓存写入成功；保留原文可让本地存储的降级保存继续恢复。
+      (loggers.storage || console).error("手动保存时写入原始内容失败:", e);
+    }
+    safeFileMetadata[fileName] = cloned;
+  }
 
   let persistedOk = true;
   try {
-    await storageManager.saveCurrentProject(projectData);
+    const localPayload = { ...projectData, fileMetadata: safeFileMetadata };
+    const shouldSetActive = () => AppState.project === sourceProject;
+    if (shouldSetActive()) {
+      await storageManager.saveCurrentProject(localPayload, { shouldSetActive });
+    } else {
+      // 原文读取或写入期间切换了项目，旧快照只能更新历史项目，不能切回活跃项目。
+      await storageManager.saveCurrentProject(localPayload, { setActive: false, shouldSetActive });
+    }
   } catch (e) {
     persistedOk = false;
     (loggers.storage || console).error("手动保存时持久化 currentProject 失败:", e);
@@ -219,7 +264,7 @@ async function saveProject() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${AppState.project.name}.json`;
+  a.download = `${projectData.name}.json`;
 
   // 触发下载
   document.body.appendChild(a);
@@ -232,7 +277,7 @@ async function saveProject() {
     showNotification(
       "success",
       "项目已保存",
-      `项目 "${AppState.project.name}" 已成功保存`
+      `项目 "${projectData.name}" 已成功保存`
     );
   } else {
     showNotification(

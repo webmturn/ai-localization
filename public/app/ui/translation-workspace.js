@@ -143,6 +143,7 @@
       if (!changed) return;
       ProjectStore.touchProject();
       autoSaveManager.markDirty();
+      updateFileTree();
       applySearchFilter({ preservePage: true });
       TranslationViewStore.setSelection(-1);
       TranslationViewStore.setMultiSelection([]);

@@ -19,6 +19,31 @@ function registerEventListenersDataManagement(ctx) {
   const disconnectFileSystemBtn = DOMCache.get("disconnectFileSystemBtn");
   const storageBackendStatus = DOMCache.get("storageBackendStatus");
 
+  function getCurrentProjectSnapshot() {
+    if (!AppState.project) return null;
+    // 备份当前编辑，不等待自动保存计时器；克隆后再进行异步原文读取。
+    return JSON.parse(JSON.stringify({
+      ...AppState.project,
+      translationItems: TranslationViewStore.getViewItems(),
+      terminologyList: TerminologyStore.getList(),
+      fileMetadata: AppState.fileMetadata || {},
+    }));
+  }
+
+  function downloadBackup(data, fileName) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   async function updateStorageBackendStatus() {
     if (!storageBackendStatus) return;
     const backend =
@@ -333,40 +358,57 @@ function registerEventListenersDataManagement(ctx) {
       exportAllBtn,
       "click",
       async () => {
-        const currentProject = await storageManager
-          .loadCurrentProject()
-          .catch(() => null);
-        const projectsIndex = await storageManager
-          .listProjects()
-          .catch(() => []);
-        const activeProjectId = await storageManager
-          .getActiveProjectId()
-          .catch(() => null);
-        const projectsData = await storageManager
-          .loadAllProjectsData()
-          .catch(() => []);
-        const allData = {
-          version: "1.1.0",
-          exportDate: new Date().toISOString(),
-          settings: SettingsCache.get(),
-          projectsIndex,
-          activeProjectId,
-          projectsData,
-          currentProject,
-        };
-
-        const blob = new Blob([JSON.stringify(allData, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `translator-all-data-${new Date().getTime()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showNotification("success", "导出成功", "所有数据已导出为JSON文件");
+        try {
+          const terminologyList = JSON.parse(JSON.stringify(TerminologyStore.getList() || []));
+          const currentProject = getCurrentProjectSnapshot() ||
+            await storageManager.loadCurrentProject();
+          const projectsIndex = await storageManager.listProjects();
+          const activeProjectId = currentProject?.id ||
+            await storageManager.getActiveProjectId();
+          // 不使用会吞掉读取失败的 loadAllProjectsData，完整备份不能悄悄缺项目。
+          const savedProjects = await Promise.all((projectsIndex || [])
+            .filter((entry) => entry && entry.id)
+            .map(async (entry) => {
+              if (currentProject?.id === entry.id) return currentProject;
+              const project = await storageManager.loadProjectById(entry.id);
+              if (!project) {
+                throw new Error(`无法读取项目“${entry.name || entry.id}”，请重试后再导出完整备份。`);
+              }
+              return project;
+            }));
+          const projectsById = new Map(savedProjects.map((project) => [project.id, project]));
+          if (currentProject) projectsById.set(currentProject.id, currentProject);
+          const projectsData = await Promise.all(Array.from(projectsById.values())
+            .map((project) => App.features.translations.export.buildPortableProject(project)));
+          const indexById = new Map((projectsIndex || []).map((entry) => [entry.id, entry]));
+          if (currentProject) {
+            indexById.set(currentProject.id, {
+              ...indexById.get(currentProject.id),
+              id: currentProject.id,
+              name: currentProject.name,
+              sourceLanguage: currentProject.sourceLanguage,
+              targetLanguage: currentProject.targetLanguage,
+              createdAt: currentProject.createdAt,
+              updatedAt: currentProject.updatedAt,
+            });
+          }
+          downloadBackup({
+            version: "1.1.0",
+            exportDate: new Date().toISOString(),
+            settings: SettingsCache.get(),
+            terminologyList,
+            projectsIndex: Array.from(indexById.values()),
+            activeProjectId,
+            projectsData,
+            currentProject: currentProject
+              ? projectsData.find((project) => project.id === currentProject.id)
+              : null,
+          }, `translator-all-data-${Date.now()}.json`);
+          showNotification("success", "导出成功", "所有数据已导出为JSON文件，包含原始文件与当前编辑");
+        } catch (error) {
+          (loggers.storage || console).error("导出全部数据失败:", error);
+          showNotification("error", "导出失败", error?.message || "无法读取完整项目数据，请重试");
+        }
       },
       { tag: "data", scope: "dataManagement", label: "exportAllBtn:click" }
     );
@@ -378,31 +420,23 @@ function registerEventListenersDataManagement(ctx) {
       exportProjectBtn,
       "click",
       async () => {
-        const project = await storageManager
-          .loadCurrentProject()
-          .catch(() => null);
-        if (project) {
-          const data = {
+        try {
+          const currentProject = getCurrentProjectSnapshot() ||
+            await storageManager.loadCurrentProject();
+          if (!currentProject) {
+            showNotification("warning", "无数据", "当前没有打开的项目");
+            return;
+          }
+          const project = await App.features.translations.export.buildPortableProject(currentProject);
+          downloadBackup({
             version: "1.1.0",
             exportDate: new Date().toISOString(),
             project,
-          };
-          const blob = new Blob([JSON.stringify(data, null, 2)], {
-            type: "application/json",
-          });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `project-${
-            project.name || "untitled"
-          }-${new Date().getTime()}.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showNotification("success", "导出成功", "项目数据已导出");
-        } else {
-          showNotification("warning", "无数据", "当前没有打开的项目");
+          }, `project-${project.name || "untitled"}-${Date.now()}.json`);
+          showNotification("success", "导出成功", "项目数据已导出，包含原始文件与当前编辑");
+        } catch (error) {
+          (loggers.storage || console).error("导出当前项目失败:", error);
+          showNotification("error", "导出失败", error?.message || "无法读取完整项目数据，请重试");
         }
       },
       { tag: "data", scope: "dataManagement", label: "exportProjectBtn:click" }
